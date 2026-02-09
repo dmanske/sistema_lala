@@ -11,7 +11,13 @@ import {
     LayoutGrid,
     Phone,
     MessageCircle,
-    MapPin
+    MapPin,
+    Calendar,
+    CreditCard,
+    Check,
+    Clock,
+    Mail,
+    MoreVertical
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -225,21 +231,16 @@ export default function ClientsPage() {
                     </Table>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
                     {isLoading ? (
-                        Array.from({ length: 8 }).map((_, i) => (
-                            <Card key={i} className="border-white/20 bg-card/40 backdrop-blur-xl">
-                                <CardHeader className="flex flex-row items-center gap-4 pb-2">
-                                    <Skeleton className="h-12 w-12 rounded-full" />
-                                    <div className="space-y-2">
-                                        <Skeleton className="h-4 w-[120px]" />
-                                        <Skeleton className="h-3 w-[80px]" />
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-2">
-                                        <Skeleton className="h-3 w-full" />
-                                        <Skeleton className="h-3 w-full" />
+                        Array.from({ length: 4 }).map((_, i) => (
+                            <Card key={i} className="border-white/20 bg-white/40 backdrop-blur-xl h-[180px]">
+                                <CardContent className="flex h-full items-center gap-6 p-6">
+                                    <Skeleton className="h-24 w-24 rounded-full flex-shrink-0" />
+                                    <div className="space-y-3 flex-1">
+                                        <Skeleton className="h-6 w-3/4" />
+                                        <Skeleton className="h-4 w-1/2" />
+                                        <Skeleton className="h-4 w-2/3" />
                                     </div>
                                 </CardContent>
                             </Card>
@@ -250,43 +251,86 @@ export default function ClientsPage() {
                         </div>
                     ) : (
                         clients.map((client) => (
-                            <Link href={`/clients/${client.id}`} key={client.id} className="block group h-full">
-                                <Card className="h-full border-white/20 bg-card/40 backdrop-blur-xl shadow-lg shadow-purple-500/5 hover:shadow-purple-500/20 hover:bg-card/60 transition-all duration-300 transform hover:-translate-y-1">
-                                    <CardHeader className="flex flex-row items-center gap-4 pb-4">
-                                        <Avatar className="h-12 w-12 border-2 border-white/50 group-hover:border-primary transition-colors">
-                                            <AvatarImage src={client.photoUrl} alt={client.name} />
-                                            <AvatarFallback className="text-lg bg-primary/10 text-primary">
-                                                {getInitials(client.name)}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex flex-col">
-                                            <CardTitle className="text-base font-bold text-foreground group-hover:text-primary transition-colors">
-                                                {formatName(client.name)}
-                                            </CardTitle>
-                                            <div className="mt-1">
-                                                {getStatusBadge(client.status)}
+                            <Link href={`/clients/${client.id}`} key={client.id} className="block group">
+                                <Card className="border-none bg-white/60 hover:bg-white/90 backdrop-blur-xl shadow-lg shadow-purple-500/5 hover:shadow-purple-500/15 transition-all duration-300 rounded-2xl overflow-hidden group">
+                                    <CardContent className="p-0 flex flex-col sm:flex-row items-stretch">
+                                        <div className="p-6 flex flex-row items-start gap-6 flex-1">
+                                            {/* Avatar with Status Dot */}
+                                            <div className="relative flex-shrink-0">
+                                                <Avatar className="h-24 w-24 border-2 border-white shadow-md transition-transform group-hover:scale-105 duration-300">
+                                                    <AvatarImage src={client.photoUrl} alt={client.name} />
+                                                    <AvatarFallback className="text-2xl bg-primary/10 text-primary font-bold">
+                                                        {getInitials(client.name)}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div className={`absolute bottom-1 right-1 h-5 w-5 rounded-full border-4 border-white shadow-sm ${client.status === 'ACTIVE' ? 'bg-green-500' : 'bg-gray-300'}`} />
+                                            </div>
+
+                                            {/* Center Details */}
+                                            <div className="flex-1 min-w-0 space-y-1.5 pt-1">
+                                                <h3 className="text-xl font-bold text-slate-800 truncate font-heading group-hover:text-primary transition-colors">
+                                                    {formatName(client.name)}
+                                                </h3>
+
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-2.5 text-slate-600">
+                                                        <Phone className="h-4 w-4 text-green-500/70" />
+                                                        <span className="text-sm font-medium">{formatPhone(client.phone)}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2.5 text-slate-500">
+                                                        <CreditCard className="h-4 w-4 text-purple-500/70" />
+                                                        <span className="text-sm">000.000.000-00</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2.5 text-slate-500">
+                                                        <MapPin className="h-4 w-4 text-blue-500/70" />
+                                                        <span className="text-sm truncate">{client.city}, SC</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2.5 text-slate-400">
+                                                        <Calendar className="h-4 w-4 text-slate-400" />
+                                                        <span className="text-sm italic">Nascimento: {formatDate(client.birthDate)}</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </CardHeader>
-                                    <CardContent className="space-y-3">
-                                        <div className="flex items-center gap-3 text-sm text-muted-foreground group-hover:text-foreground/80 transition-colors">
-                                            <Phone className="h-4 w-4 text-primary/60" />
-                                            <span>{formatPhone(client.phone)}</span>
-                                        </div>
-                                        <div className="flex items-center gap-3 text-sm text-muted-foreground group-hover:text-foreground/80 transition-colors">
-                                            <MessageCircle className="h-4 w-4 text-primary/60" />
-                                            <span>{formatPhone(client.whatsapp)}</span>
-                                        </div>
-                                        <div className="flex items-center gap-3 text-sm text-muted-foreground group-hover:text-foreground/80 transition-colors">
-                                            <MapPin className="h-4 w-4 text-primary/60" />
-                                            <span className="truncate">{client.city}</span>
+
+                                        {/* Right Meta Info & Actions */}
+                                        <div className="px-6 py-6 sm:pl-0 flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-3 flex-shrink-0 border-t sm:border-t-0 sm:border-l border-slate-100/50">
+                                            <div className="flex flex-col items-end gap-1.5">
+                                                <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                                                    <Clock className="h-3.5 w-3.5" />
+                                                    <span>{format(new Date(client.createdAt), 'dd/MM', { locale: ptBR })}</span>
+                                                </div>
+
+                                                <div className="flex items-center gap-2">
+                                                    <div className="bg-green-50 text-green-600 p-1 rounded-full border border-green-100">
+                                                        <MessageCircle className="h-4 w-4 fill-green-600/10" />
+                                                    </div>
+                                                    <div className="flex items-center gap-1 text-[11px] font-bold text-green-600 bg-green-50/50 px-2 py-0.5 rounded-full border border-green-100/50">
+                                                        <Check className="h-3 w-3" />
+                                                        <span>FACIAL OK</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-2 mt-auto">
+                                                <Button
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    className="h-8 gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 border-none rounded-lg text-xs"
+                                                >
+                                                    <Mail className="h-3.5 w-3.5" />
+                                                    Email
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 rounded-full text-slate-400 hover:text-slate-600"
+                                                >
+                                                    <MoreVertical className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         </div>
                                     </CardContent>
-                                    <CardFooter className="pt-0 pb-4 justify-between border-t border-white/10 mt-auto pt-4">
-                                        <span className="text-xs text-muted-foreground">
-                                            Cliente desde {new Date(client.createdAt).getFullYear()}
-                                        </span>
-                                    </CardFooter>
                                 </Card>
                             </Link>
                         ))
