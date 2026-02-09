@@ -430,50 +430,77 @@ export default function AgendaPage() {
                                 {getServiceNames(apt.services)}
                             </div>
                         </div>
-                        <div className="flex items-center justify-between pt-1">
-                            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Status Atual</span>
-                            {getStatusBadge(apt.status)}
+                        <div className="space-y-2 pt-1">
+                            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Alterar Status</span>
+                            <div className="flex flex-wrap gap-1.5">
+                                <button
+                                    onClick={() => handleUpdateStatus(apt.id, "PENDING")}
+                                    className={cn(
+                                        "px-2.5 py-1 text-xs font-medium rounded-lg border transition-all",
+                                        apt.status === "PENDING"
+                                            ? "bg-amber-500 text-white border-amber-500"
+                                            : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+                                    )}
+                                >
+                                    Pendente
+                                </button>
+                                <button
+                                    onClick={() => handleUpdateStatus(apt.id, "CONFIRMED")}
+                                    className={cn(
+                                        "px-2.5 py-1 text-xs font-medium rounded-lg border transition-all",
+                                        apt.status === "CONFIRMED"
+                                            ? "bg-blue-500 text-white border-blue-500"
+                                            : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                                    )}
+                                >
+                                    Confirmado
+                                </button>
+                                <button
+                                    onClick={() => handleUpdateStatus(apt.id, "DONE")}
+                                    className={cn(
+                                        "px-2.5 py-1 text-xs font-medium rounded-lg border transition-all",
+                                        apt.status === "DONE"
+                                            ? "bg-emerald-500 text-white border-emerald-500"
+                                            : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                                    )}
+                                >
+                                    Finalizado
+                                </button>
+                                <button
+                                    onClick={() => handleUpdateStatus(apt.id, "CANCELED")}
+                                    className={cn(
+                                        "px-2.5 py-1 text-xs font-medium rounded-lg border transition-all",
+                                        apt.status === "CANCELED"
+                                            ? "bg-slate-500 text-white border-slate-500"
+                                            : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                                    )}
+                                >
+                                    Cancelado
+                                </button>
+                                <button
+                                    onClick={() => handleUpdateStatus(apt.id, "NO_SHOW")}
+                                    className={cn(
+                                        "px-2.5 py-1 text-xs font-medium rounded-lg border transition-all",
+                                        apt.status === "NO_SHOW"
+                                            ? "bg-rose-500 text-white border-rose-500"
+                                            : "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"
+                                    )}
+                                >
+                                    Não Compareceu
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex gap-2 mt-2">
-                        {/* Ações Dinâmicas */}
-                        {apt.status === "PENDING" && (
-                            <Button
-                                className="flex-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20"
-                                onClick={() => handleUpdateStatus(apt.id, "CONFIRMED")}
-                            >
-                                Confirmar
-                            </Button>
-                        )}
-                        {apt.status === "CONFIRMED" && (
-                            <Button
-                                className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20"
-                                onClick={() => handleUpdateStatus(apt.id, "DONE")}
-                            >
-                                Finalizar
-                            </Button>
-                        )}
-
+                    <div className="p-3 bg-slate-50/50 border-t border-slate-100 flex gap-2 mt-2">
                         <Button
                             variant="outline"
-                            className="flex-1 rounded-xl hover:bg-white hover:border-slate-300"
+                            size="sm"
+                            className="flex-1 rounded-lg text-sm"
                             onClick={() => handleEdit(apt)}
                         >
-                            Editar
+                            Editar Agendamento
                         </Button>
-
-                        {apt.status !== "CANCELED" && apt.status !== "DONE" && (
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="rounded-xl text-rose-400 hover:text-rose-600 hover:bg-rose-50"
-                                onClick={() => handleUpdateStatus(apt.id, "CANCELED")}
-                            >
-                                <span className="sr-only">Cancelar</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 18 18" /></svg>
-                            </Button>
-                        )}
                     </div>
                 </PopoverContent>
             </Popover>
