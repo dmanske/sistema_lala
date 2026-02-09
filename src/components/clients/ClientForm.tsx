@@ -68,8 +68,8 @@ export function ClientForm({ initialData, mode }: ClientFormProps) {
         try {
             const cleanData = {
                 ...data,
-                phone: normalizePhone(data.phone),
-                whatsapp: normalizePhone(data.whatsapp),
+                phone: data.phone ? normalizePhone(data.phone) : "",
+                whatsapp: data.whatsapp ? normalizePhone(data.whatsapp) : "",
             };
 
             if (mode === "create") {
@@ -125,7 +125,7 @@ export function ClientForm({ initialData, mode }: ClientFormProps) {
                         name="phone"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Telefone</FormLabel>
+                                <FormLabel>Telefone (Opcional)</FormLabel>
                                 <FormControl>
                                     <Input placeholder="(00) 0000-0000" {...field} />
                                 </FormControl>
@@ -139,7 +139,7 @@ export function ClientForm({ initialData, mode }: ClientFormProps) {
                         name="whatsapp"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>WhatsApp</FormLabel>
+                                <FormLabel>WhatsApp (Opcional)</FormLabel>
                                 <FormControl>
                                     <Input placeholder="(00) 00000-0000" {...field} />
                                 </FormControl>

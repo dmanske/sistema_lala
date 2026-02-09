@@ -7,8 +7,8 @@ export const ClientSchema = z.object({
   id: z.string(),
   name: z.string().min(1, 'Name is required'),
   birthDate: z.string().min(1, 'Birth date is required'), // ISO format YYYY-MM-DD
-  phone: z.string().min(1, 'Phone is required'),
-  whatsapp: z.string().min(1, 'WhatsApp is required'),
+  phone: z.string().optional(),
+  whatsapp: z.string().optional(),
   city: z.string().min(1, 'City is required'), // Required in form, hidden in list
   notes: z.string().optional(),
   photoUrl: z.string().optional(),
@@ -20,11 +20,11 @@ export const ClientSchema = z.object({
 
 export type Client = z.infer<typeof ClientSchema>;
 
-export const CreateClientSchema = ClientSchema.omit({ 
-  id: true, 
-  createdAt: true, 
-  creditBalance: true, 
-  hasHistory: true 
+export const CreateClientSchema = ClientSchema.omit({
+  id: true,
+  createdAt: true,
+  creditBalance: true,
+  hasHistory: true
 });
 
 export type CreateClientInput = z.infer<typeof CreateClientSchema>;

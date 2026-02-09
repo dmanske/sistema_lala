@@ -137,12 +137,16 @@ export default function ClientProfilePage() {
                                 {getStatusBadge(client.status)}
                             </div>
                             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                                <span className="flex items-center gap-1.5 bg-white/50 px-3 py-1 rounded-full border border-white/20">
-                                    <Phone className="h-3.5 w-3.5 text-primary" /> {formatPhone(client.phone)}
-                                </span>
-                                <span className="flex items-center gap-1.5 bg-white/50 px-3 py-1 rounded-full border border-white/20">
-                                    <MessageCircle className="h-3.5 w-3.5 text-green-600" /> {formatPhone(client.whatsapp)}
-                                </span>
+                                {client.phone && (
+                                    <span className="flex items-center gap-1.5 bg-white/50 px-3 py-1 rounded-full border border-white/20">
+                                        <Phone className="h-3.5 w-3.5 text-primary" /> {formatPhone(client.phone)}
+                                    </span>
+                                )}
+                                {client.whatsapp && (
+                                    <span className="flex items-center gap-1.5 bg-white/50 px-3 py-1 rounded-full border border-white/20">
+                                        <MessageCircle className="h-3.5 w-3.5 text-green-600" /> {formatPhone(client.whatsapp)}
+                                    </span>
+                                )}
                                 <span className="flex items-center gap-1.5 bg-white/50 px-3 py-1 rounded-full border border-white/20">
                                     <MapPin className="h-3.5 w-3.5 text-orange-500" /> {client.city}
                                 </span>

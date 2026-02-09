@@ -75,7 +75,7 @@ export class LocalStorageClientRepository implements ClientRepository {
             clients = clients.filter(
                 (c) =>
                     c.name.toLowerCase().includes(searchLower) ||
-                    c.phone.includes(searchLower)
+                    (c.phone && c.phone.includes(searchLower))
             );
         }
 

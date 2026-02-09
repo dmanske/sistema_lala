@@ -17,7 +17,9 @@ import {
     Check,
     Clock,
     Mail,
-    MoreVertical
+    MoreVertical,
+    ChevronLeft,
+    ChevronRight,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -58,6 +60,8 @@ export default function ClientsPage() {
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("ALL");
     const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
 
     const repo = new LocalStorageClientRepository();
     const service = new ClientService(repo);
@@ -85,6 +89,17 @@ export default function ClientsPage() {
 
         return () => clearTimeout(timer);
     }, [search, statusFilter]);
+
+    // Reset pagination when search or filter changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, statusFilter]);
+
+    const totalPages = Math.ceil(clients.length / ITEMS_PER_PAGE);
+    const paginatedClients = clients.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
 
     const getStatusBadge = (status: string) => {
         switch (status) {
@@ -195,14 +210,14 @@ export default function ClientsPage() {
                                         <TableCell><Skeleton className="h-4 w-[80px]" /></TableCell>
                                     </TableRow>
                                 ))
-                            ) : clients.length === 0 ? (
+                            ) : paginatedClients.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={5} className="h-24 text-center text-muted-foreground border-white/10">
                                         Nenhum cliente encontrado.
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                clients.map((client) => (
+                                paginatedClients.map((client) => (
                                     <TableRow
                                         key={client.id}
                                         className="cursor-pointer group hover:bg-white/40 border-white/10 transition-colors relative"
@@ -213,8 +228,8 @@ export default function ClientsPage() {
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex flex-col">
-                                                <span>{formatPhone(client.phone)}</span>
-                                                <span className="text-xs text-muted-foreground">{formatPhone(client.whatsapp)}</span>
+                                                <span>{client.phone ? formatPhone(client.phone) : "-"}</span>
+                                                {client.whatsapp && <span className="text-xs text-muted-foreground">{formatPhone(client.whatsapp)}</span>}
                                             </div>
                                         </TableCell>
                                         <TableCell>
@@ -245,12 +260,12 @@ export default function ClientsPage() {
                                 </CardContent>
                             </Card>
                         ))
-                    ) : clients.length === 0 ? (
+                    ) : paginatedClients.length === 0 ? (
                         <div className="col-span-full text-center py-12 text-muted-foreground bg-card/30 rounded-2xl border border-white/10">
                             Nenhum cliente encontrado.
                         </div>
                     ) : (
-                        clients.map((client) => (
+                        paginatedClients.map((client) => (
                             <Link href={`/clients/${client.id}`} key={client.id} className="block group">
                                 <Card className="border-none bg-white/60 hover:bg-white/90 backdrop-blur-xl shadow-lg shadow-purple-500/5 hover:shadow-purple-500/15 transition-all duration-300 rounded-2xl overflow-hidden group">
                                     <CardContent className="p-0 flex flex-col sm:flex-row items-stretch">
@@ -273,10 +288,12 @@ export default function ClientsPage() {
                                                 </h3>
 
                                                 <div className="space-y-1">
-                                                    <div className="flex items-center gap-2.5 text-slate-600">
-                                                        <Phone className="h-4 w-4 text-green-500/70" />
-                                                        <span className="text-sm font-medium">{formatPhone(client.phone)}</span>
-                                                    </div>
+                                                    {client.phone && (
+                                                        <div className="flex items-center gap-2.5 text-slate-600">
+                                                            <Phone className="h-4 w-4 text-green-500/70" />
+                                                            <span className="text-sm font-medium">{formatPhone(client.phone)}</span>
+                                                        </div>
+                                                    )}
                                                     <div className="flex items-center gap-2.5 text-slate-500">
                                                         <CreditCard className="h-4 w-4 text-purple-500/70" />
                                                         <span className="text-sm">000.000.000-00</span>
@@ -335,6 +352,38 @@ export default function ClientsPage() {
                             </Link>
                         ))
                     )}
+                </div>
+            )}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pb-10">
+                    <p className="text-sm text-muted-foreground">
+                        Mostrando <span className="font-medium text-foreground">{paginatedClients.length}</span> de <span className="font-medium text-foreground">{clients.length}</span> clientes
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="bg-white/50 border-white/20 rounded-xl"
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                        >
+                            <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+                        </Button>
+                        <div className="flex items-center bg-white/40 border border-white/20 rounded-xl px-4 py-1.5 min-w-[100px] justify-center text-sm">
+                            Página <span className="font-bold text-primary mx-1">{currentPage}</span> de <span className="font-medium ml-1">{totalPages}</span>
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="bg-white/50 border-white/20 rounded-xl transition-all"
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                        >
+                            Próximo <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                    </div>
                 </div>
             )}
         </div>
