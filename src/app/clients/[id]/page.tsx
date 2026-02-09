@@ -47,7 +47,7 @@ import { formatDate } from "@/core/formatters/date";
 // Tabs
 import { ClientSummaryTab } from "@/components/clients/tabs/ClientSummaryTab";
 import { ClientAppointmentsTab } from "@/components/clients/tabs/ClientAppointmentsTab";
-import { ClientHistoryTab } from "@/components/clients/tabs/ClientHistoryTab";
+
 import { ClientCreditTab } from "@/components/clients/tabs/ClientCreditTab";
 
 export default function ClientProfilePage() {
@@ -239,9 +239,6 @@ export default function ClientProfilePage() {
                             <LayoutDashboard className="h-4 w-4 mr-2 hidden sm:inline" /> Visão Geral
                         </TabsTrigger>
                         <TabsTrigger value="appointments" className="flex-1 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary py-2.5 px-6">
-                            <CalendarDays className="h-4 w-4 mr-2 hidden sm:inline" /> Agenda
-                        </TabsTrigger>
-                        <TabsTrigger value="history" className="flex-1 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary py-2.5 px-6">
                             <History className="h-4 w-4 mr-2 hidden sm:inline" /> Histórico
                         </TabsTrigger>
                         <TabsTrigger value="credit" className="flex-1 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary py-2.5 px-6">
@@ -256,9 +253,6 @@ export default function ClientProfilePage() {
                     </TabsContent>
                     <TabsContent value="appointments">
                         <ClientAppointmentsTab clientId={client.id} />
-                    </TabsContent>
-                    <TabsContent value="history">
-                        <ClientHistoryTab />
                     </TabsContent>
                     <TabsContent value="credit">
                         <ClientCreditTab clientId={client.id} creditBalance={client.creditBalance} />

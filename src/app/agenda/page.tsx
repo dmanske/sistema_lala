@@ -430,6 +430,16 @@ export default function AgendaPage() {
                                 {getServiceNames(apt.services)}
                             </div>
                         </div>
+
+                        {apt.notes && (
+                            <div className="space-y-1">
+                                <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Observação</span>
+                                <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-100 text-sm italic text-slate-600">
+                                    "{apt.notes}"
+                                </div>
+                            </div>
+                        )}
+
                         <div className="space-y-2 pt-1">
                             <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Alterar Status</span>
                             <div className="flex flex-wrap gap-1.5">
