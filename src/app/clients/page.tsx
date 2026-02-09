@@ -2,17 +2,16 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
     Plus,
     Search,
     Filter,
     LayoutList,
     LayoutGrid,
-    MoreVertical,
     Phone,
     MessageCircle,
-    MapPin,
-    Calendar
+    MapPin
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -38,14 +37,6 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 import { Client } from "@/core/domain/Client";
 import { ClientService } from "@/core/services/ClientService";
@@ -55,6 +46,7 @@ import { formatPhone } from "@/core/formatters/phone";
 import { formatDate } from "@/core/formatters/date";
 
 export default function ClientsPage() {
+    const router = useRouter(); // Hook needed for navigation
     const [clients, setClients] = useState<Client[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState("");
@@ -205,11 +197,13 @@ export default function ClientsPage() {
                                 </TableRow>
                             ) : (
                                 clients.map((client) => (
-                                    <TableRow key={client.id} className="cursor-pointer group hover:bg-white/40 border-white/10 transition-colors">
+                                    <TableRow
+                                        key={client.id}
+                                        className="cursor-pointer group hover:bg-white/40 border-white/10 transition-colors relative"
+                                        onClick={() => router.push(`/clients/${client.id}`)}
+                                    >
                                         <TableCell className="font-medium">
-                                            <Link href={`/clients/${client.id}`} className="block w-full h-full text-foreground/90 group-hover:text-primary transition-colors">
-                                                {formatName(client.name)}
-                                            </Link>
+                                            {formatName(client.name)}
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex flex-col">
@@ -256,8 +250,8 @@ export default function ClientsPage() {
                         </div>
                     ) : (
                         clients.map((client) => (
-                            <Link href={`/clients/${client.id}`} key={client.id} className="block group">
-                                <Card className="h-full border-white/20 bg-card/40 backdrop-blur-xl shadow-lg shadow-purple-500/5 hover:shadow-purple-500/20 hover:bg-card/60 transition-all duration-300">
+                            <Link href={`/clients/${client.id}`} key={client.id} className="block group h-full">
+                                <Card className="h-full border-white/20 bg-card/40 backdrop-blur-xl shadow-lg shadow-purple-500/5 hover:shadow-purple-500/20 hover:bg-card/60 transition-all duration-300 transform hover:-translate-y-1">
                                     <CardHeader className="flex flex-row items-center gap-4 pb-4">
                                         <Avatar className="h-12 w-12 border-2 border-white/50 group-hover:border-primary transition-colors">
                                             <AvatarImage src={client.photoUrl} alt={client.name} />
