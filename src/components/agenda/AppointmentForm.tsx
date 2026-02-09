@@ -78,10 +78,12 @@ interface AppointmentFormProps {
     onOpenChange: (open: boolean) => void;
     initialData?: Appointment;
     clientId?: string;
+    defaultDate?: string;
+    defaultTime?: string;
     onSuccess?: () => void;
 }
 
-export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, onSuccess }: AppointmentFormProps) {
+export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, defaultDate, defaultTime, onSuccess }: AppointmentFormProps) {
     const [clients, setClients] = useState<Client[]>([]);
     const [isSearchingClients, setIsSearchingClients] = useState(false);
     const [clientSearch, setClientSearch] = useState("");
@@ -101,13 +103,41 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, o
             clientId: clientId || "",
             professionalId: "",
             services: [],
-            date: format(new Date(), 'yyyy-MM-dd'),
-            startTime: "09:00",
+            date: defaultDate || format(new Date(), 'yyyy-MM-dd'),
+            startTime: defaultTime || "09:00",
             durationMinutes: 30,
             status: "PENDING",
             notes: ""
         },
     });
+
+    // Resetar form quando abrir com novos defaults
+    useEffect(() => {
+        if (isOpen && !initialData) {
+            const targetDate = defaultDate || format(new Date(), 'yyyy-MM-dd');
+            const targetTime = defaultTime || "09:00";
+
+            form.reset({
+                clientId: clientId || "",
+                professionalId: "",
+                services: [],
+                date: targetDate,
+                startTime: targetTime,
+                durationMinutes: 30,
+                status: "PENDING",
+                notes: ""
+            });
+
+            // Forçar atualização dos campos específicos para garantir UI
+            form.setValue("date", targetDate);
+            form.setValue("startTime", targetTime);
+
+        } else if (isOpen && initialData) {
+            form.reset(initialData);
+        }
+    }, [isOpen, defaultDate, defaultTime, initialData, form, clientId]);
+
+    // Watch services para calcular duração automaticamente...
 
     // Watch services para calcular duração automaticamente
     const watchedServices = useWatch({
@@ -173,19 +203,23 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, o
                 });
                 lastServicesRef.current = [...initialData.services];
             } else {
+                // Usar defaultDate e defaultTime do slot clicado, ou valores padrão
+                const targetDate = defaultDate || format(new Date(), 'yyyy-MM-dd');
+                const targetTime = defaultTime || "09:00";
+
                 form.reset({
                     clientId: clientId || "",
                     professionalId: "",
                     services: [],
-                    date: format(new Date(), 'yyyy-MM-dd'),
-                    startTime: "09:00",
+                    date: targetDate,
+                    startTime: targetTime,
                     durationMinutes: 30,
                     status: "PENDING",
                     notes: ""
                 });
             }
         }
-    }, [isOpen, initialData, clientId, form]);
+    }, [isOpen, initialData, clientId, form, defaultDate, defaultTime]);
 
     const onSubmit = async (data: CreateAppointmentInput) => {
         setIsSubmitting(true);

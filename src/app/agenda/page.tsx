@@ -36,12 +36,28 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 
 // Horários disponíveis (5h às 23h)
-const HOURS = Array.from({ length: 19 }, (_, i) => i + 5); // 5, 6, 7... 23
+// Horários disponíveis (5h às 23:30, intervalos de 30min)
+const TIME_SLOTS = Array.from({ length: 38 }, (_, i) => {
+    const totalMinutes = 5 * 60 + i * 30;
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+});
+
+// Tipo de retorno explicito para styles
+type CardStyle = {
+    bg: string;
+    border: string;
+    text: string;
+    accent: string;
+    shadow: string;
+    opacity?: string;
+};
 
 // Cores dos cards modernizadas (Glassmorphism + Gradients)
-const getCardStyle = (status: string, index: number) => {
+const getCardStyle = (status: string, index: number): CardStyle => {
     // Cores base para diferentes tipos de agendamento/status
-    const styles = [
+    const styles: CardStyle[] = [
         {
             bg: "bg-gradient-to-br from-blue-50 to-blue-100/80 hover:from-blue-100 hover:to-blue-200",
             border: "border-blue-200/50",
@@ -119,6 +135,7 @@ export default function AgendaPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingAppointment, setEditingAppointment] = useState<Appointment | undefined>();
+    const [selectedSlot, setSelectedSlot] = useState<{ date: string, time: string } | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
 
     const service = new AppointmentService(new LocalStorageAppointmentRepository());
@@ -209,30 +226,18 @@ export default function AgendaPage() {
 
     const handleEdit = (apt: Appointment) => {
         setEditingAppointment(apt);
+        setSelectedSlot(null); // Reseta slot selecionado
+        setIsFormOpen(true);
+    };
+
+    const handleSlotClick = (date: Date, time: string) => {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        setSelectedSlot({ date: dateStr, time });
+        setEditingAppointment(undefined);
         setIsFormOpen(true);
     };
 
     // Filtros e buscas
-    const getAppointmentsForSlot = (date: Date, hour: number): Appointment[] => {
-        const dateStr = format(date, 'yyyy-MM-dd');
-        return appointments.filter(apt => {
-            if (apt.date !== dateStr) return false;
-            const aptHour = parseInt(apt.startTime.split(':')[0]);
-
-            // Filtro por termo de busca (opcional)
-            if (searchTerm) {
-                const client = clients.find(c => c.id === apt.clientId);
-                const clientName = client ? client.name.toLowerCase() : "";
-                const serviceName = getServiceNames(apt.services).toLowerCase();
-                if (!clientName.includes(searchTerm.toLowerCase()) && !serviceName.includes(searchTerm.toLowerCase())) {
-                    return false;
-                }
-            }
-
-            return aptHour === hour;
-        });
-    };
-
     const getAppointmentsForDay = (date: Date): Appointment[] => {
         const dateStr = format(date, 'yyyy-MM-dd');
         return appointments.filter(apt => {
@@ -325,7 +330,7 @@ export default function AgendaPage() {
                 <PopoverTrigger asChild>
                     <div
                         className={cn(
-                            "absolute rounded-xl border border-l-[3px] p-2 cursor-pointer transition-all duration-200 hover:z-20 group overflow-hidden",
+                            "absolute rounded-xl border border-l-[3px] p-2 cursor-pointer transition-all duration-200 hover:z-20 group overflow-hidden pointer-events-auto",
                             style.bg,
                             style.border,
                             style.shadow,
@@ -562,6 +567,7 @@ export default function AgendaPage() {
                         <Button
                             onClick={() => {
                                 setEditingAppointment(undefined);
+                                setSelectedSlot(null);
                                 setIsFormOpen(true);
                             }}
                             className="h-12 px-6 rounded-2xl shadow-xl shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold border border-white/10"
@@ -642,27 +648,43 @@ export default function AgendaPage() {
 
                                     {/* Scrollable Grid */}
                                     <div className="overflow-y-auto flex-1 custom-scrollbar">
-                                        <div className="relative" style={{ height: `${19 * 120}px` }}>
+                                        <div className="relative" style={{ height: `${TIME_SLOTS.length * 60}px` }}>
                                             {/* Linhas de Fundo e Horas */}
-                                            {HOURS.map((hour) => (
-                                                <div key={hour} className={cn("grid h-[120px] group", gridCols)}>
-                                                    {/* Hora */}
-                                                    <div className="relative border-r border-slate-100 bg-white">
-                                                        <span className="absolute -top-3 right-3 text-xs font-semibold text-slate-400 bg-white px-1 z-10 group-hover:text-primary transition-colors">
-                                                            {hour}:00
-                                                        </span>
-                                                        <div className="absolute top-0 right-0 w-2 h-[1px] bg-slate-100" />
-                                                    </div>
+                                            {/* Linhas de Fundo e Horas */}
+                                            {TIME_SLOTS.map((time) => {
+                                                const isFullHour = time.endsWith(":00");
+                                                return (
+                                                    <div key={time} className={cn("grid h-[60px] group", gridCols)}>
+                                                        {/* Hora */}
+                                                        <div className="relative border-r border-slate-100 bg-white">
+                                                            <span className={cn(
+                                                                "absolute -top-3 right-3 px-1 z-10 transition-colors bg-white",
+                                                                isFullHour
+                                                                    ? "text-xs font-bold text-slate-500 group-hover:text-primary"
+                                                                    : "text-[10px] font-medium text-slate-400 group-hover:text-primary/70"
+                                                            )}>
+                                                                {time}
+                                                            </span>
+                                                            <div className={cn(
+                                                                "absolute top-0 right-0 w-2 h-[1px]",
+                                                                isFullHour ? "bg-slate-200" : "bg-slate-100"
+                                                            )} />
+                                                        </div>
 
-                                                    {/* Colunas dos Dias (Background Slots) */}
-                                                    {displayDays.map((_, dayIdx) => (
-                                                        <div
-                                                            key={dayIdx}
-                                                            className="border-r border-slate-50 border-b border-dashed border-b-slate-100 last:border-r-0 relative hover:bg-slate-50/50 transition-colors"
-                                                        />
-                                                    ))}
-                                                </div>
-                                            ))}
+                                                        {/* Colunas dos Dias (Background Slots) */}
+                                                        {displayDays.map((day, dayIdx) => (
+                                                            <div
+                                                                key={dayIdx}
+                                                                onClick={() => handleSlotClick(day, time)}
+                                                                className={cn(
+                                                                    "border-r border-slate-200 last:border-r-0 relative transition-colors cursor-pointer hover:bg-slate-100",
+                                                                    isFullHour ? "border-b border-b-slate-200" : "border-b border-b-slate-100 border-dashed"
+                                                                )}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                );
+                                            })}
 
                                             {/* Layer de Agendamentos (Posicionamento Absoluto) */}
                                             <div className="absolute inset-0 pointer-events-none grid" style={{ gridTemplateColumns: viewMode === 'day' ? '60px 1fr' : '60px repeat(7, 1fr)' }}>
@@ -674,17 +696,16 @@ export default function AgendaPage() {
                                                     const dayAppointments = getAppointmentsForDay(day);
 
                                                     return (
-                                                        <div key={dayIdx} className="relative h-full pointer-events-auto">
+                                                        <div key={dayIdx} className="relative h-full pointer-events-none">
                                                             {dayAppointments.map((apt, aptIdx) => {
                                                                 // Calcular largura baseada em conflitos na hora (slot)
-                                                                const aptHour = parseInt(apt.startTime.split(':')[0]);
-                                                                const slotAppointments = getAppointmentsForSlot(day, aptHour);
-                                                                const indexInSlot = slotAppointments.findIndex(a => a.id === apt.id);
+                                                                const conflicts = dayAppointments.filter(a => a.startTime === apt.startTime);
+                                                                const indexInSlot = conflicts.findIndex(a => a.id === apt.id);
 
                                                                 return renderAppointmentCard(
                                                                     apt,
                                                                     aptIdx,
-                                                                    slotAppointments.length > 0 ? slotAppointments.length : 1,
+                                                                    conflicts.length,
                                                                     indexInSlot !== -1 ? indexInSlot : 0
                                                                 );
                                                             })}
@@ -815,6 +836,8 @@ export default function AgendaPage() {
                     isOpen={isFormOpen}
                     onOpenChange={setIsFormOpen}
                     initialData={editingAppointment}
+                    defaultDate={selectedSlot ? selectedSlot.date : undefined}
+                    defaultTime={selectedSlot?.time}
                     onSuccess={fetchData}
                 />
             </div>
