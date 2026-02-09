@@ -46,7 +46,7 @@ interface RegisterCreditDialogProps {
 }
 
 const FormSchema = z.object({
-    amount: z.string().transform((val) => Number(val)).pipe(z.number().positive("O valor deve ser positivo")),
+    amount: z.coerce.number().min(0.01, "O valor deve ser maior que zero"),
     origin: CreditOriginSchema,
     note: z.string().optional(),
 });
@@ -56,7 +56,7 @@ export function RegisterCreditDialog({ clientId, onSuccess }: RegisterCreditDial
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const form = useForm<z.infer<typeof FormSchema>>({
-        resolver: zodResolver(FormSchema),
+        resolver: zodResolver(FormSchema) as any,
         defaultValues: {
             amount: 0,
             origin: "CASH",
@@ -75,8 +75,7 @@ export function RegisterCreditDialog({ clientId, onSuccess }: RegisterCreditDial
                 amount: data.amount,
                 origin: data.origin,
                 note: data.note,
-                clientId: clientId, // redundant in schema but ensuring consistency
-                type: 'CREDIT'
+                clientId: clientId,
             });
 
             toast.success("Crédito registrado com sucesso!");

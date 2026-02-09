@@ -146,6 +146,12 @@ export default function ClientProfilePage() {
                                 <span className="flex items-center gap-1.5 bg-white/50 px-3 py-1 rounded-full border border-white/20">
                                     <MapPin className="h-3.5 w-3.5 text-orange-500" /> {client.city}
                                 </span>
+                                <span className="flex items-center gap-1.5 bg-white/50 px-3 py-1 rounded-full border border-white/20" title="Data de Nascimento">
+                                    <Calendar className="h-3.5 w-3.5 text-pink-500" /> {formatDate(client.birthDate)}
+                                </span>
+                                <span className="flex items-center gap-1.5 bg-white/50 px-3 py-1 rounded-full border border-white/20" title="Data de Cadastro">
+                                    <User className="h-3.5 w-3.5 text-purple-500" /> Desde {formatDate(client.createdAt)}
+                                </span>
                             </div>
                         </div>
 

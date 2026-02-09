@@ -32,7 +32,10 @@ import { ClientService } from "@/core/services/ClientService";
 import { LocalStorageClientRepository } from "@/infrastructure/repositories/LocalStorageClientRepository";
 import { normalizePhone } from "@/core/formatters/phone";
 
-const FormSchema = CreateClientSchema;
+const FormSchema = CreateClientSchema.omit({ status: true }).extend({
+    status: z.enum(["ACTIVE", "INACTIVE", "ATTENTION"]),
+});
+
 
 interface ClientFormProps {
     initialData?: Client;
@@ -43,15 +46,18 @@ export function ClientForm({ initialData, mode }: ClientFormProps) {
     const router = useRouter();
     const form = useForm<z.infer<typeof FormSchema>>({
         resolver: zodResolver(FormSchema),
-        defaultValues: initialData || {
-            name: "",
-            birthDate: "",
-            phone: "",
-            whatsapp: "",
-            city: "",
-            status: "ACTIVE",
-            notes: "",
-            photoUrl: "",
+        defaultValues: {
+            name: initialData?.name || "",
+            birthDate: initialData?.birthDate || "",
+            phone: initialData?.phone || "",
+            whatsapp: initialData?.whatsapp || "",
+            city: initialData?.city || "", // Required in form
+            notes: initialData?.notes || "",
+            // status: initialData?.status || "ACTIVE", // Handle status explicitly if needed, but schema handles default?
+            // Actually, if Schema has default, zodResolver handles it for validation, but for Typescript, useForm needs to know.
+            // Let's explicitly set status.
+            status: initialData?.status || "ACTIVE",
+            photoUrl: initialData?.photoUrl || "",
         },
     });
 
