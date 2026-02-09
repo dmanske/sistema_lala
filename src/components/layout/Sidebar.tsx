@@ -46,7 +46,7 @@ export function Sidebar({ className }: SidebarProps) {
             label: "Operação",
             items: [
                 { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard", active: false },
-                { name: "Agenda", icon: Calendar, href: "/agenda", active: false },
+                { name: "Agenda", icon: Calendar, href: "/agenda", active: true },
                 { name: "Caixa", icon: Wallet, href: "/cashier", active: false },
             ],
         },
@@ -168,7 +168,8 @@ export function Sidebar({ className }: SidebarProps) {
                     </Button>
                     <h1 className="text-lg font-bold text-slate-800 tracking-tight">
                         {pathname === "/clients" ? "Clientes" :
-                            pathname.includes("/clients/") ? "Cliente" : "Lala System"}
+                            pathname === "/agenda" ? "Agenda" :
+                                pathname.includes("/clients/") ? "Cliente" : "Lala System"}
                     </h1>
                 </div>
 

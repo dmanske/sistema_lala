@@ -40,6 +40,7 @@ import { Client } from "@/core/domain/Client";
 import { ClientService } from "@/core/services/ClientService";
 import { LocalStorageClientRepository } from "@/infrastructure/repositories/LocalStorageClientRepository";
 import { formatName } from "@/core/formatters/name";
+import { AppointmentForm } from "@/components/agenda/AppointmentForm";
 import { formatPhone } from "@/core/formatters/phone";
 import { formatDate } from "@/core/formatters/date";
 
@@ -55,6 +56,7 @@ export default function ClientProfilePage() {
     const [client, setClient] = useState<Client | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [isAppointmentFormOpen, setIsAppointmentFormOpen] = useState(false);
 
     const repo = new LocalStorageClientRepository();
     const service = new ClientService(repo);
@@ -185,6 +187,15 @@ export default function ClientProfilePage() {
                                     </Link>
                                 </Button>
 
+                                <Button
+                                    variant="default"
+                                    size="sm"
+                                    className="hidden sm:flex rounded-xl shadow-md shadow-primary/20"
+                                    onClick={() => setIsAppointmentFormOpen(true)}
+                                >
+                                    <Calendar className="h-3.5 w-3.5 mr-2" /> Agendar
+                                </Button>
+
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="outline" size="sm" className="bg-white/50 border-primary/20 text-primary-700 rounded-xl h-9 w-9 p-0 md:hidden">
@@ -192,6 +203,9 @@ export default function ClientProfilePage() {
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="rounded-xl border-white/20 bg-white/80 backdrop-blur-xl">
+                                        <DropdownMenuItem onClick={() => setIsAppointmentFormOpen(true)}>
+                                            <Calendar className="h-4 w-4 mr-2" /> Agendar
+                                        </DropdownMenuItem>
                                         <DropdownMenuItem asChild>
                                             <Link href={`/clients/${client.id}/edit`} className="flex items-center">
                                                 <Pencil className="h-4 w-4 mr-2" /> Editar Perfil
@@ -241,7 +255,7 @@ export default function ClientProfilePage() {
                         <ClientSummaryTab />
                     </TabsContent>
                     <TabsContent value="appointments">
-                        <ClientAppointmentsTab />
+                        <ClientAppointmentsTab clientId={client.id} />
                     </TabsContent>
                     <TabsContent value="history">
                         <ClientHistoryTab />
@@ -257,6 +271,13 @@ export default function ClientProfilePage() {
                 onOpenChange={setIsDeleteDialogOpen}
                 clientId={client.id}
                 clientName={client.name}
+            />
+
+            <AppointmentForm
+                isOpen={isAppointmentFormOpen}
+                onOpenChange={setIsAppointmentFormOpen}
+                clientId={client.id}
+                onSuccess={() => window.location.reload()}
             />
         </div>
     );

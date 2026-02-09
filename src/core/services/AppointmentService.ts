@@ -1,0 +1,36 @@
+import { Appointment, CreateAppointmentInput } from "../domain/Appointment";
+import { AppointmentRepository, AppointmentFilter } from "../repositories/AppointmentRepository";
+
+export class AppointmentService {
+    constructor(private repository: AppointmentRepository) { }
+
+    async getAll(filter?: AppointmentFilter): Promise<Appointment[]> {
+        return this.repository.getAll(filter);
+    }
+
+    async getById(id: string): Promise<Appointment | null> {
+        return this.repository.getById(id);
+    }
+
+    async create(input: CreateAppointmentInput): Promise<Appointment> {
+        const appointment: Appointment = {
+            id: Math.random().toString(36).substring(2, 11),
+            ...input,
+            createdAt: new Date().toISOString(),
+        };
+
+        return this.repository.create(appointment);
+    }
+
+    async update(id: string, data: Partial<Appointment>): Promise<Appointment> {
+        return this.repository.update(id, data);
+    }
+
+    async delete(id: string): Promise<void> {
+        return this.repository.delete(id);
+    }
+
+    async updateStatus(id: string, status: Appointment["status"]): Promise<Appointment> {
+        return this.repository.update(id, { status });
+    }
+}
