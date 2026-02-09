@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -97,9 +97,9 @@ export function ClientForm({ initialData, mode }: ClientFormProps) {
                         name="name"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Nome Completo</FormLabel>
+                                <FormLabel className="text-sm font-semibold text-slate-700">Nome Completo</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="Ex: Maria Silva" {...field} />
+                                    <Input placeholder="Ex: Maria Silva" className="h-11 rounded-xl bg-white/50 border-white/20 focus:bg-white" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -111,9 +111,9 @@ export function ClientForm({ initialData, mode }: ClientFormProps) {
                         name="birthDate"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Data de Nascimento</FormLabel>
+                                <FormLabel className="text-sm font-semibold text-slate-700">Data de Nascimento</FormLabel>
                                 <FormControl>
-                                    <Input type="date" {...field} />
+                                    <Input type="date" className="h-11 rounded-xl bg-white/50 border-white/20 focus:bg-white" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -125,9 +125,9 @@ export function ClientForm({ initialData, mode }: ClientFormProps) {
                         name="phone"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Telefone (Opcional)</FormLabel>
+                                <FormLabel className="text-sm font-semibold text-slate-700">Telefone (Opcional)</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="(00) 0000-0000" {...field} />
+                                    <Input placeholder="(00) 0000-0000" className="h-11 rounded-xl bg-white/50 border-white/20 focus:bg-white" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -139,9 +139,9 @@ export function ClientForm({ initialData, mode }: ClientFormProps) {
                         name="whatsapp"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>WhatsApp (Opcional)</FormLabel>
+                                <FormLabel className="text-sm font-semibold text-slate-700">WhatsApp (Opcional)</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="(00) 00000-0000" {...field} />
+                                    <Input placeholder="(00) 00000-0000" className="h-11 rounded-xl bg-white/50 border-white/20 focus:bg-white" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -153,11 +153,11 @@ export function ClientForm({ initialData, mode }: ClientFormProps) {
                         name="city"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Cidade</FormLabel>
+                                <FormLabel className="text-sm font-semibold text-slate-700">Cidade</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="Ex: São Paulo" {...field} />
+                                    <Input placeholder="Ex: São Paulo" className="h-11 rounded-xl bg-white/50 border-white/20 focus:bg-white" {...field} />
                                 </FormControl>
-                                <FormDescription>
+                                <FormDescription className="text-[10px]">
                                     Obrigatório para cadastro.
                                 </FormDescription>
                                 <FormMessage />
@@ -170,14 +170,14 @@ export function ClientForm({ initialData, mode }: ClientFormProps) {
                         name="status"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Status</FormLabel>
+                                <FormLabel className="text-sm font-semibold text-slate-700">Status</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
-                                        <SelectTrigger>
+                                        <SelectTrigger className="h-11 rounded-xl bg-white/50 border-white/20">
                                             <SelectValue placeholder="Selecione o status" />
                                         </SelectTrigger>
                                     </FormControl>
-                                    <SelectContent>
+                                    <SelectContent className="rounded-xl border-white/20 bg-white/80 backdrop-blur-xl">
                                         <SelectItem value="ACTIVE">Ativo</SelectItem>
                                         <SelectItem value="INACTIVE">Inativo</SelectItem>
                                         <SelectItem value="ATTENTION">Atenção</SelectItem>
@@ -208,19 +208,22 @@ export function ClientForm({ initialData, mode }: ClientFormProps) {
                 />
 
                 {/* Photo Upload Placeholder */}
-                <div className="space-y-2">
-                    <FormLabel>Foto do Cliente</FormLabel>
-                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 flex flex-col items-center justify-center text-muted-foreground text-sm">
-                        <span>Upload de foto (Mock)</span>
-                        <span className="text-xs">Arraste ou clique para selecionar</span>
+                <div className="space-y-4 pt-2">
+                    <FormLabel className="text-sm font-semibold text-slate-700">Foto do Cliente</FormLabel>
+                    <div className="border-2 border-dashed border-primary/20 bg-primary/5 rounded-2xl p-8 flex flex-col items-center justify-center text-muted-foreground text-sm transition-all hover:bg-primary/10 hover:border-primary/40 cursor-pointer group">
+                        <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center mb-3 shadow-sm group-hover:scale-110 transition-transform">
+                            <Plus className="h-6 w-6 text-primary/60" />
+                        </div>
+                        <span className="font-medium">Carregar foto</span>
+                        <span className="text-[10px]">JPG, PNG até 2MB</span>
                     </div>
                 </div>
 
-                <div className="flex justify-end gap-4">
-                    <Button variant="outline" type="button" onClick={() => router.back()}>
+                <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
+                    <Button variant="ghost" type="button" onClick={() => router.back()} className="h-11 rounded-xl order-2 sm:order-1">
                         Cancelar
                     </Button>
-                    <Button type="submit" disabled={form.formState.isSubmitting}>
+                    <Button type="submit" disabled={form.formState.isSubmitting} className="h-11 rounded-xl shadow-lg shadow-primary/20 order-1 sm:order-2">
                         {form.formState.isSubmitting && (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         )}

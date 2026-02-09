@@ -97,44 +97,46 @@ export function ClientCreditTab({ clientId, creditBalance }: ClientCreditTabProp
                             Nenhuma movimentação registrada até o momento.
                         </div>
                     ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Data/Hora</TableHead>
-                                    <TableHead>Tipo</TableHead>
-                                    <TableHead>Origem</TableHead>
-                                    <TableHead>Valor</TableHead>
-                                    <TableHead>Obs</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {movements.map((movement) => (
-                                    <TableRow key={movement.id}>
-                                        <TableCell className="font-medium">
-                                            {formatDateTime(movement.createdAt)}
-                                        </TableCell>
-                                        <TableCell>
-                                            {movement.type === 'CREDIT' ? (
-                                                <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200 gap-1 pl-1">
-                                                    <ArrowDownLeft className="h-3 w-3" /> Entrada
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant="secondary" className="gap-1 pl-1">
-                                                    <ArrowUpRight className="h-3 w-3" /> Saída
-                                                </Badge>
-                                            )}
-                                        </TableCell>
-                                        <TableCell>{movement.origin}</TableCell>
-                                        <TableCell className={movement.type === 'CREDIT' ? 'text-green-600 font-bold' : ''}>
-                                            {movement.type === 'CREDIT' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(movement.amount)}
-                                        </TableCell>
-                                        <TableCell className="text-muted-foreground text-sm max-w-[200px] truncate">
-                                            {movement.note || '-'}
-                                        </TableCell>
+                        <div className="overflow-x-auto -mx-6 px-6 sm:mx-0 sm:px-0">
+                            <Table className="min-w-[600px] sm:min-w-full">
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Data/Hora</TableHead>
+                                        <TableHead>Tipo</TableHead>
+                                        <TableHead>Origem</TableHead>
+                                        <TableHead>Valor</TableHead>
+                                        <TableHead>Obs</TableHead>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {movements.map((movement) => (
+                                        <TableRow key={movement.id} className="hover:bg-white/40 transition-colors">
+                                            <TableCell className="font-medium">
+                                                {formatDateTime(movement.createdAt)}
+                                            </TableCell>
+                                            <TableCell>
+                                                {movement.type === 'CREDIT' ? (
+                                                    <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200 gap-1 pl-1">
+                                                        <ArrowDownLeft className="h-3 w-3" /> Entrada
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge variant="secondary" className="gap-1 pl-1">
+                                                        <ArrowUpRight className="h-3 w-3" /> Saída
+                                                    </Badge>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-sm">{movement.origin}</TableCell>
+                                            <TableCell className={movement.type === 'CREDIT' ? 'text-green-600 font-bold' : ''}>
+                                                {movement.type === 'CREDIT' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(movement.amount)}
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground text-sm max-w-[200px] truncate">
+                                                {movement.note || '-'}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
                     )}
                 </CardContent>
             </Card>

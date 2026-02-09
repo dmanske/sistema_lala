@@ -18,7 +18,8 @@ import {
     Database,
     Menu,
     LogOut,
-    Sparkles
+    Sparkles,
+    Plus
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -29,8 +30,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> { }
 
+import { useState, useEffect } from "react";
+
 export function Sidebar({ className }: SidebarProps) {
     const pathname = usePathname();
+    const [isOpen, setIsOpen] = useState(false);
+
+    // Close sidebar when route changes
+    useEffect(() => {
+        setIsOpen(false);
+    }, [pathname]);
 
     const groups = [
         {
@@ -146,17 +155,48 @@ export function Sidebar({ className }: SidebarProps) {
 
     return (
         <>
-            {/* Mobile Sidebar */}
-            <Sheet>
-                <SheetTrigger asChild>
-                    <Button variant="ghost" className="md:hidden fixed top-4 left-4 z-40 bg-white/50 backdrop-blur-md border border-white/20 shadow-sm" size="icon">
-                        <Menu className="h-5 w-5" />
+            {/* Mobile Header - Topbar */}
+            <div className="md:hidden fixed top-0 left-0 right-0 h-16 px-4 flex items-center justify-between z-40 bg-white/60 backdrop-blur-xl border-b border-white/20">
+                <div className="flex items-center gap-3">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIsOpen(true)}
+                        className="h-10 w-10 text-slate-600 rounded-xl"
+                    >
+                        <Menu className="h-6 w-6" />
                     </Button>
-                </SheetTrigger>
+                    <h1 className="text-lg font-bold text-slate-800 tracking-tight">
+                        {pathname === "/clients" ? "Clientes" :
+                            pathname.includes("/clients/") ? "Cliente" : "Lala System"}
+                    </h1>
+                </div>
+
+                {pathname === "/clients" && (
+                    <Button variant="default" size="sm" className="h-9 px-4 rounded-xl shadow-md shadow-primary/20" asChild>
+                        <Link href="/clients/new">
+                            <Plus className="h-4 w-4 mr-1.5" /> Novo
+                        </Link>
+                    </Button>
+                )}
+            </div>
+
+            {/* Mobile Sidebar */}
+            <Sheet open={isOpen} onOpenChange={setIsOpen}>
                 <SheetContent side="left" className="p-0 w-72 bg-background/80 backdrop-blur-xl border-r border-white/20">
-                    <ScrollArea className="h-full">
-                        <SidebarContent />
-                    </ScrollArea>
+                    <div className="flex flex-col h-full">
+                        <div className="p-6 border-b border-white/10 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="h-8 w-8 rounded-xl bg-primary flex items-center justify-center text-primary-foreground">
+                                    <Sparkles className="h-5 w-5" />
+                                </div>
+                                <span className="font-bold tracking-tight">Lala System</span>
+                            </div>
+                        </div>
+                        <ScrollArea className="flex-1">
+                            <SidebarContent />
+                        </ScrollArea>
+                    </div>
                 </SheetContent>
             </Sheet>
 

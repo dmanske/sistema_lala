@@ -98,10 +98,10 @@ export function RegisterCreditDialog({ clientId, onSuccess }: RegisterCreditDial
                     <Plus className="h-4 w-4" /> Registrar Crédito
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px] rounded-2xl border-white/20 bg-white/60 backdrop-blur-2xl">
                 <DialogHeader>
-                    <DialogTitle>Registrar Crédito</DialogTitle>
-                    <DialogDescription>
+                    <DialogTitle className="text-2xl font-bold font-heading text-slate-800">Registrar Crédito</DialogTitle>
+                    <DialogDescription className="text-slate-500">
                         Adicione saldo à conta do cliente. Esta ação gera uma movimentação financeira.
                     </DialogDescription>
                 </DialogHeader>
@@ -113,13 +113,14 @@ export function RegisterCreditDialog({ clientId, onSuccess }: RegisterCreditDial
                             name="amount"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Valor (R$)</FormLabel>
+                                    <FormLabel className="text-sm font-semibold text-slate-700">Valor (R$)</FormLabel>
                                     <FormControl>
                                         <Input
                                             type="number"
                                             placeholder="0.00"
                                             step="0.01"
                                             min="0"
+                                            className="h-11 rounded-xl bg-white/50 border-white/20 focus:bg-white"
                                             {...field}
                                         />
                                     </FormControl>
@@ -133,14 +134,14 @@ export function RegisterCreditDialog({ clientId, onSuccess }: RegisterCreditDial
                             name="origin"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Origem do Pagamento</FormLabel>
+                                    <FormLabel className="text-sm font-semibold text-slate-700">Origem do Pagamento</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl>
-                                            <SelectTrigger>
+                                            <SelectTrigger className="h-11 rounded-xl bg-white/50 border-white/20">
                                                 <SelectValue placeholder="Selecione a origem" />
                                             </SelectTrigger>
                                         </FormControl>
-                                        <SelectContent>
+                                        <SelectContent className="rounded-xl border-white/20 bg-white/80 backdrop-blur-2xl">
                                             <SelectItem value="CASH">Dinheiro</SelectItem>
                                             <SelectItem value="PIX">Pix</SelectItem>
                                             <SelectItem value="CARD">Cartão</SelectItem>
@@ -170,8 +171,8 @@ export function RegisterCreditDialog({ clientId, onSuccess }: RegisterCreditDial
                             )}
                         />
 
-                        <DialogFooter>
-                            <Button type="submit" disabled={isSubmitting} className="w-full">
+                        <DialogFooter className="pt-4">
+                            <Button type="submit" disabled={isSubmitting} className="w-full h-11 rounded-xl shadow-lg shadow-primary/20">
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Confirmar Crédito
                             </Button>

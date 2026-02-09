@@ -95,7 +95,7 @@ export function DeleteClientDialog({
     if (blockedConfig.isBlocked) {
         return (
             <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-                <DialogContent className="sm:max-w-md border-orange-500/50">
+                <DialogContent className="sm:max-w-md border-orange-200 bg-white/60 backdrop-blur-2xl rounded-2xl">
                     <DialogHeader>
                         <div className="flex items-center gap-2 text-orange-600 mb-2">
                             <Ban className="h-6 w-6" />
@@ -108,12 +108,12 @@ export function DeleteClientDialog({
                     <div className="bg-orange-50 p-4 rounded-md text-sm text-orange-800 border border-orange-100 mt-2">
                         Este cliente possui histórico financeiro ou agendamentos. Por segurança e integridade dos dados, a exclusão não é permitida.
                     </div>
-                    <DialogFooter className="gap-2 sm:gap-0 mt-4">
-                        <Button variant="ghost" onClick={() => handleOpenChange(false)}>
-                            Cancelar
+                    <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-4 pt-2">
+                        <Button variant="ghost" onClick={() => handleOpenChange(false)} className="h-11 rounded-xl order-2 sm:order-1">
+                            Voltar
                         </Button>
-                        <Button variant="default" onClick={handleInactivate} disabled={isDeleting} className="bg-orange-600 hover:bg-orange-700">
-                            {isDeleting ? "Processando..." : "Inativar Cliente"}
+                        <Button variant="default" onClick={handleInactivate} disabled={isDeleting} className="bg-orange-600 hover:bg-orange-700 h-11 rounded-xl order-1 sm:order-2">
+                            {isDeleting ? "Processando..." : "Inativar em vez de excluir"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -123,7 +123,7 @@ export function DeleteClientDialog({
 
     return (
         <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-md border-white/20 bg-white/60 backdrop-blur-2xl rounded-2xl">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <AlertTriangle className="h-5 w-5 text-destructive" />
@@ -135,22 +135,22 @@ export function DeleteClientDialog({
                         Esta ação não poderá ser desfeita se não houver histórico.
                     </DialogDescription>
                 </DialogHeader>
-                <DialogFooter className="gap-2 sm:gap-0">
-                    <Button variant="ghost" onClick={() => handleOpenChange(false)}>
+                <DialogFooter className="flex flex-col sm:flex-row gap-3 pt-4">
+                    <Button variant="ghost" onClick={() => handleOpenChange(false)} className="h-11 rounded-xl order-2 sm:order-1">
                         Cancelar
                     </Button>
                     <Button
                         variant="destructive"
                         onClick={handleConfirmDelete}
                         disabled={isDeleting}
-                        className="gap-2"
+                        className="gap-2 h-11 rounded-xl order-1 sm:order-2"
                     >
                         {isDeleting ? (
                             "Verificando..."
                         ) : (
                             <>
                                 <Trash2 className="h-4 w-4" />
-                                Excluir Permanentemente
+                                Confirmar Exclusão
                             </>
                         )}
                     </Button>
