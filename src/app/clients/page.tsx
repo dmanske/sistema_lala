@@ -313,9 +313,19 @@ export default function ClientsPage() {
                                                         </span>
                                                     </div>
                                                 )}
-                                                <div className="flex items-center gap-2 text-slate-500">
-                                                    <MapPin className="h-3.5 w-3.5 text-blue-500/70" />
-                                                    <span className="text-sm truncate">{client.city}</span>
+                                                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-slate-500">
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        <MapPin className="h-3.5 w-3.5 text-blue-500/70" />
+                                                        <span className="text-xs truncate">{client.city}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                                        <Calendar className="h-3.5 w-3.5 text-orange-500/70" />
+                                                        <span className="text-xs">Nasc: {formatDate(client.birthDate)}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                                        <Clock className="h-3.5 w-3.5 text-slate-400" />
+                                                        <span className="text-xs">Cad: {format(new Date(client.createdAt), 'dd/MM/yy', { locale: ptBR })}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
