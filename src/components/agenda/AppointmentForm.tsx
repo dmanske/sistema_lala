@@ -234,9 +234,57 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
         }
     }, [isOpen, initialData, clientId, defaultDate, defaultTime, availableServices, isLoadingServices]); // Removed 'form' from deps to avoid loop
 
+    const checkConflict = async (professionalId: string, date: string, startTime: string, duration: number, excludeId?: string, isBlocking: boolean = false) => {
+        const appointments = await appointmentService.getAll({
+            professionalId,
+            date
+        });
+
+        const [newStartH, newStartM] = startTime.split(':').map(Number);
+        const newStart = newStartH * 60 + newStartM;
+        const newEnd = newStart + duration;
+
+        for (const apt of appointments) {
+            if (apt.id === excludeId) continue;
+            // Ignore canceled or no-show appointments
+            if (apt.status === 'CANCELED' || apt.status === 'NO_SHOW') continue;
+
+            const [aptStartH, aptStartM] = apt.startTime.split(':').map(Number);
+            const aptStart = aptStartH * 60 + aptStartM;
+            const aptEnd = aptStart + apt.durationMinutes;
+
+            // Check overlap: (StartA < EndB) && (EndA > StartB)
+            const hasOverlap = newStart < aptEnd && newEnd > aptStart;
+
+            if (hasOverlap) {
+                // If we are trying to BLOCK, we can't overlap with ANYTHING
+                if (isBlocking) return true;
+
+                // If we are scheduling normally, we only conflict if the existing slot is BLOCKED
+                if (apt.status === 'BLOCKED') return true;
+            }
+        }
+        return false;
+    };
+
     const onSubmit: SubmitHandler<CreateAppointmentInput> = async (data) => {
         setIsSubmitting(true);
         try {
+            // Check for conflicts
+            const hasConflict = await checkConflict(
+                data.professionalId,
+                data.date,
+                data.startTime,
+                data.durationMinutes,
+                initialData?.id,
+                false // Normal appointment
+            );
+
+            if (hasConflict) {
+                toast.error("Este horário está bloqueado para este profissional.");
+                return;
+            }
+
             // Force status based on tab
             if (activeTab === 'block') {
                 data.status = 'BLOCKED';
@@ -286,6 +334,21 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
 
         setIsSubmitting(true);
         try {
+            // Check for conflicts
+            const hasConflict = await checkConflict(
+                values.professionalId,
+                values.date,
+                values.startTime,
+                values.durationMinutes,
+                initialData?.id,
+                true // Blocking operation - checks everything
+            );
+
+            if (hasConflict) {
+                toast.error("Não é possível bloquear: já existem agendamentos neste horário.");
+                return;
+            }
+
             const payload: CreateAppointmentInput = {
                 ...values,
                 status: 'BLOCKED',
