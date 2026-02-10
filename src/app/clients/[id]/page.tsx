@@ -19,7 +19,8 @@ import {
     CalendarDays,
     Wallet,
     MoreVertical,
-    Clock
+    Clock,
+    Package
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,7 @@ import { ClientSummaryTab } from "@/components/clients/tabs/ClientSummaryTab";
 import { ClientAppointmentsTab } from "@/components/clients/tabs/ClientAppointmentsTab";
 
 import { ClientCreditTab } from "@/components/clients/tabs/ClientCreditTab";
+import { ClientProductsTab } from "@/components/clients/tabs/ClientProductsTab";
 
 export default function ClientProfilePage() {
     const params = useParams();
@@ -244,6 +246,9 @@ export default function ClientProfilePage() {
                         <TabsTrigger value="credit" className="flex-1 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary py-2.5 px-6">
                             <Wallet className="h-4 w-4 mr-2 hidden sm:inline" /> Crédito
                         </TabsTrigger>
+                        <TabsTrigger value="products" className="flex-1 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary py-2.5 px-6">
+                            <Package className="h-4 w-4 mr-2 hidden sm:inline" /> Produtos
+                        </TabsTrigger>
                     </TabsList>
                 </div>
 
@@ -256,6 +261,9 @@ export default function ClientProfilePage() {
                     </TabsContent>
                     <TabsContent value="credit">
                         <ClientCreditTab clientId={client.id} creditBalance={client.creditBalance} />
+                    </TabsContent>
+                    <TabsContent value="products">
+                        <ClientProductsTab clientId={client.id} />
                     </TabsContent>
                 </div>
             </Tabs>

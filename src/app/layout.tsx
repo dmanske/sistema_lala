@@ -4,7 +4,7 @@ import "./globals.css";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Toaster } from "@/components/ui/sonner";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], display: "swap", adjustFontFallback: false });
 
 export const metadata: Metadata = {
   title: "Lala System",
@@ -18,7 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning={true}>
         <div className="flex min-h-screen">
           <Sidebar />
           <main className="flex-1 overflow-y-auto bg-muted/10">

@@ -34,6 +34,7 @@ import { formatName } from "@/core/formatters/name";
 import { AppointmentForm } from "@/components/agenda/AppointmentForm";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import { FinalizeAppointmentDialog } from "@/components/appointments/FinalizeAppointmentDialog";
 
 // Horários disponíveis (5h às 23h)
 // Horários disponíveis (5h às 23:30, intervalos de 30min)
@@ -137,6 +138,10 @@ export default function AgendaPage() {
     const [editingAppointment, setEditingAppointment] = useState<Appointment | undefined>();
     const [selectedSlot, setSelectedSlot] = useState<{ date: string, time: string } | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
+
+    // Finalization State
+    const [finalizeDialogOpen, setFinalizeDialogOpen] = useState(false);
+    const [appointmentToFinalize, setAppointmentToFinalize] = useState<Appointment | null>(null);
 
     const service = new AppointmentService(new LocalStorageAppointmentRepository());
     const clientRepo = new LocalStorageClientRepository();
@@ -466,7 +471,10 @@ export default function AgendaPage() {
                                     Confirmado
                                 </button>
                                 <button
-                                    onClick={() => handleUpdateStatus(apt.id, "DONE")}
+                                    onClick={() => {
+                                        setAppointmentToFinalize(apt);
+                                        setFinalizeDialogOpen(true);
+                                    }}
                                     className={cn(
                                         "px-2.5 py-1 text-xs font-medium rounded-lg border transition-all",
                                         apt.status === "DONE"
@@ -513,7 +521,7 @@ export default function AgendaPage() {
                         </Button>
                     </div>
                 </PopoverContent>
-            </Popover>
+            </Popover >
         );
     };
 
@@ -878,6 +886,18 @@ export default function AgendaPage() {
                     onSuccess={fetchData}
                 />
             </div>
+            {/* Finalization Dialog */}
+            {appointmentToFinalize && (
+                <FinalizeAppointmentDialog
+                    appointment={appointmentToFinalize}
+                    open={finalizeDialogOpen}
+                    onOpenChange={(open) => {
+                        setFinalizeDialogOpen(open);
+                        if (!open) setAppointmentToFinalize(null);
+                    }}
+                    onSuccess={fetchData}
+                />
+            )}
         </div>
     );
 }

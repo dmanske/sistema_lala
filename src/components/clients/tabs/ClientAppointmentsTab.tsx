@@ -178,10 +178,21 @@ export function ClientAppointmentsTab({ clientId }: ClientAppointmentsTabProps) 
                                             <div className="flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-bold text-slate-800 font-heading text-lg">
-                                                        {apt.services.map(id => MOCK_SERVICES.find(s => s.id === id)?.name || id).join(", ")}
+                                                        {apt.status === 'DONE' && apt.finalizedServices
+                                                            ? apt.finalizedServices.map(s => s.name).join(", ")
+                                                            : apt.services.map(id => MOCK_SERVICES.find(s => s.id === id)?.name || id).join(", ")
+                                                        }
                                                     </span>
                                                     {getStatusBadge(apt.status)}
                                                 </div>
+                                                {apt.status === 'DONE' && apt.totalValue && (
+                                                    <div className="text-right">
+                                                        <span className="text-xs text-slate-500 font-bold uppercase tracking-wider block">Total</span>
+                                                        <span className="text-lg font-bold text-emerald-600">
+                                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(apt.totalValue)}
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-slate-500">

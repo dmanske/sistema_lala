@@ -20,13 +20,40 @@ export interface Appointment {
     durationMinutes: number;
     status: AppointmentStatus;
     notes?: string;
-    createdAt: string; // ISO UTC
-
-    // Future Recurrence Preparation
-    seriesId?: string;
-    isRecurring?: boolean;
-    recurrenceRule?: string; // RRULE string
+    // Finalization Data
+    finalizedAt?: string;
+    finalizedServices?: Array<{
+        serviceId: string;
+        name: string;
+        price: number;
+        professionalId: string;
+    }>;
+    usedProducts?: Array<{
+        productId: string;
+        name: string;
+        price: number; // Sale price at moment of sale
+        cost: number; // Cost at moment of sale (for reporting)
+        quantity: number;
+    }>;
+    totalServiceValue?: number;
+    totalProductValue?: number;
+    totalValue?: number;
 }
+
+export const FinalizedServiceSchema = z.object({
+    serviceId: z.string(),
+    name: z.string(),
+    price: z.number(),
+    professionalId: z.string(),
+});
+
+export const UsedProductSchema = z.object({
+    productId: z.string(),
+    name: z.string(),
+    price: z.number(),
+    cost: z.number(),
+    quantity: z.number(),
+});
 
 export const CreateAppointmentSchema = z.object({
     clientId: z.string().min(1, "Cliente é obrigatório"),
@@ -46,13 +73,14 @@ export const CreateAppointmentSchema = z.object({
 
 export type CreateAppointmentInput = z.infer<typeof CreateAppointmentSchema>;
 
-// Mock data for initial development
+// Mock data (Deprecated - use Services from Repository)
 export const MOCK_PROFESSIONALS = [
     { id: "p1", name: "Lala (Principal)", color: "#8b5cf6" },
     { id: "p2", name: "Bruna Designer", color: "#ec4899" },
     { id: "p3", name: "Carol Estética", color: "#10b981" },
 ];
 
+// Kept for backward compatibility but should be replaced by ServiceRepository calls
 export const MOCK_SERVICES = [
     { id: "s1", name: "Corte Feminino", duration: 60, price: 120 },
     { id: "s2", name: "Escova Modelada", duration: 45, price: 80 },

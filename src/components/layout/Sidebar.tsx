@@ -45,7 +45,7 @@ export function Sidebar({ className }: SidebarProps) {
         {
             label: "Operação",
             items: [
-                { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard", active: false },
+                { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard", active: true },
                 { name: "Agenda", icon: Calendar, href: "/agenda", active: true },
                 { name: "Caixa", icon: Wallet, href: "/cashier", active: false },
             ],
@@ -60,8 +60,8 @@ export function Sidebar({ className }: SidebarProps) {
         {
             label: "Catálogo",
             items: [
-                { name: "Serviços", icon: Scissors, href: "/services", active: false },
-                { name: "Produtos", icon: Package, href: "/products", active: false },
+                { name: "Serviços", icon: Scissors, href: "/services", active: true },
+                { name: "Produtos", icon: Package, href: "/products", active: true },
             ],
         },
         {
