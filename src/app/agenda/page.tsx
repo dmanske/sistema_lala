@@ -135,6 +135,14 @@ const getCardStyle = (status: string, index: number): CardStyle => {
 };
 
 export default function AgendaPage() {
+    const [currentTime, setCurrentTime] = useState<string>("");
+
+    useEffect(() => {
+        const updateTime = () => setCurrentTime(format(new Date(), 'HH:mm'));
+        updateTime();
+        const interval = setInterval(updateTime, 60000);
+        return () => clearInterval(interval);
+    }, []);
     const [viewMode, setViewMode] = useState<"day" | "week" | "month">("week");
     const [currentDate, setCurrentDate] = useState(new Date());
     const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -275,13 +283,19 @@ export default function AgendaPage() {
     };
 
     // Helpers visuais
-    const GRID_HOUR_HEIGHT = 120; // Altura fixa por hora em pixels
+    const GRID_HOUR_HEIGHT = 80; // Altura fixa por hora em pixels
     const START_HOUR = 5; // Hora inicial do grid
 
     const getTopOffsetPx = (startTime: string): number => {
         const [h, m] = startTime.split(':').map(Number);
         const totalMinutesFromStart = (h - START_HOUR) * 60 + m;
         return (totalMinutesFromStart / 60) * GRID_HOUR_HEIGHT;
+    };
+
+    const getCurrentTimeOffsetPx = (): number => {
+        const now = new Date();
+        const minutes = (now.getHours() - START_HOUR) * 60 + now.getMinutes();
+        return (minutes / 60) * GRID_HOUR_HEIGHT;
     };
 
     const getHeightPx = (durationMinutes: number): number => {
@@ -724,25 +738,25 @@ export default function AgendaPage() {
 
                                     {/* Scrollable Grid */}
                                     <div className="overflow-y-auto flex-1 custom-scrollbar">
-                                        <div className="relative" style={{ height: `${TIME_SLOTS.length * 60}px` }}>
-                                            {/* Linhas de Fundo e Horas */}
+                                        <div className="relative" style={{ height: `${TIME_SLOTS.length * (GRID_HOUR_HEIGHT / 2)}px` }}>
                                             {/* Linhas de Fundo e Horas */}
                                             {TIME_SLOTS.map((time) => {
                                                 const isFullHour = time.endsWith(":00");
                                                 return (
-                                                    <div key={time} className={cn("grid h-[60px] group", gridCols)}>
+                                                    <div key={time} className={cn("grid group", gridCols)} style={{ height: `${GRID_HOUR_HEIGHT / 2}px` }}>
                                                         {/* Hora */}
-                                                        <div className="relative border-r border-slate-100 bg-white">
+                                                        <div className="relative border-r border-slate-100/50 bg-white">
                                                             <span className={cn(
-                                                                "absolute -top-3 right-3 px-1 z-10 transition-colors bg-white",
+                                                                "absolute -top-2 right-2 px-1 z-10 transition-colors bg-white",
                                                                 isFullHour
-                                                                    ? "text-xs font-bold text-slate-500 group-hover:text-primary"
-                                                                    : "text-[10px] font-medium text-slate-400 group-hover:text-primary/70"
+                                                                    ? "text-[10px] font-bold text-slate-400 group-hover:text-primary"
+                                                                    : "text-[9px] font-medium text-slate-300 group-hover:text-primary/70",
+                                                                !isFullHour && "opacity-0 group-hover:opacity-100"
                                                             )}>
                                                                 {time}
                                                             </span>
                                                             <div className={cn(
-                                                                "absolute top-0 right-0 w-2 h-[1px]",
+                                                                "absolute top-0 right-0 w-1.5 h-[1px]",
                                                                 isFullHour ? "bg-slate-200" : "bg-slate-100"
                                                             )} />
                                                         </div>
@@ -753,8 +767,8 @@ export default function AgendaPage() {
                                                                 key={dayIdx}
                                                                 onClick={() => handleSlotClick(day, time)}
                                                                 className={cn(
-                                                                    "border-r border-slate-200 last:border-r-0 relative transition-colors cursor-pointer hover:bg-slate-100",
-                                                                    isFullHour ? "border-b border-b-slate-200" : "border-b border-b-slate-100 border-dashed"
+                                                                    "border-r border-slate-50 last:border-r-0 relative transition-colors cursor-pointer hover:bg-slate-50",
+                                                                    isFullHour ? "border-b border-b-slate-100" : "border-b border-b-slate-50 border-dashed"
                                                                 )}
                                                             />
                                                         ))}
@@ -770,9 +784,19 @@ export default function AgendaPage() {
                                                 {/* Colunas de conteúdo dos dias */}
                                                 {displayDays.map((day, dayIdx) => {
                                                     const dayAppointments = getAppointmentsForDay(day);
+                                                    const isToday = isSameDay(day, new Date());
 
                                                     return (
                                                         <div key={dayIdx} className="relative h-full pointer-events-none">
+                                                            {/* Current Time Indicator */}
+                                                            {isToday && (
+                                                                <div
+                                                                    className="absolute w-full border-t border-rose-500 z-50 pointer-events-none shadow-sm shadow-rose-500/10"
+                                                                    style={{ top: `${getCurrentTimeOffsetPx()}px` }}
+                                                                >
+                                                                    <div className="absolute -left-1 -top-[3px] w-1.5 h-1.5 bg-rose-500 rounded-full scale-125" />
+                                                                </div>
+                                                            )}
                                                             {dayAppointments.map((apt, aptIdx) => {
                                                                 // Calcular largura baseada em conflitos na hora (slot)
                                                                 const conflicts = dayAppointments.filter(a => a.startTime === apt.startTime);
@@ -810,7 +834,7 @@ export default function AgendaPage() {
                                     <div className="grid grid-cols-7 gap-3 auto-rows-fr">
                                         {/* Espaços vazios antes do primeiro dia */}
                                         {Array.from({ length: (getDay(startOfMonth(currentDate)) + 6) % 7 }).map((_, i) => (
-                                            <div key={`empty-${i}`} className="min-h-[140px] p-4 rounded-2xl bg-slate-50/30 border border-dashed border-slate-100" />
+                                            <div key={`empty-${i}`} className="min-h-[100px] p-2 rounded-xl bg-slate-50/30 border border-dashed border-slate-100" />
                                         ))}
 
                                         {/* Dias do mês */}
@@ -822,7 +846,7 @@ export default function AgendaPage() {
                                                 <div
                                                     key={idx}
                                                     className={cn(
-                                                        "min-h-[160px] p-3 rounded-2xl border transition-all duration-300 group hover:shadow-lg flex flex-col gap-2",
+                                                        "min-h-[100px] p-2 rounded-xl border transition-all duration-300 group hover:shadow-lg flex flex-col gap-2",
                                                         isToday
                                                             ? "bg-white border-primary/20 shadow-xl shadow-primary/5 ring-4 ring-primary/5"
                                                             : "bg-white border-slate-100 hover:border-slate-200"
