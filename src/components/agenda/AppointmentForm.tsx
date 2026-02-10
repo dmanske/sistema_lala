@@ -117,7 +117,7 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
             date: defaultDate || format(new Date(), 'yyyy-MM-dd'),
             startTime: defaultTime || "09:00",
             durationMinutes: 30,
-            status: "PENDING",
+            status: "CONFIRMED",
             notes: ""
         },
     });
@@ -223,7 +223,7 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
                     date: targetDate,
                     startTime: targetTime,
                     durationMinutes: 30,
-                    status: "PENDING",
+                    status: "CONFIRMED",
                     notes: ""
                 });
                 // Sync endTime
@@ -461,7 +461,7 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
                     } else {
                         // Restore pending if switching back and was blocked
                         if (form.getValues('status') === 'BLOCKED') {
-                            form.setValue('status', 'PENDING');
+                            form.setValue('status', 'CONFIRMED');
                         }
                     }
                 }} className="w-full">
