@@ -254,7 +254,7 @@ export default function ClientProfilePage() {
 
                 <div className="mt-6">
                     <TabsContent value="summary">
-                        <ClientSummaryTab />
+                        <ClientSummaryTab clientId={client.id} />
                     </TabsContent>
                     <TabsContent value="appointments">
                         <ClientAppointmentsTab clientId={client.id} />
