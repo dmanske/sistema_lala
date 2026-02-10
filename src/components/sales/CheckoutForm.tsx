@@ -149,6 +149,13 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
                     createdAt: new Date().toISOString(),
                 })
                 setCreditBalance(prev => Math.max(0, prev - amount))
+                // Also sync the client.creditBalance field
+                const client = await clientRepo.getById(sale.customerId)
+                if (client) {
+                    await clientRepo.update(sale.customerId, {
+                        creditBalance: Math.max(0, (client.creditBalance || 0) - amount)
+                    })
+                }
             }
 
             const updated = await paySaleUseCase.execute({

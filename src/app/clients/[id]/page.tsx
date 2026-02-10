@@ -51,6 +51,7 @@ import { ClientAppointmentsTab } from "@/components/clients/tabs/ClientAppointme
 
 import { ClientCreditTab } from "@/components/clients/tabs/ClientCreditTab";
 import { ClientProductsTab } from "@/components/clients/tabs/ClientProductsTab";
+import { LocalStorageCreditRepository } from "@/infrastructure/repositories/LocalStorageCreditRepository";
 
 export default function ClientProfilePage() {
     const params = useParams();
@@ -59,6 +60,7 @@ export default function ClientProfilePage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isAppointmentFormOpen, setIsAppointmentFormOpen] = useState(false);
+    const [computedCreditBalance, setComputedCreditBalance] = useState<number>(0);
 
     const repo = new LocalStorageClientRepository();
     const service = new ClientService(repo);
@@ -73,6 +75,13 @@ export default function ClientProfilePage() {
                     return;
                 }
                 setClient(data);
+                // Compute real credit balance from movements
+                const creditRepo = new LocalStorageCreditRepository();
+                const movements = await creditRepo.getByClientId(data.id);
+                const balance = movements.reduce((acc, m) => {
+                    return m.type === 'CREDIT' ? acc + m.amount : acc - m.amount;
+                }, 0);
+                setComputedCreditBalance(Math.max(0, balance));
             } catch (error) {
                 console.error(error);
                 router.push("/clients");
@@ -179,7 +188,7 @@ export default function ClientProfilePage() {
                             <div className="text-left sm:text-right">
                                 <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold block mb-1">Saldo</span>
                                 <span className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-800">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(client.creditBalance)}
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(computedCreditBalance)}
                                 </span>
                             </div>
                             <div className="flex gap-2">
@@ -260,7 +269,7 @@ export default function ClientProfilePage() {
                         <ClientAppointmentsTab clientId={client.id} />
                     </TabsContent>
                     <TabsContent value="credit">
-                        <ClientCreditTab clientId={client.id} creditBalance={client.creditBalance} />
+                        <ClientCreditTab clientId={client.id} creditBalance={computedCreditBalance} />
                     </TabsContent>
                     <TabsContent value="products">
                         <ClientProductsTab clientId={client.id} />

@@ -572,8 +572,10 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
                                                                                     <span className="ml-1.5 text-xs opacity-70">
                                                                                         {service.duration}min • {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price)}
                                                                                     </span>
-                                                                                    <button
-                                                                                        className="ml-1.5 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                                                                    <span
+                                                                                        role="button"
+                                                                                        tabIndex={0}
+                                                                                        className="ml-1.5 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer"
                                                                                         onKeyDown={(e) => {
                                                                                             if (e.key === "Enter") {
                                                                                                 e.preventDefault();
@@ -591,7 +593,7 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
                                                                                         }}
                                                                                     >
                                                                                         <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                                                                                    </button>
+                                                                                    </span>
                                                                                 </Badge>
                                                                             );
                                                                         })
