@@ -526,75 +526,116 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
                                             <span className="ml-2 text-slate-500">Carregando serviços...</span>
                                         </div>
                                     ) : (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
-                                            {availableServices.length === 0 && (
-                                                <div className="col-span-2 text-center p-4 text-muted-foreground border-2 border-dashed rounded-xl">
-                                                    Nenhum serviço cadastrado.
+                                        <div className="space-y-3">
+                                            <FormControl>
+                                                <div className="relative">
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <Button
+                                                                variant="outline"
+                                                                role="combobox"
+                                                                className={cn(
+                                                                    "w-full justify-between h-auto min-h-12 rounded-xl bg-white/50 border-slate-200",
+                                                                    selectedServices.length === 0 && "text-muted-foreground"
+                                                                )}
+                                                            >
+                                                                <div className="flex flex-wrap gap-1.5 flex-1">
+                                                                    {selectedServices.length === 0 ? (
+                                                                        <span>Selecione os serviços...</span>
+                                                                    ) : (
+                                                                        selectedServices.map((serviceId) => {
+                                                                            const service = availableServices.find(s => s.id === serviceId);
+                                                                            if (!service) return null;
+                                                                            return (
+                                                                                <Badge
+                                                                                    key={serviceId}
+                                                                                    variant="secondary"
+                                                                                    className="rounded-md px-2 py-1 font-normal"
+                                                                                >
+                                                                                    <span className="font-medium">{service.name}</span>
+                                                                                    <span className="ml-1.5 text-xs opacity-70">
+                                                                                        {service.duration}min • {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price)}
+                                                                                    </span>
+                                                                                    <button
+                                                                                        className="ml-1.5 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                                                                        onKeyDown={(e) => {
+                                                                                            if (e.key === "Enter") {
+                                                                                                e.preventDefault();
+                                                                                                toggleService(serviceId);
+                                                                                            }
+                                                                                        }}
+                                                                                        onMouseDown={(e) => {
+                                                                                            e.preventDefault();
+                                                                                            e.stopPropagation();
+                                                                                        }}
+                                                                                        onClick={(e) => {
+                                                                                            e.preventDefault();
+                                                                                            e.stopPropagation();
+                                                                                            toggleService(serviceId);
+                                                                                        }}
+                                                                                    >
+                                                                                        <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                                                                                    </button>
+                                                                                </Badge>
+                                                                            );
+                                                                        })
+                                                                    )}
+                                                                </div>
+                                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-full p-0 rounded-xl" align="start">
+                                                            <Command>
+                                                                <CommandInput placeholder="Buscar serviço..." className="h-9" />
+                                                                <CommandEmpty>Nenhum serviço encontrado</CommandEmpty>
+                                                                <CommandGroup className="max-h-64 overflow-auto">
+                                                                    {availableServices.map((service) => {
+                                                                        const isSelected = selectedServices.includes(service.id);
+                                                                        return (
+                                                                            <CommandItem
+                                                                                key={service.id}
+                                                                                value={service.name}
+                                                                                onSelect={() => toggleService(service.id)}
+                                                                                className="cursor-pointer"
+                                                                            >
+                                                                                <div
+                                                                                    className={cn(
+                                                                                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                                                                        isSelected
+                                                                                            ? "bg-primary text-primary-foreground"
+                                                                                            : "opacity-50 [&_svg]:invisible"
+                                                                                    )}
+                                                                                >
+                                                                                    <Check className="h-3 w-3" />
+                                                                                </div>
+                                                                                <div className="flex-1">
+                                                                                    <div className="font-medium">{service.name}</div>
+                                                                                    <div className="text-xs text-muted-foreground">
+                                                                                        {service.duration} min • {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price)}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </CommandItem>
+                                                                        );
+                                                                    })}
+                                                                </CommandGroup>
+                                                            </Command>
+                                                        </PopoverContent>
+                                                    </Popover>
                                                 </div>
-                                            )}
+                                            </FormControl>
 
-                                            {availableServices.map((service) => {
-                                                const isSelected = selectedServices.includes(service.id);
-                                                return (
-                                                    <div
-                                                        key={service.id}
-                                                        onClick={() => toggleService(service.id)}
-                                                        className={cn(
-                                                            "flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all select-none",
-                                                            isSelected
-                                                                ? "bg-primary/5 border-primary shadow-sm"
-                                                                : "bg-white/50 border-slate-200 hover:border-primary/30 hover:bg-white/80"
-                                                        )}
-                                                    >
-                                                        <div
-                                                            className={cn(
-                                                                "h-5 w-5 rounded-md border-2 flex items-center justify-center transition-colors shrink-0",
-                                                                isSelected
-                                                                    ? "bg-primary border-primary text-white"
-                                                                    : "border-slate-300 bg-white"
-                                                            )}
-                                                        >
-                                                            {isSelected && <Check className="h-3.5 w-3.5" />}
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="font-semibold text-slate-800 truncate">{service.name}</p>
-                                                            <p className="text-xs text-muted-foreground">
-                                                                {service.duration} min • {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price)}
-                                                            </p>
+                                            {/* Legacy/Deleted Services Warning */}
+                                            {initialData?.services?.some(sId =>
+                                                !availableServices.some(s => s.id === sId) && selectedServices.includes(sId)
+                                            ) && (
+                                                    <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                                                        <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                                                        <div className="text-xs text-amber-700">
+                                                            <p className="font-semibold">Serviços indisponíveis detectados</p>
+                                                            <p className="mt-0.5 opacity-90">Alguns serviços selecionados não existem mais no catálogo, mas foram mantidos pelo histórico.</p>
                                                         </div>
                                                     </div>
-                                                );
-                                            })}
-
-                                            {/* Legacy/Deleted Services Handling */}
-                                            {initialData?.services?.map(sId => {
-                                                if (availableServices.some(s => s.id === sId)) return null; // Already shown
-                                                // If we are here, sId is in initialData but not in availableServices (Deleted?)
-                                                const isSelected = selectedServices.includes(sId);
-                                                if (!isSelected) return null; // If unselected, don't show ghost
-
-                                                return (
-                                                    <div
-                                                        key={sId}
-                                                        onClick={() => toggleService(sId)}
-                                                        className="flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer bg-red-50 border-red-200 opacity-80"
-                                                        title="Este serviço não existe mais no catálogo"
-                                                    >
-                                                        <div className="h-5 w-5 rounded-md border-2 border-red-400 bg-red-400 text-white flex items-center justify-center">
-                                                            <Check className="h-3.5 w-3.5" />
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center gap-1 text-red-700">
-                                                                <AlertCircle className="h-3 w-3" />
-                                                                <p className="font-semibold truncate text-sm">Serviço Indisponível</p>
-                                                            </div>
-                                                            <p className="text-xs text-red-500">
-                                                                Mantido pelo histórico
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
+                                                )}
                                         </div>
                                     )}
                                     <FormMessage />
