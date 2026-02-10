@@ -9,8 +9,10 @@ import {
     User,
     Calendar as CalendarIcon,
     Search,
-    Filter
+    Filter,
+    ShoppingCart
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks, addMonths, subMonths, startOfMonth, endOfMonth, getDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -138,6 +140,7 @@ export default function AgendaPage() {
     const [editingAppointment, setEditingAppointment] = useState<Appointment | undefined>();
     const [selectedSlot, setSelectedSlot] = useState<{ date: string, time: string } | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
+    const router = useRouter();
 
     // Finalization State
     const [finalizeDialogOpen, setFinalizeDialogOpen] = useState(false);
@@ -510,6 +513,16 @@ export default function AgendaPage() {
                         </div>
                     </div>
 
+                    <div className="pt-2">
+                        <Button
+                            size="sm"
+                            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md rounded-xl"
+                            onClick={() => router.push(`/appointments/${apt.id}/checkout`)}
+                        >
+                            <ShoppingCart className="mr-2 h-4 w-4" /> Fechar Atendimento (Checkout)
+                        </Button>
+                    </div>
+
                     <div className="p-3 bg-slate-50/50 border-t border-slate-100 flex gap-2 mt-2">
                         <Button
                             variant="outline"
@@ -520,7 +533,7 @@ export default function AgendaPage() {
                             Editar Agendamento
                         </Button>
                     </div>
-                </PopoverContent>
+                </PopoverContent >
             </Popover >
         );
     };

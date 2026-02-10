@@ -135,7 +135,7 @@ export function RegisterCreditDialog({ clientId, onSuccess }: RegisterCreditDial
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-sm font-semibold text-slate-700">Origem do Pagamento</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl>
                                             <SelectTrigger className="h-11 rounded-xl bg-white/50 border-white/20">
                                                 <SelectValue placeholder="Selecione a origem" />

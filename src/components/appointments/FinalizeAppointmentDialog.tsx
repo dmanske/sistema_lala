@@ -164,7 +164,7 @@ export function FinalizeAppointmentDialog({ appointment, open, onOpenChange, onS
                                         <Input
                                             type="number"
                                             step="0.01"
-                                            value={service.price}
+                                            value={service.price ?? 0}
                                             onChange={(e) => handleServicePriceChange(idx, e.target.value)}
                                             className="h-8 text-right font-bold w-24"
                                         />

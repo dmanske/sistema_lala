@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Plus, Pencil, Trash2, Search, ArrowRightLeft, AlertTriangle, LayoutGrid, LayoutList } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, ArrowRightLeft, AlertTriangle, LayoutGrid, LayoutList, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -70,9 +70,16 @@ export default function ProductsPage() {
                         Gerencie o estoque e produtos para venda/consumo.
                     </p>
                 </div>
-                <Button onClick={handleNew} className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition-all">
-                    <Plus className="mr-2 h-4 w-4" /> Novo Produto
-                </Button>
+                <div>
+                    <Link href="/products/pos">
+                        <Button variant="outline" className="mr-2 bg-white hover:bg-purple-50 text-purple-700 border-purple-200 rounded-xl shadow-sm hover:shadow-md transition-all">
+                            <ShoppingCart className="mr-2 h-4 w-4" /> PDV
+                        </Button>
+                    </Link>
+                    <Button onClick={handleNew} className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition-all">
+                        <Plus className="mr-2 h-4 w-4" /> Novo Produto
+                    </Button>
+                </div>
             </div>
 
             {/* Mobile Header Action */}

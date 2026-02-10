@@ -1,59 +1,69 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Package, Calendar, User } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Appointment } from "@/core/domain/Appointment";
-import { AppointmentService } from "@/core/services/AppointmentService";
-import { LocalStorageAppointmentRepository } from "@/infrastructure/repositories/LocalStorageAppointmentRepository";
-import { cn } from "@/lib/utils";
+import { LocalStorageSaleRepository } from "@/infrastructure/repositories/sales/LocalStorageSaleRepository";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SaleItem } from "@/core/domain/sales/types";
 
 interface ClientProductsTabProps {
     clientId: string;
 }
 
-interface ProductUsage {
-    id: string; // unique key (apptId + prodId)
+interface ProductHistoryItem {
+    id: string;
     date: string;
     productName: string;
     quantity: number;
-    appointmentId: string;
+    unitPrice: number;
+    totalPrice: number;
+    origin: 'Atendimento' | 'Avulso';
+    saleId: string;
 }
 
 export function ClientProductsTab({ clientId }: ClientProductsTabProps) {
-    const [usageList, setUsageList] = useState<ProductUsage[]>([]);
+    const [history, setHistory] = useState<ProductHistoryItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [totalSpent, setTotalSpent] = useState(0);
 
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const appRepo = new LocalStorageAppointmentRepository();
-                const appService = new AppointmentService(appRepo);
-                const appointments = await appService.getAll({ clientId });
+                const saleRepo = new LocalStorageSaleRepository();
+                const sales = await saleRepo.findByCustomerId(clientId);
 
-                const usages: ProductUsage[] = [];
+                let items: ProductHistoryItem[] = [];
+                let total = 0;
 
-                appointments
-                    .filter(a => a.status === 'DONE' && a.usedProducts && a.usedProducts.length > 0)
-                    .forEach(apt => {
-                        apt.usedProducts?.forEach(p => {
-                            usages.push({
-                                id: `${apt.id}-${p.productId}`,
-                                date: apt.date,
-                                productName: p.name,
-                                quantity: p.quantity,
-                                appointmentId: apt.id
+                sales.forEach(sale => {
+                    if (sale.status !== 'canceled' && sale.items) {
+                        sale.items.filter((i: SaleItem) => i.itemType === 'product').forEach(item => {
+                            const itemTotal = item.unitPrice * item.qty;
+                            total += itemTotal;
+                            items.push({
+                                id: item.id || crypto.randomUUID(),
+                                date: sale.createdAt,
+                                productName: item.name,
+                                quantity: item.qty,
+                                unitPrice: item.unitPrice,
+                                totalPrice: itemTotal,
+                                origin: sale.appointmentId ? 'Atendimento' : 'Avulso',
+                                saleId: sale.id
                             });
                         });
-                    });
+                    }
+                });
 
                 // Sort by date desc
-                usages.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                setUsageList(usages);
+                items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                setHistory(items);
+                setTotalSpent(total);
 
             } catch (error) {
                 console.error(error);
@@ -65,57 +75,75 @@ export function ClientProductsTab({ clientId }: ClientProductsTabProps) {
         fetchData();
     }, [clientId]);
 
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center py-20">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-        );
-    }
+    if (loading) return <div className="p-4 text-center text-muted-foreground">Carregando histórico...</div>;
 
     return (
-        <Card className="border-none bg-white/60 backdrop-blur-xl shadow-xl shadow-purple-500/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <CardHeader className="border-b border-white/20 pb-4">
-                <div className="flex justify-between items-center">
-                    <CardTitle className="text-xl font-bold font-heading flex items-center gap-2">
-                        <Package className="h-5 w-5 text-purple-500" />
-                        Produtos Utilizados
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Summary Card */}
+            <Card className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white border-none shadow-lg">
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-purple-100 flex items-center">
+                        <ShoppingBag className="h-4 w-4 mr-2" />
+                        Total Gasto em Produtos
                     </CardTitle>
-                    <Badge variant="secondary" className="rounded-full px-4">{usageList.length} registros</Badge>
-                </div>
-            </CardHeader>
-            <CardContent className="p-0">
-                {usageList.length === 0 ? (
-                    <div className="text-center py-16 px-4">
-                        <div className="bg-slate-100/50 h-16 w-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                            <Package className="h-8 w-8 text-slate-400" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-slate-800">Nenhum produto utilizado</h3>
-                        <p className="text-sm text-muted-foreground mt-1 text-balance">
-                            Este cliente não possui registros de produtos consumidos em atendimentos.
-                        </p>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-3xl font-bold">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalSpent)}
                     </div>
-                ) : (
-                    <div className="divide-y divide-white/20">
-                        {usageList.map((item) => (
-                            <div key={item.id} className="p-4 hover:bg-white/40 transition-colors flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center text-purple-600 font-bold">
-                                        {item.quantity}x
-                                    </div>
-                                    <div>
-                                        <h4 className="font-semibold text-slate-800">{item.productName}</h4>
-                                        <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
-                                            <Calendar className="h-3 w-3" />
-                                            {format(new Date(item.date + 'T00:00:00'), "dd 'de' MMMM, yyyy", { locale: ptBR })}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </CardContent>
-        </Card>
+                    <p className="text-xs text-purple-200 mt-1">
+                        {history.length} itens comprados
+                    </p>
+                </CardContent>
+            </Card>
+
+            <Card className="border-none bg-white/60 backdrop-blur-xl shadow-xl shadow-purple-500/5">
+                <CardHeader>
+                    <CardTitle className="text-xl font-bold font-heading">Histórico de Compras</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Data</TableHead>
+                                <TableHead>Produto</TableHead>
+                                <TableHead className="text-center">Qtd</TableHead>
+                                <TableHead className="text-right">Valor Total</TableHead>
+                                <TableHead className="text-right">Origem</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {history.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                        Nenhuma compra registrada.
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                history.map((item) => (
+                                    <TableRow key={item.id}>
+                                        <TableCell className="text-muted-foreground">
+                                            {format(new Date(item.date), "dd/MM/yyyy", { locale: ptBR })}
+                                        </TableCell>
+                                        <TableCell className="font-medium">{item.productName}</TableCell>
+                                        <TableCell className="text-center">
+                                            <Badge variant="secondary" className="font-mono">{item.quantity}</Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right font-semibold">
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.totalPrice)}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Badge variant={item.origin === 'Atendimento' ? 'default' : 'outline'}>
+                                                {item.origin}
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        </div>
     );
 }
