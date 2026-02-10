@@ -27,10 +27,12 @@ import {
 } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-import { Appointment, MOCK_PROFESSIONALS, MOCK_SERVICES } from "@/core/domain/Appointment";
+import { Appointment, MOCK_PROFESSIONALS } from "@/core/domain/Appointment";
 import { AppointmentService } from "@/core/services/AppointmentService";
 import { LocalStorageAppointmentRepository } from "@/infrastructure/repositories/LocalStorageAppointmentRepository";
 import { LocalStorageClientRepository } from "@/infrastructure/repositories/LocalStorageClientRepository";
+import { LocalStorageServiceRepository } from "@/infrastructure/repositories/LocalStorageServiceRepository";
+import { Service } from "@/core/domain/Service";
 import { Client } from "@/core/domain/Client";
 import { formatName } from "@/core/formatters/name";
 import { AppointmentForm } from "@/components/agenda/AppointmentForm";
@@ -135,6 +137,7 @@ export default function AgendaPage() {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [clients, setClients] = useState<Client[]>([]);
+    const [services, setServices] = useState<Service[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingAppointment, setEditingAppointment] = useState<Appointment | undefined>();
@@ -148,6 +151,7 @@ export default function AgendaPage() {
 
     const service = new AppointmentService(new LocalStorageAppointmentRepository());
     const clientRepo = new LocalStorageClientRepository();
+    const serviceRepo = new LocalStorageServiceRepository();
 
     // Calcular range de datas baseado no viewMode
     const dateRange = useMemo(() => {
@@ -178,15 +182,17 @@ export default function AgendaPage() {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [appointmentsData, clientsData] = await Promise.all([
+            const [appointmentsData, clientsData, servicesData] = await Promise.all([
                 service.getAll({
                     startDate: format(dateRange.start, 'yyyy-MM-dd'),
                     endDate: format(dateRange.end, 'yyyy-MM-dd')
                 }),
-                clientRepo.getAll()
+                clientRepo.getAll(),
+                serviceRepo.getAll()
             ]);
             setAppointments(appointmentsData);
             setClients(clientsData);
+            setServices(servicesData);
         } catch (error) {
             console.error(error);
         } finally {
@@ -295,8 +301,8 @@ export default function AgendaPage() {
 
     const getServiceNames = (serviceIds: string[]) => {
         return serviceIds.map(id => {
-            const svc = MOCK_SERVICES.find(s => s.id === id);
-            return svc?.name || id;
+            const svc = services.find(s => s.id === id);
+            return svc?.name || "Serviço Indisponível";
         }).join(", ");
     };
 

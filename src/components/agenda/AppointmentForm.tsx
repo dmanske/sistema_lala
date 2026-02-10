@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm, useWatch, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
     Calendar as CalendarIcon,
@@ -11,7 +11,8 @@ import {
     Check,
     ChevronsUpDown,
     X,
-    Loader2
+    Loader2,
+    AlertCircle
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -64,12 +65,14 @@ import {
     CreateAppointmentInput,
     CreateAppointmentSchema,
     MOCK_PROFESSIONALS,
-    MOCK_SERVICES
+    ServiceLine
 } from "@/core/domain/Appointment";
 import { AppointmentService } from "@/core/services/AppointmentService";
 import { LocalStorageAppointmentRepository } from "@/infrastructure/repositories/LocalStorageAppointmentRepository";
 import { LocalStorageClientRepository } from "@/infrastructure/repositories/LocalStorageClientRepository";
+import { LocalStorageServiceRepository } from "@/infrastructure/repositories/LocalStorageServiceRepository";
 import { Client } from "@/core/domain/Client";
+import { Service } from "@/core/domain/Service";
 import { toast } from "sonner";
 import { formatName } from "@/core/formatters/name";
 
@@ -85,24 +88,25 @@ interface AppointmentFormProps {
 
 export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, defaultDate, defaultTime, onSuccess }: AppointmentFormProps) {
     const [clients, setClients] = useState<Client[]>([]);
-    const [isSearchingClients, setIsSearchingClients] = useState(false);
+    const [availableServices, setAvailableServices] = useState<Service[]>([]);
+    const [isLoadingServices, setIsLoadingServices] = useState(true);
+
     const [clientSearch, setClientSearch] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [clientPopoverOpen, setClientPopoverOpen] = useState(false);
     const [calendarPopoverOpen, setCalendarPopoverOpen] = useState(false);
 
-    // Ref para evitar loops no cálculo de duração
-    const lastServicesRef = useRef<string[]>([]);
-
     const appointmentService = new AppointmentService(new LocalStorageAppointmentRepository());
     const clientRepo = new LocalStorageClientRepository();
+    const serviceRepo = new LocalStorageServiceRepository();
 
-    const form = useForm<any>({
+    const form = useForm<CreateAppointmentInput>({
         resolver: zodResolver(CreateAppointmentSchema),
         defaultValues: {
             clientId: clientId || "",
             professionalId: "",
             services: [],
+            serviceLines: [],
             date: defaultDate || format(new Date(), 'yyyy-MM-dd'),
             startTime: defaultTime || "09:00",
             durationMinutes: 30,
@@ -111,68 +115,7 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
         },
     });
 
-    // Resetar form quando abrir com novos defaults
-    useEffect(() => {
-        if (isOpen && !initialData) {
-            const targetDate = defaultDate || format(new Date(), 'yyyy-MM-dd');
-            const targetTime = defaultTime || "09:00";
-
-            form.reset({
-                clientId: clientId || "",
-                professionalId: "",
-                services: [],
-                date: targetDate,
-                startTime: targetTime,
-                durationMinutes: 30,
-                status: "PENDING",
-                notes: ""
-            });
-
-            // Forçar atualização dos campos específicos para garantir UI
-            form.setValue("date", targetDate);
-            form.setValue("startTime", targetTime);
-
-        } else if (isOpen && initialData) {
-            form.reset(initialData);
-        }
-    }, [isOpen, defaultDate, defaultTime, initialData, form, clientId]);
-
-    // Watch services para calcular duração automaticamente...
-
-    // Watch services para calcular duração automaticamente
-    const watchedServices = useWatch({
-        control: form.control,
-        name: "services",
-        defaultValue: []
-    });
-
-    // Calcular duração automaticamente quando serviços mudam
-    useEffect(() => {
-        if (initialData) return; // Não recalcular para edição
-
-        const currentServices = watchedServices || [];
-        const prevServices = lastServicesRef.current;
-
-        // Verificar se realmente mudou
-        const hasChanged =
-            currentServices.length !== prevServices.length ||
-            currentServices.some((s: string, i: number) => s !== prevServices[i]);
-
-        if (hasChanged && currentServices.length > 0) {
-            const totalDuration = currentServices.reduce((acc: number, serviceId: string) => {
-                const service = MOCK_SERVICES.find(s => s.id === serviceId);
-                return acc + (service?.duration || 0);
-            }, 0);
-
-            if (totalDuration > 0) {
-                form.setValue("durationMinutes", totalDuration, { shouldValidate: false });
-            }
-
-            lastServicesRef.current = [...currentServices];
-        }
-    }, [watchedServices, initialData, form]);
-
-    // Carregar clientes
+    // Load Clients
     useEffect(() => {
         const loadClients = async () => {
             try {
@@ -185,25 +128,61 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
         loadClients();
     }, []);
 
-    // Reset form quando abrir/fechar
+    // Load Services
     useEffect(() => {
-        if (isOpen) {
-            lastServicesRef.current = [];
+        const loadServices = async () => {
+            setIsLoadingServices(true);
+            try {
+                const data = await serviceRepo.getAll();
+                setAvailableServices(data);
+                console.log("Serviços carregados:", data.length);
+            } catch (error) {
+                console.error("Erro ao carregar serviços:", error);
+                toast.error("Erro ao carregar lista de serviços");
+            } finally {
+                setIsLoadingServices(false);
+            }
+        };
+        loadServices();
+    }, []);
 
+    // Initialize/Reset Form
+    useEffect(() => {
+        if (isOpen && !isLoadingServices) {
             if (initialData) {
+                // Prepare serviceLines (migration logic if needed)
+                let lines: ServiceLine[] = initialData.serviceLines || [];
+
+                // If legacy data (no serviceLines but has services ids), migrate it
+                if (lines.length === 0 && initialData.services && initialData.services.length > 0) {
+                    lines = initialData.services.map(sId => {
+                        const s = availableServices.find(as => as.id === sId);
+                        // If service not found (deleted), try to preserve ID but snapshot 0 defaults
+                        // Or we simply omit it? Better to keep it with warnings.
+                        return {
+                            id: crypto.randomUUID(),
+                            serviceId: sId,
+                            qty: 1,
+                            priceSnapshot: s?.price || 0,
+                            durationSnapshot: s?.duration || 30
+                        };
+                    });
+                }
+
                 form.reset({
                     clientId: initialData.clientId,
                     professionalId: initialData.professionalId,
                     services: initialData.services,
+                    serviceLines: lines,
                     date: initialData.date,
                     startTime: initialData.startTime,
                     durationMinutes: initialData.durationMinutes,
                     status: initialData.status,
-                    notes: initialData.notes || ""
+                    notes: initialData.notes || "",
+                    recurrenceRule: (initialData as any).recurrenceRule // Preserve if exists
                 });
-                lastServicesRef.current = [...initialData.services];
             } else {
-                // Usar defaultDate e defaultTime do slot clicado, ou valores padrão
+                // New Appointment Defaults
                 const targetDate = defaultDate || format(new Date(), 'yyyy-MM-dd');
                 const targetTime = defaultTime || "09:00";
 
@@ -211,6 +190,7 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
                     clientId: clientId || "",
                     professionalId: "",
                     services: [],
+                    serviceLines: [],
                     date: targetDate,
                     startTime: targetTime,
                     durationMinutes: 30,
@@ -219,16 +199,23 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
                 });
             }
         }
-    }, [isOpen, initialData, clientId, form, defaultDate, defaultTime]);
+    }, [isOpen, initialData, clientId, defaultDate, defaultTime, availableServices, isLoadingServices, form]);
 
-    const onSubmit = async (data: CreateAppointmentInput) => {
+    const onSubmit: SubmitHandler<CreateAppointmentInput> = async (data) => {
         setIsSubmitting(true);
         try {
+            // Ensure serviceLines are passed correctly
+            const payload = {
+                ...data,
+                // Ensure manual overrides or simple syncing
+                // data.serviceLines should be up to date from form state
+            };
+
             if (initialData) {
-                await appointmentService.update(initialData.id, data);
+                await appointmentService.update(initialData.id, payload);
                 toast.success("Agendamento atualizado!");
             } else {
-                await appointmentService.create(data);
+                await appointmentService.create(payload);
                 toast.success("Agendamento criado!");
             }
             onOpenChange(false);
@@ -251,15 +238,62 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
     const selectedServices = form.watch("services") || [];
     const totalDuration = form.watch("durationMinutes") || 0;
 
-    // Toggle serviço
+    // Watch serviceLines to auto-calc duration
+    const watchedServiceLines = useWatch({ control: form.control, name: "serviceLines" });
+
+    useEffect(() => {
+        if (watchedServiceLines && watchedServiceLines.length > 0) {
+            const total = watchedServiceLines.reduce((acc, line) => acc + (line.durationSnapshot * line.qty), 0);
+            if (total > 0) {
+                // Use shouldValidate: false to avoid triggering re-validation loops if not needed
+                form.setValue("durationMinutes", total, { shouldValidate: true });
+            }
+        } else if (!initialData) {
+            // Reset to 30 if no services and creating new
+            // form.setValue("durationMinutes", 30);
+        }
+    }, [watchedServiceLines, form, initialData]);
+
+    // Toggle Service Logic
     const toggleService = useCallback((serviceId: string) => {
-        const current = form.getValues("services") || [];
-        const isSelected = current.includes(serviceId);
-        const newServices = isSelected
-            ? current.filter((id: string) => id !== serviceId)
-            : [...current, serviceId];
-        form.setValue("services", newServices, { shouldValidate: true });
-    }, [form]);
+        const currentIds = form.getValues("services") || [];
+        const currentLines = form.getValues("serviceLines") || [];
+        const service = availableServices.find(s => s.id === serviceId);
+
+        // If clicking a service that's not in valid list (e.g. deleted but migrated legacy), we can't toggle it easily back ON if removed.
+        // But for toggling ON:
+        if (!service) {
+            // Check if it's a legacy service already in the list?
+            // If we are unselecting a legacy service that is not in availableServices, we just remove it.
+        }
+
+        const isSelected = currentIds.includes(serviceId);
+
+        if (isSelected) {
+            // Remove
+            const newIds = currentIds.filter(id => id !== serviceId);
+            const newLines = currentLines.filter(l => l.serviceId !== serviceId);
+            form.setValue("services", newIds);
+            form.setValue("serviceLines", newLines);
+        } else {
+            // Add
+            if (!service) {
+                toast.error("Serviço não encontrado no catálogo atual.");
+                return;
+            }
+            const newIds = [...currentIds, serviceId];
+            const newLine: ServiceLine = {
+                id: crypto.randomUUID(),
+                serviceId: service.id,
+                qty: 1,
+                priceSnapshot: service.price,
+                durationSnapshot: service.duration,
+            };
+            const newLines = [...currentLines, newLine];
+            form.setValue("services", newIds);
+            form.setValue("serviceLines", newLines);
+        }
+    }, [form, availableServices]);
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -370,7 +404,7 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
                                         <Scissors className="h-4 w-4 text-purple-500" />
                                         Profissional
                                     </FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                         <FormControl>
                                             <SelectTrigger className="h-12 rounded-xl bg-white/50 border-slate-200">
                                                 <SelectValue placeholder="Selecione o profissional" />
@@ -467,7 +501,7 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
                             />
                         </div>
 
-                        {/* Serviços */}
+                        {/* Serviços Real Database */}
                         <FormField
                             control={form.control}
                             name="services"
@@ -478,47 +512,91 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
                                             <Scissors className="h-4 w-4 text-orange-500" />
                                             Serviços
                                         </FormLabel>
-                                        {selectedServices.length > 0 && (
+                                        {totalDuration > 0 && (
                                             <Badge variant="secondary" className="rounded-full px-3">
                                                 <Clock className="h-3 w-3 mr-1" />
                                                 {totalDuration} min
                                             </Badge>
                                         )}
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[200px] overflow-y-auto pr-2">
-                                        {MOCK_SERVICES.map((service) => {
-                                            const isSelected = selectedServices.includes(service.id);
-                                            return (
-                                                <div
-                                                    key={service.id}
-                                                    onClick={() => toggleService(service.id)}
-                                                    className={cn(
-                                                        "flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all",
-                                                        isSelected
-                                                            ? "bg-primary/5 border-primary shadow-sm"
-                                                            : "bg-white/50 border-slate-200 hover:border-primary/30 hover:bg-white/80"
-                                                    )}
-                                                >
+
+                                    {isLoadingServices ? (
+                                        <div className="flex items-center justify-center p-8 bg-slate-50 rounded-xl border border-slate-100">
+                                            <Loader2 className="h-6 w-6 text-slate-400 animate-spin" />
+                                            <span className="ml-2 text-slate-500">Carregando serviços...</span>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                                            {availableServices.length === 0 && (
+                                                <div className="col-span-2 text-center p-4 text-muted-foreground border-2 border-dashed rounded-xl">
+                                                    Nenhum serviço cadastrado.
+                                                </div>
+                                            )}
+
+                                            {availableServices.map((service) => {
+                                                const isSelected = selectedServices.includes(service.id);
+                                                return (
                                                     <div
+                                                        key={service.id}
+                                                        onClick={() => toggleService(service.id)}
                                                         className={cn(
-                                                            "h-5 w-5 rounded-md border-2 flex items-center justify-center transition-colors shrink-0",
+                                                            "flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all select-none",
                                                             isSelected
-                                                                ? "bg-primary border-primary text-white"
-                                                                : "border-slate-300 bg-white"
+                                                                ? "bg-primary/5 border-primary shadow-sm"
+                                                                : "bg-white/50 border-slate-200 hover:border-primary/30 hover:bg-white/80"
                                                         )}
                                                     >
-                                                        {isSelected && <Check className="h-3.5 w-3.5" />}
+                                                        <div
+                                                            className={cn(
+                                                                "h-5 w-5 rounded-md border-2 flex items-center justify-center transition-colors shrink-0",
+                                                                isSelected
+                                                                    ? "bg-primary border-primary text-white"
+                                                                    : "border-slate-300 bg-white"
+                                                            )}
+                                                        >
+                                                            {isSelected && <Check className="h-3.5 w-3.5" />}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-semibold text-slate-800 truncate">{service.name}</p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                {service.duration} min • {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price)}
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="font-semibold text-slate-800 truncate">{service.name}</p>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            {service.duration} min • {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price)}
-                                                        </p>
+                                                );
+                                            })}
+
+                                            {/* Legacy/Deleted Services Handling */}
+                                            {initialData?.services?.map(sId => {
+                                                if (availableServices.some(s => s.id === sId)) return null; // Already shown
+                                                // If we are here, sId is in initialData but not in availableServices (Deleted?)
+                                                const isSelected = selectedServices.includes(sId);
+                                                if (!isSelected) return null; // If unselected, don't show ghost
+
+                                                return (
+                                                    <div
+                                                        key={sId}
+                                                        onClick={() => toggleService(sId)}
+                                                        className="flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer bg-red-50 border-red-200 opacity-80"
+                                                        title="Este serviço não existe mais no catálogo"
+                                                    >
+                                                        <div className="h-5 w-5 rounded-md border-2 border-red-400 bg-red-400 text-white flex items-center justify-center">
+                                                            <Check className="h-3.5 w-3.5" />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-1 text-red-700">
+                                                                <AlertCircle className="h-3 w-3" />
+                                                                <p className="font-semibold truncate text-sm">Serviço Indisponível</p>
+                                                            </div>
+                                                            <p className="text-xs text-red-500">
+                                                                Mantido pelo histórico
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -544,7 +622,7 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
                                             />
                                             <span className="text-sm text-muted-foreground">minutos</span>
                                             <span className="text-xs text-muted-foreground ml-auto">
-                                                (calculado automaticamente pelos serviços)
+                                                (calculado automaticamente)
                                             </span>
                                         </div>
                                     </FormControl>

@@ -20,6 +20,7 @@ export interface Appointment {
     durationMinutes: number;
     status: AppointmentStatus;
     notes?: string;
+    serviceLines?: ServiceLine[]; // Normalized structure
     // Finalization Data
     finalizedAt?: string;
     finalizedServices?: Array<{
@@ -47,6 +48,15 @@ export const FinalizedServiceSchema = z.object({
     professionalId: z.string(),
 });
 
+export interface ServiceLine {
+    id: string;
+    serviceId: string;
+    qty: number;
+    priceSnapshot: number;
+    durationSnapshot: number;
+    priceOverride?: number;
+}
+
 export const UsedProductSchema = z.object({
     productId: z.string(),
     name: z.string(),
@@ -69,6 +79,16 @@ export const CreateAppointmentSchema = z.object({
     seriesId: z.string().optional(),
     isRecurring: z.boolean().optional(),
     recurrenceRule: z.string().optional(),
+
+    // New normalized structure
+    serviceLines: z.array(z.object({
+        id: z.string(),
+        serviceId: z.string(),
+        qty: z.number().min(1).default(1),
+        priceSnapshot: z.number().min(0),
+        durationSnapshot: z.number().min(1),
+        priceOverride: z.number().optional()
+    })).optional(),
 });
 
 export type CreateAppointmentInput = z.infer<typeof CreateAppointmentSchema>;
