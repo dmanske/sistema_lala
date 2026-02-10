@@ -28,6 +28,7 @@ import { Supplier } from "@/core/domain/Supplier";
 import { Purchase } from "@/core/domain/Purchase";
 import { LocalStorageSupplierRepository } from "@/infrastructure/repositories/LocalStorageSupplierRepository";
 import { LocalStoragePurchaseRepository } from "@/infrastructure/repositories/LocalStoragePurchaseRepository";
+import { formatDate } from "@/core/formatters/date";
 import { formatPhone } from "@/core/formatters/phone";
 
 export default function SupplierProfilePage() {
@@ -203,7 +204,7 @@ export default function SupplierProfilePage() {
                                                 ) : (
                                                     purchases.map(purchase => (
                                                         <TableRow key={purchase.id} className="hover:bg-white/40 border-white/10 cursor-pointer" onClick={() => router.push(`/purchases/${purchase.id}`)}>
-                                                            <TableCell>{purchase.date ? format(new Date(purchase.date), 'dd/MM/yyyy', { timeZone: 'UTC' }) : '-'}</TableCell>
+                                                            <TableCell>{purchase.date ? formatDate(purchase.date, 'UTC') : '-'}</TableCell>
                                                             <TableCell className="font-mono text-xs text-muted-foreground">#{purchase.id.slice(0, 8)}</TableCell>
                                                             <TableCell className="text-right">{purchase.items ? purchase.items.reduce((s, i) => s + i.quantity, 0) : 0}</TableCell>
                                                             <TableCell className="text-right font-medium">

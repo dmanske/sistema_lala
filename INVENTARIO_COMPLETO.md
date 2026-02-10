@@ -1,6 +1,6 @@
 # 📋 INVENTÁRIO COMPLETO DO SISTEMA LALA
-**Data:** 10/02/2026  
-**Status:** DESENVOLVIMENTO ATIVO - REFATORAÇÃO DE VENDAS E CHECKOUT
+**Data:** 11/02/2026  
+**Status:** DESENVOLVIMENTO ATIVO - BUILD VERCEL CORRIGIDO
 
 ---
 
@@ -669,17 +669,22 @@ SalePayment {
 
 ### 1. **UX / Interface**
 
-#### ❌ Uso de `alert/confirm/prompt` do navegador
-**Onde:** `/services/page.tsx` linha 44
-```typescript
-if (confirm("Tem certeza que deseja excluir este serviço?")) {
-```
-**Problema:** Viola as regras do projeto (proibido usar dialogs nativos)  
-**Solução:** Criar componente `DeleteServiceDialog` similar ao `DeleteClientDialog`
+#### ✅ Remoção do `confirm()` nativo (Serviços)
+**Status:** Resolvido. Substituído por diálogo customizado do shadcn/ui.
 
 ---
 
-### 2. **Campos Genéricos/Não Definidos**
+### 2. **Build / Deploy**
+
+#### ✅ Erros de tipagem (Vercel Build)
+**Status:** Corrigido.
+- Corrigida chamada inválida de `timeZone` em `date-fns` no perfil do fornecedor.
+- Corrigida sobreposição de campo `date` em `CreatePurchase.ts` que violava a interface do repositório.
+- Verificado via `npm run build` local.
+
+---
+
+### 3. **Campos Genéricos/Não Definidos**
 
 #### ❌ Campo "Preferências" no Cliente
 **Status:** NÃO EXISTE no código atual  
@@ -776,11 +781,7 @@ if (confirm("Tem certeza que deseja excluir este serviço?")) {
 
 ### Prioridade ALTA (Corrigir Problemas):
 
-1. **Remover `confirm()` do navegador**
-   - Criar `DeleteServiceDialog.tsx`
-   - Substituir em `/services/page.tsx`
-
-2. **Implementar helpers de estoque**
+1. **Implementar helpers de estoque**
    - `computeStockByProduct()`
    - `getStockMapByProducts()`
    - `getLowStockProducts()`
@@ -946,6 +947,6 @@ O sistema está bem estruturado para migração:
 
 ---
 
-**Documento gerado em:** 10/02/2026  
-**Versão:** 1.0  
-**Próxima revisão:** Após correção dos problemas de prioridade ALTA
+**Documento gerado em:** 11/02/2026  
+**Versão:** 1.1  
+**Próxima revisão:** Após migração para Supabase ou novos módulos.

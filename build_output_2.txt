@@ -1,0 +1,29 @@
+
+> sistema_lala@0.1.0 build
+> next build
+
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /Users/danielmanske/package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * /Users/danielmanske/Documents/GitHub/sistema_lala/package-lock.json
+
+▲ Next.js 16.1.6 (Turbopack)
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 2.5s
+  Running TypeScript ...
+Failed to compile.
+
+./src/core/usecases/purchases/CreatePurchase.ts:27:21
+Type error: Object literal may only specify known properties, and 'date' does not exist in type '{ productId: string; quantity: number; type: "IN" | "OUT"; reason: string; referenceId?: string | undefined; referenceType?: "APPOINTMENT" | "ADJUSTMENT" | "PURCHASE" | "REFUND" | undefined; unitCost?: number | undefined; supplierId?: string | undefined; }'.
+
+[0m [90m 25 |[39m                     unitCost[33m:[39m item[33m.[39munitCost[33m,[39m
+ [90m 26 |[39m                     supplierId[33m:[39m purchase[33m.[39msupplierId[33m,[39m
+[31m[1m>[22m[39m[90m 27 |[39m                     date[33m:[39m [36mnew[39m [33mDate[39m()[33m.[39mtoISOString() [90m// Recording movement at creation time[39m
+ [90m    |[39m                     [31m[1m^[22m[39m
+ [90m 28 |[39m                 })[33m;[39m
+ [90m 29 |[39m             }
+ [90m 30 |[39m         }[0m
+Next.js build worker exited with code: 1 and signal: null

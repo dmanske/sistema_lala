@@ -24,7 +24,6 @@ export class CreatePurchase {
                     referenceType: 'PURCHASE',
                     unitCost: item.unitCost,
                     supplierId: purchase.supplierId,
-                    date: new Date().toISOString() // Recording movement at creation time
                 });
             }
         }
