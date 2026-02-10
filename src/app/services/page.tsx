@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { useServices } from "@/hooks/useServices";
 import { ServiceDialog } from "@/components/services/ServiceDialog";
+import { DeleteServiceDialog } from "@/components/services/DeleteServiceDialog";
 import { Service } from "@/core/domain/Service";
 import { Badge } from "@/components/ui/badge";
 
@@ -24,6 +25,8 @@ export default function ServicesPage() {
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingService, setEditingService] = useState<Service | undefined>(undefined);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [serviceToDelete, setServiceToDelete] = useState<{ id: string; name: string } | null>(null);
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearch(e.target.value);
@@ -40,11 +43,19 @@ export default function ServicesPage() {
         setDialogOpen(true);
     };
 
-    const handleDelete = async (id: string) => {
-        if (confirm("Tem certeza que deseja excluir este serviço?")) {
-            await deleteService(id);
+    const handleDelete = (id: string, name: string) => {
+        setServiceToDelete({ id, name });
+        setDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (serviceToDelete) {
+            await deleteService(serviceToDelete.id);
+            setDeleteDialogOpen(false);
+            setServiceToDelete(null);
         }
     };
+
 
     return (
         <div className="space-y-6">
@@ -112,7 +123,7 @@ export default function ServicesPage() {
                                         <Button size="icon" variant="secondary" className="h-8 w-8 rounded-lg bg-white/80 hover:bg-white hover:text-purple-600 shadow-sm" onClick={() => handleEdit(service)}>
                                             <Pencil className="h-3.5 w-3.5" />
                                         </Button>
-                                        <Button size="icon" variant="secondary" className="h-8 w-8 rounded-lg bg-white/80 hover:bg-red-50 hover:text-red-600 shadow-sm" onClick={() => handleDelete(service.id)}>
+                                        <Button size="icon" variant="secondary" className="h-8 w-8 rounded-lg bg-white/80 hover:bg-red-50 hover:text-red-600 shadow-sm" onClick={() => handleDelete(service.id, service.name)}>
                                             <Trash2 className="h-3.5 w-3.5" />
                                         </Button>
                                     </div>
@@ -190,7 +201,7 @@ export default function ServicesPage() {
                                                     <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-500 hover:text-purple-600 hover:bg-purple-50" onClick={() => handleEdit(service)}>
                                                         <Pencil className="h-4 w-4" />
                                                     </Button>
-                                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(service.id)}>
+                                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(service.id, service.name)}>
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </div>
@@ -224,6 +235,14 @@ export default function ServicesPage() {
                 onOpenChange={setDialogOpen}
                 service={editingService}
                 onSubmit={editingService ? (data) => updateService(editingService.id, data) : addService}
+            />
+
+            <DeleteServiceDialog
+                isOpen={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+                serviceName={serviceToDelete?.name || ""}
+                serviceId={serviceToDelete?.id || ""}
+                onConfirm={confirmDelete}
             />
         </div>
     );

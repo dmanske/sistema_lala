@@ -54,7 +54,7 @@ export function Sidebar({ className }: SidebarProps) {
             label: "Pessoas",
             items: [
                 { name: "Clientes", icon: Users, href: "/clients", active: true },
-                { name: "Profissionais", icon: UserCircle, href: "/professionals", active: false },
+                { name: "Profissionais", icon: UserCircle, href: "/professionals", active: true },
             ],
         },
         {

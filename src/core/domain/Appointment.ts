@@ -72,7 +72,7 @@ export const CreateAppointmentSchema = z.object({
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (AAAA-MM-DD)"),
     startTime: z.string().regex(/^\d{2}:\d{2}$/, "Hora inválida (HH:mm)"),
     durationMinutes: z.number().min(1, "Duração mínima de 1 minuto"),
-    status: AppointmentStatusSchema.default("PENDING"),
+    status: AppointmentStatusSchema,
     notes: z.string().optional(),
 
     // Recurrence (Optional for now)
@@ -84,7 +84,7 @@ export const CreateAppointmentSchema = z.object({
     serviceLines: z.array(z.object({
         id: z.string(),
         serviceId: z.string(),
-        qty: z.number().min(1).default(1),
+        qty: z.number().min(1),
         priceSnapshot: z.number().min(0),
         durationSnapshot: z.number().min(1),
         priceOverride: z.number().optional()
@@ -93,19 +93,3 @@ export const CreateAppointmentSchema = z.object({
 
 export type CreateAppointmentInput = z.infer<typeof CreateAppointmentSchema>;
 
-// Mock data (Deprecated - use Services from Repository)
-export const MOCK_PROFESSIONALS = [
-    { id: "p1", name: "Lala (Principal)", color: "#8b5cf6" },
-    { id: "p2", name: "Bruna Designer", color: "#ec4899" },
-    { id: "p3", name: "Carol Estética", color: "#10b981" },
-];
-
-// Kept for backward compatibility but should be replaced by ServiceRepository calls
-export const MOCK_SERVICES = [
-    { id: "s1", name: "Corte Feminino", duration: 60, price: 120 },
-    { id: "s2", name: "Escova Modelada", duration: 45, price: 80 },
-    { id: "s3", name: "Manicure", duration: 40, price: 45 },
-    { id: "s4", name: "Pedicure", duration: 40, price: 50 },
-    { id: "s5", name: "Coloração", duration: 90, price: 180 },
-    { id: "s6", name: "Design de Sobrancelha", duration: 30, price: 40 },
-];

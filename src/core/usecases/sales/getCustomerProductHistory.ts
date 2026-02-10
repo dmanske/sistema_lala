@@ -1,6 +1,6 @@
 
 import { SaleItem } from '@/core/domain/sales/types';
-import { SaleRepository } from '@/infrastructure/repositories/sales/SaleRepository';
+import { SaleRepository } from '@/core/repositories/SaleRepository';
 
 export interface ProductHistoryItem {
     id: string; // saleItem.id
@@ -18,7 +18,7 @@ export const getCustomerProductHistoryUseCase = async (
 ): Promise<ProductHistoryItem[]> => {
     // Get all items
     // Since listItemsByCustomer might be basic, we might need to fetch sales to know origin
-    const sales = await repo.list({ tenantId: 'default', customerId });
+    const sales = await repo.findByCustomerId(customerId);
 
     const history: ProductHistoryItem[] = [];
 

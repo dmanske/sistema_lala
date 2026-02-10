@@ -16,7 +16,6 @@ export class AppointmentService {
         const appointment: Appointment = {
             id: Math.random().toString(36).substring(2, 11),
             ...input,
-            createdAt: new Date().toISOString(),
         };
 
         return this.repository.create(appointment);

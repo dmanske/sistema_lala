@@ -10,20 +10,20 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-interface DeleteProductDialogProps {
+interface DeleteServiceDialogProps {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
-    productName: string;
-    productId: string;
+    serviceName: string;
+    serviceId: string;
     onConfirm: () => void;
 }
 
-export function DeleteProductDialog({
+export function DeleteServiceDialog({
     isOpen,
     onOpenChange,
-    productName,
+    serviceName,
     onConfirm,
-}: DeleteProductDialogProps) {
+}: DeleteServiceDialogProps) {
     const [open, setOpen] = useState(isOpen);
 
     useEffect(() => {
@@ -39,10 +39,10 @@ export function DeleteProductDialog({
             <AlertDialogContent className="bg-white/95 backdrop-blur-xl border border-white/20 shadow-2xl rounded-2xl">
                 <AlertDialogHeader>
                     <AlertDialogTitle className="text-xl font-bold text-slate-800">
-                        Excluir Produto?
+                        Excluir Serviço?
                     </AlertDialogTitle>
                     <AlertDialogDescription className="text-slate-600">
-                        Você tem certeza que deseja excluir o produto <span className="font-bold text-purple-700">{productName}</span>?
+                        Você tem certeza que deseja excluir o serviço <span className="font-bold text-purple-700">{serviceName}</span>?
                         <br /><br />
                         <span className="text-purple-600 font-medium">Esta ação não pode ser desfeita e todo o histórico será perdido.</span>
                     </AlertDialogDescription>
@@ -53,7 +53,7 @@ export function DeleteProductDialog({
                         onClick={handleConfirm}
                         className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl shadow-lg shadow-purple-500/20"
                     >
-                        Sim, excluir produto
+                        Sim, excluir serviço
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>

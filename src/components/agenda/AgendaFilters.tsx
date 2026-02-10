@@ -17,20 +17,27 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
-import { MOCK_PROFESSIONALS } from "@/core/domain/Appointment";
+
+interface ProfessionalOption {
+    id: string;
+    name: string;
+    color: string;
+}
 
 interface AgendaFiltersProps {
     selectedProfessional: string;
     onProfessionalChange: (value: string) => void;
     statusFilter: string;
     onStatusFilterChange: (value: string) => void;
+    professionals: ProfessionalOption[];
 }
 
 export function AgendaFilters({
     selectedProfessional,
     onProfessionalChange,
     statusFilter,
-    onStatusFilterChange
+    onStatusFilterChange,
+    professionals,
 }: AgendaFiltersProps) {
     const activeFiltersCount = [
         selectedProfessional !== "ALL",
@@ -46,7 +53,7 @@ export function AgendaFilters({
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-white/20 bg-white/90">
                     <SelectItem value="ALL">Todos profissionais</SelectItem>
-                    {MOCK_PROFESSIONALS.map(p => (
+                    {professionals.map(p => (
                         <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                     ))}
                 </SelectContent>

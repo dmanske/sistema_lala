@@ -32,6 +32,7 @@ interface ProductDialogProps {
 
 export function ProductDialog({ product, open, onOpenChange, onSubmit }: ProductDialogProps) {
     const [submitting, setSubmitting] = useState(false);
+    const [initialStock, setInitialStock] = useState(0);
 
     const form = useForm<CreateProductInput>({
         resolver: zodResolver(CreateProductSchema),
@@ -69,6 +70,7 @@ export function ProductDialog({ product, open, onOpenChange, onSubmit }: Product
                     profitPercentage: 0,
                     commission: 0,
                 });
+                setInitialStock(0);
             }
         }
     }, [open, product, form]);
@@ -160,6 +162,10 @@ export function ProductDialog({ product, open, onOpenChange, onSubmit }: Product
         setSubmitting(true);
         try {
             data.netValue = data.price - data.commission;
+            // Se estiver criando e tiver estoque inicial, incluir no payload
+            if (!product && initialStock > 0) {
+                (data as any).initialStock = initialStock;
+            }
             await onSubmit(data);
             toast.success(product ? "Produto atualizado!" : "Produto criado!");
             onOpenChange(false);
@@ -211,6 +217,27 @@ export function ProductDialog({ product, open, onOpenChange, onSubmit }: Product
                                 />
                             </div>
                         </div>
+
+                        {/* Estoque Inicial — só na criação */}
+                        {!product && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                                <div className="space-y-2">
+                                    <Label htmlFor="initialStock" className="text-blue-600 font-medium">
+                                        Estoque Inicial
+                                    </Label>
+                                    <Input
+                                        id="initialStock"
+                                        type="number"
+                                        min="0"
+                                        value={initialStock}
+                                        onChange={(e) => setInitialStock(parseInt(e.target.value) || 0)}
+                                        className="bg-blue-50/50 border-blue-200"
+                                        placeholder="Ex: 10"
+                                    />
+                                    <p className="text-xs text-slate-400">Gera movimentação automática de entrada</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Stock Info (Read Only) */}

@@ -9,6 +9,8 @@ import { PaySale } from "@/core/usecases/sales/PaySale"
 import { GetSale } from "@/core/usecases/sales/GetSale"
 import { LocalStorageProductRepository } from "@/infrastructure/repositories/LocalStorageProductRepository"
 import { LocalStorageAppointmentRepository } from "@/infrastructure/repositories/LocalStorageAppointmentRepository"
+import { LocalStorageCreditRepository } from "@/infrastructure/repositories/LocalStorageCreditRepository"
+import { LocalStorageClientRepository } from "@/infrastructure/repositories/LocalStorageClientRepository"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
@@ -25,6 +27,8 @@ import { cn } from "@/lib/utils"
 const saleRepo = new LocalStorageSaleRepository()
 const productRepo = new LocalStorageProductRepository()
 const apptRepo = new LocalStorageAppointmentRepository()
+const creditRepo = new LocalStorageCreditRepository()
+const clientRepo = new LocalStorageClientRepository()
 
 const updateSaleUseCase = new UpdateSale(saleRepo)
 const paySaleUseCase = new PaySale(saleRepo, productRepo, apptRepo)
@@ -41,12 +45,25 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
     const [addProductOpen, setAddProductOpen] = useState(false)
     const [paymentOpen, setPaymentOpen] = useState(false)
     const [paymentConfirming, setPaymentConfirming] = useState(false)
+    const [creditBalance, setCreditBalance] = useState(0)
+    const [customerName, setCustomerName] = useState<string | undefined>(undefined)
 
     const fetchSale = useCallback(async () => {
         try {
             const result = await getSaleUseCase.execute(saleId)
             if (result) {
                 setSale(result)
+                // Load customer credit balance
+                if (result.customerId) {
+                    const movements = await creditRepo.getByClientId(result.customerId)
+                    const balance = movements.reduce((acc, m) => {
+                        return m.type === 'CREDIT' ? acc + m.amount : acc - m.amount
+                    }, 0)
+                    setCreditBalance(Math.max(0, balance))
+                    // Load customer name
+                    const client = await clientRepo.getById(result.customerId)
+                    if (client) setCustomerName(client.name)
+                }
             } else {
                 toast.error("Venda não encontrada")
             }
@@ -114,15 +131,35 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
         if (!sale) return
         setPaymentConfirming(true)
         try {
+            // If paying with credit, debit from customer balance
+            if (method === 'credit' && sale.customerId) {
+                if (amount > creditBalance) {
+                    toast.error("Saldo de crédito insuficiente")
+                    setPaymentConfirming(false)
+                    return
+                }
+                // Create debit movement
+                await creditRepo.create({
+                    id: crypto.randomUUID(),
+                    clientId: sale.customerId,
+                    type: 'DEBIT',
+                    amount,
+                    origin: 'WALLET',
+                    note: `Pagamento da venda #${sale.id.slice(0, 8)}`,
+                    createdAt: new Date().toISOString(),
+                })
+                setCreditBalance(prev => Math.max(0, prev - amount))
+            }
+
             const updated = await paySaleUseCase.execute({
                 saleId: sale.id,
-                method,
+                method: method as any,
                 amount,
                 paidAt: new Date(),
-                createdBy: 'current-user', // Should come from auth context
+                createdBy: 'current-user',
             })
             setSale(updated)
-            toast.success("Pagamento registrado com sucesso!")
+            toast.success(method === 'credit' ? "Crédito aplicado com sucesso!" : "Pagamento registrado com sucesso!")
             if (updated.status === 'paid') {
                 if (onSuccess) onSuccess()
             }
@@ -229,6 +266,8 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
                 onOpenChange={setPaymentOpen}
                 totalRemaining={(sale.total ?? 0) - (sale.payments?.reduce((acc: number, p: SalePayment) => acc + p.amount, 0) || 0)}
                 onConfirm={handlePayment}
+                creditBalance={creditBalance}
+                customerName={customerName}
             />
         </div>
     )

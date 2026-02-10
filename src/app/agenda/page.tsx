@@ -27,13 +27,15 @@ import {
 } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-import { Appointment, MOCK_PROFESSIONALS } from "@/core/domain/Appointment";
+import { Appointment } from "@/core/domain/Appointment";
 import { AppointmentService } from "@/core/services/AppointmentService";
 import { LocalStorageAppointmentRepository } from "@/infrastructure/repositories/LocalStorageAppointmentRepository";
 import { LocalStorageClientRepository } from "@/infrastructure/repositories/LocalStorageClientRepository";
 import { LocalStorageServiceRepository } from "@/infrastructure/repositories/LocalStorageServiceRepository";
+import { LocalStorageProfessionalRepository } from "@/infrastructure/repositories/LocalStorageProfessionalRepository";
 import { Service } from "@/core/domain/Service";
 import { Client } from "@/core/domain/Client";
+import { Professional } from "@/core/domain/Professional";
 import { formatName } from "@/core/formatters/name";
 import { AppointmentForm } from "@/components/agenda/AppointmentForm";
 import { toast } from "sonner";
@@ -138,6 +140,7 @@ export default function AgendaPage() {
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [clients, setClients] = useState<Client[]>([]);
     const [services, setServices] = useState<Service[]>([]);
+    const [professionals, setProfessionals] = useState<Professional[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingAppointment, setEditingAppointment] = useState<Appointment | undefined>();
@@ -150,6 +153,7 @@ export default function AgendaPage() {
     const service = new AppointmentService(new LocalStorageAppointmentRepository());
     const clientRepo = new LocalStorageClientRepository();
     const serviceRepo = new LocalStorageServiceRepository();
+    const professionalRepo = new LocalStorageProfessionalRepository();
 
     // Calcular range de datas baseado no viewMode
     const dateRange = useMemo(() => {
@@ -180,17 +184,19 @@ export default function AgendaPage() {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [appointmentsData, clientsData, servicesData] = await Promise.all([
+            const [appointmentsData, clientsData, servicesData, professionalsData] = await Promise.all([
                 service.getAll({
                     startDate: format(dateRange.start, 'yyyy-MM-dd'),
                     endDate: format(dateRange.end, 'yyyy-MM-dd')
                 }),
                 clientRepo.getAll(),
-                serviceRepo.getAll()
+                serviceRepo.getAll(),
+                professionalRepo.getAll()
             ]);
             setAppointments(appointmentsData);
             setClients(clientsData);
             setServices(servicesData);
+            setProfessionals(professionalsData);
         } catch (error) {
             console.error(error);
         } finally {
@@ -293,7 +299,7 @@ export default function AgendaPage() {
     };
 
     const getProfessionalName = (professionalId: string) => {
-        const prof = MOCK_PROFESSIONALS.find(p => p.id === professionalId);
+        const prof = professionals.find(p => p.id === professionalId);
         return prof?.name || "Profissional";
     };
 

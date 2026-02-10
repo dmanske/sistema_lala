@@ -64,15 +64,16 @@ import {
     Appointment,
     CreateAppointmentInput,
     CreateAppointmentSchema,
-    MOCK_PROFESSIONALS,
     ServiceLine
 } from "@/core/domain/Appointment";
 import { AppointmentService } from "@/core/services/AppointmentService";
 import { LocalStorageAppointmentRepository } from "@/infrastructure/repositories/LocalStorageAppointmentRepository";
 import { LocalStorageClientRepository } from "@/infrastructure/repositories/LocalStorageClientRepository";
 import { LocalStorageServiceRepository } from "@/infrastructure/repositories/LocalStorageServiceRepository";
+import { LocalStorageProfessionalRepository } from "@/infrastructure/repositories/LocalStorageProfessionalRepository";
 import { Client } from "@/core/domain/Client";
 import { Service } from "@/core/domain/Service";
+import { Professional } from "@/core/domain/Professional";
 import { toast } from "sonner";
 import { formatName } from "@/core/formatters/name";
 
@@ -89,6 +90,7 @@ interface AppointmentFormProps {
 export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, defaultDate, defaultTime, onSuccess }: AppointmentFormProps) {
     const [clients, setClients] = useState<Client[]>([]);
     const [availableServices, setAvailableServices] = useState<Service[]>([]);
+    const [professionals, setProfessionals] = useState<Professional[]>([]);
     const [isLoadingServices, setIsLoadingServices] = useState(true);
 
     const [clientSearch, setClientSearch] = useState("");
@@ -99,9 +101,10 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
     const appointmentService = new AppointmentService(new LocalStorageAppointmentRepository());
     const clientRepo = new LocalStorageClientRepository();
     const serviceRepo = new LocalStorageServiceRepository();
+    const professionalRepo = new LocalStorageProfessionalRepository();
 
     const form = useForm<CreateAppointmentInput>({
-        resolver: zodResolver(CreateAppointmentSchema),
+        resolver: zodResolver(CreateAppointmentSchema) as any,
         defaultValues: {
             clientId: clientId || "",
             professionalId: "",
@@ -144,6 +147,19 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
             }
         };
         loadServices();
+    }, []);
+
+    // Load Professionals
+    useEffect(() => {
+        const loadProfessionals = async () => {
+            try {
+                const data = await professionalRepo.getAll();
+                setProfessionals(data.filter(p => p.status === "ACTIVE"));
+            } catch (error) {
+                console.error("Erro ao carregar profissionais:", error);
+            }
+        };
+        loadProfessionals();
     }, []);
 
     // Initialize/Reset Form
@@ -411,11 +427,11 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent className="rounded-xl">
-                                            {MOCK_PROFESSIONALS.map(p => (
+                                            {professionals.map(p => (
                                                 <SelectItem key={p.id} value={p.id} className="py-3">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="h-6 w-6 rounded-full bg-purple-100 flex items-center justify-center">
-                                                            <span className="text-xs font-bold text-purple-600">
+                                                        <div className="h-6 w-6 rounded-full flex items-center justify-center" style={{ backgroundColor: p.color + '20' }}>
+                                                            <span className="text-xs font-bold" style={{ color: p.color }}>
                                                                 {p.name.charAt(0)}
                                                             </span>
                                                         </div>

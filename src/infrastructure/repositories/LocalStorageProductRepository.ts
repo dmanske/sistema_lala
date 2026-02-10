@@ -4,30 +4,11 @@ import { ProductRepository } from '@/core/repositories/ProductRepository';
 const PRODUCTS_KEY = 'salon_products';
 const MOVEMENTS_KEY = 'salon_product_movements';
 
-// Mock Data
-const MOCK_PRODUCTS: Product[] = [
-    {
-        id: "p1", name: "Shampoo Premium 5L", cost: 150, profitAmount: 0, profitPercentage: 0, price: 0, commission: 0,
-        currentStock: 2, minStock: 1, createdAt: new Date().toISOString()
-    },
-    {
-        id: "p2", name: "Esmalte Vermelho", cost: 10, profitAmount: 0, profitPercentage: 0, price: 0, commission: 0,
-        currentStock: 15, minStock: 5, createdAt: new Date().toISOString()
-    },
-    {
-        id: "p3", name: "Creme Hidratante (Venda)", cost: 30, profitAmount: 20, profitPercentage: 66, price: 50, commission: 5,
-        currentStock: 10, minStock: 2, createdAt: new Date().toISOString()
-    }
-];
-
 export class LocalStorageProductRepository implements ProductRepository {
-    private getProducts(): Product[] {
-        if (typeof window === 'undefined') return MOCK_PRODUCTS;
+    private getProductsRaw(): Product[] {
+        if (typeof window === 'undefined') return [];
         const stored = localStorage.getItem(PRODUCTS_KEY);
-        if (!stored) {
-            localStorage.setItem(PRODUCTS_KEY, JSON.stringify(MOCK_PRODUCTS));
-            return [...MOCK_PRODUCTS];
-        }
+        if (!stored) return [];
         return JSON.parse(stored);
     }
 
@@ -49,8 +30,31 @@ export class LocalStorageProductRepository implements ProductRepository {
         }
     }
 
+    /**
+     * Computa o estoque atual de um produto baseado EXCLUSIVAMENTE nas movimentações.
+     * IN = soma, OUT = subtrai. Estoque é SEMPRE o resultado desta função.
+     */
+    computeStock(productId: string): number {
+        const movements = this.getMovementsRaw().filter(m => m.productId === productId);
+        return movements.reduce((acc, m) => {
+            if (m.type === 'IN') return acc + m.quantity;
+            if (m.type === 'OUT') return acc - m.quantity;
+            return acc;
+        }, 0);
+    }
+
+    /**
+     * Retorna produto com currentStock computado das movimentações.
+     */
+    private enrichProduct(product: Product): Product {
+        return {
+            ...product,
+            currentStock: this.computeStock(product.id),
+        };
+    }
+
     async getAll(filter?: { search?: string; lowStock?: boolean }): Promise<Product[]> {
-        let products = this.getProducts();
+        let products = this.getProductsRaw().map(p => this.enrichProduct(p));
 
         if (filter?.search) {
             const s = filter.search.toLowerCase();
@@ -65,30 +69,49 @@ export class LocalStorageProductRepository implements ProductRepository {
     }
 
     async getById(id: string): Promise<Product | null> {
-        return this.getProducts().find(p => p.id === id) || null;
+        const product = this.getProductsRaw().find(p => p.id === id);
+        if (!product) return null;
+        return this.enrichProduct(product);
     }
 
-    async create(input: CreateProductInput): Promise<Product> {
-        const products = this.getProducts();
+    /**
+     * Cria um produto. Se initialStock > 0, gera automaticamente uma movimentação IN "Estoque Inicial".
+     */
+    async create(input: CreateProductInput & { initialStock?: number }): Promise<Product> {
+        const products = this.getProductsRaw();
         const newProduct: Product = {
             ...input,
             id: crypto.randomUUID(),
             createdAt: new Date().toISOString(),
-            currentStock: 0, // Starts at 0, use movement to add stock
+            currentStock: 0, // Será computado das movimentações
             netValue: input.price - (input.cost || 0) - (input.commission || 0)
         };
         products.push(newProduct);
         this.saveProducts(products);
-        return newProduct;
+
+        // Se tem estoque inicial, criar movimentação IN automática
+        const initialStock = (input as any).initialStock;
+        if (initialStock && initialStock > 0) {
+            await this.addMovement({
+                productId: newProduct.id,
+                type: 'IN',
+                quantity: initialStock,
+                reason: 'Estoque Inicial',
+            });
+        }
+
+        return this.enrichProduct(newProduct);
     }
 
     async update(id: string, input: Partial<Product>): Promise<Product> {
-        const products = this.getProducts();
+        const products = this.getProductsRaw();
         const idx = products.findIndex(p => p.id === id);
         if (idx === -1) throw new Error("Product not found");
 
         const current = products[idx];
-        const updated = { ...current, ...input, updatedAt: new Date().toISOString() };
+        // Não permitir atualizar currentStock diretamente
+        const { currentStock, ...safeInput } = input;
+        const updated = { ...current, ...safeInput, updatedAt: new Date().toISOString() };
 
         if (input.price !== undefined || input.cost !== undefined || input.commission !== undefined) {
             const p = input.price ?? current.price;
@@ -99,19 +122,27 @@ export class LocalStorageProductRepository implements ProductRepository {
 
         products[idx] = updated;
         this.saveProducts(products);
-        return updated;
+        return this.enrichProduct(updated);
     }
 
     async delete(id: string): Promise<boolean> {
-        const products = this.getProducts();
+        const products = this.getProductsRaw();
         const filtered = products.filter(p => p.id !== id);
         if (filtered.length === products.length) return false;
         this.saveProducts(filtered);
+        // Também limpar movimentações do produto excluído
+        const movements = this.getMovementsRaw().filter(m => m.productId !== id);
+        this.saveMovementsRaw(movements);
         return true;
     }
 
     // --- Movements ---
 
+    /**
+     * Adiciona uma movimentação de estoque.
+     * O estoque do produto será atualizado automaticamente via computeStock().
+     * Não há mais atualização direta do campo currentStock no produto.
+     */
     async addMovement(input: CreateProductMovementInput): Promise<ProductMovement> {
         const movements = this.getMovementsRaw();
         const movement: ProductMovement = {
@@ -122,8 +153,13 @@ export class LocalStorageProductRepository implements ProductRepository {
         movements.push(movement);
         this.saveMovementsRaw(movements);
 
-        // Update Product Stock
-        await this.updateStock(input.productId, input.type, input.quantity);
+        // Atualizar lastMovement no produto (apenas metadado, não o estoque)
+        const products = this.getProductsRaw();
+        const idx = products.findIndex(p => p.id === input.productId);
+        if (idx !== -1) {
+            products[idx].lastMovement = new Date().toISOString();
+            this.saveProducts(products);
+        }
 
         return movement;
     }
@@ -132,28 +168,5 @@ export class LocalStorageProductRepository implements ProductRepository {
         return this.getMovementsRaw()
             .filter(m => m.productId === productId)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }
-
-    private async updateStock(productId: string, type: 'IN' | 'OUT', quantity: number): Promise<void> {
-        const products = this.getProducts();
-        const idx = products.findIndex(p => p.id === productId);
-        if (idx === -1) return; // Should technically throw, but let's be safe
-
-        const product = products[idx];
-        let newStock = product.currentStock;
-
-        if (type === 'IN') newStock += quantity;
-        else newStock -= quantity;
-
-        // Prevent negative?? Or allow? Usually physical stock allows correction later.
-        // But logic says stock updates on finalization. If stock < 0, maybe warn but allow or block?
-        // Basic requirement: "Estoque só baixa após FINALIZAÇÃO".
-        // I'll allow negative for now (business decision needed), but generally better to allow and show alert.
-
-        product.currentStock = newStock;
-        product.lastMovement = new Date().toISOString();
-
-        products[idx] = product;
-        this.saveProducts(products);
     }
 }

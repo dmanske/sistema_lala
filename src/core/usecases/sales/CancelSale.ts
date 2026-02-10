@@ -13,6 +13,6 @@ export class CancelSale {
             throw new Error('Cannot cancel processed sale. Use Refund instead.');
         }
 
-        return this.saleRepo.cancel(saleId);
+        return this.saleRepo.update(saleId, { status: 'canceled' as any });
     }
 }

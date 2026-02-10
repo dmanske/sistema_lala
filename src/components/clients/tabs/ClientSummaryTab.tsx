@@ -149,16 +149,6 @@ export function ClientSummaryTab({ clientId }: ClientSummaryTabProps) {
                         )}
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Preferências</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-sm text-muted-foreground text-center py-8">
-                            Nenhuma preferência registrada.
-                        </div>
-                    </CardContent>
-                </Card>
             </div>
         </div>
     );

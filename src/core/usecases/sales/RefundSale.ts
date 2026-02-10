@@ -1,5 +1,5 @@
 
-import { SaleRepository } from '@/infrastructure/repositories/sales/SaleRepository';
+import { SaleRepository } from '@/core/repositories/SaleRepository';
 import { StockMovementRepository } from '@/infrastructure/repositories/stock/StockMovementRepository';
 import { RefundSaleDTO } from '@/core/domain/sales/types';
 
@@ -8,7 +8,7 @@ export const refundSaleUseCase = async (
     stockRepo: StockMovementRepository,
     dto: RefundSaleDTO
 ): Promise<void> => {
-    const sale = await saleRepo.getById(dto.saleId);
+    const sale = await saleRepo.findById(dto.saleId);
     if (!sale) throw new Error('Sale not found');
 
     if (sale.status !== 'paid') {
@@ -16,7 +16,7 @@ export const refundSaleUseCase = async (
     }
 
     // 1. Update Status
-    await saleRepo.updateStatus(dto.saleId, 'refunded', dto.createdBy);
+    await saleRepo.update(dto.saleId, { status: 'refunded' as any });
 
     // 2. Create Stock Movements (IN) for Product items (Return to stock)
     if (sale.items) {

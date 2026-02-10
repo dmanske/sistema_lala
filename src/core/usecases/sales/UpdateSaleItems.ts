@@ -15,7 +15,20 @@ export class UpdateSaleItems {
             throw new Error(`Cannot update items for sale with status ${sale.status}`);
         }
 
-        // 3. Update items (using existing repo method, which recalculates totals)
-        return this.saleRepo.upsertItems(data);
+        // 3. Update items and recalculate totals
+        const items = data.items.map(item => ({
+            ...item,
+            saleId: data.saleId,
+            totalPrice: item.qty * item.unitPrice
+        }));
+
+        const subtotal = items.reduce((acc, item) => acc + (item.qty * item.unitPrice), 0);
+        const total = subtotal - (sale.discount || 0);
+
+        return this.saleRepo.update(data.saleId, {
+            items: items as any, // Cast to any to bypass complex mapping for now if needed, but SaleItem[] is better
+            subtotal,
+            total
+        });
     }
 }

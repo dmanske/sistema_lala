@@ -6,9 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, User, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Appointment, MOCK_PROFESSIONALS, MOCK_SERVICES } from "@/core/domain/Appointment";
+import { Appointment } from "@/core/domain/Appointment";
 import { AppointmentService } from "@/core/services/AppointmentService";
 import { LocalStorageAppointmentRepository } from "@/infrastructure/repositories/LocalStorageAppointmentRepository";
+import { LocalStorageProfessionalRepository } from "@/infrastructure/repositories/LocalStorageProfessionalRepository";
+import { LocalStorageServiceRepository } from "@/infrastructure/repositories/LocalStorageServiceRepository";
+import { Professional } from "@/core/domain/Professional";
+import { Service } from "@/core/domain/Service";
 import { cn } from "@/lib/utils";
 
 interface ClientHistoryTabProps {
@@ -17,6 +21,8 @@ interface ClientHistoryTabProps {
 
 export function ClientHistoryTab({ clientId }: ClientHistoryTabProps) {
     const [appointments, setAppointments] = useState<Appointment[]>([]);
+    const [professionals, setProfessionals] = useState<Professional[]>([]);
+    const [services, setServices] = useState<Service[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchAppointments = async () => {
@@ -24,7 +30,15 @@ export function ClientHistoryTab({ clientId }: ClientHistoryTabProps) {
         try {
             const repo = new LocalStorageAppointmentRepository();
             const service = new AppointmentService(repo);
-            const data = await service.getAll({ clientId });
+            const professionalRepo = new LocalStorageProfessionalRepository();
+            const serviceRepo = new LocalStorageServiceRepository();
+            const [data, profsData, svcsData] = await Promise.all([
+                service.getAll({ clientId }),
+                professionalRepo.getAll(),
+                serviceRepo.getAll()
+            ]);
+            setProfessionals(profsData);
+            setServices(svcsData);
             // Filtrar apenas os finalizados e ordenar por data decrescente
             const finalized = data.filter(a => a.status === "DONE");
             const sorted = finalized.sort((a, b) => {
@@ -47,7 +61,7 @@ export function ClientHistoryTab({ clientId }: ClientHistoryTabProps) {
     }, [clientId]);
 
     const getServiceNames = (serviceIds: string[]) => {
-        return serviceIds.map(id => MOCK_SERVICES.find(s => s.id === id)?.name || id).join(", ");
+        return serviceIds.map(id => services.find(s => s.id === id)?.name || id).join(", ");
     };
 
     if (loading) {
@@ -99,7 +113,7 @@ export function ClientHistoryTab({ clientId }: ClientHistoryTabProps) {
                                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-slate-500">
                                             <div className="flex items-center gap-1.5 text-xs">
                                                 <User className="h-3.5 w-3.5 text-purple-500/70" />
-                                                <span>{MOCK_PROFESSIONALS.find(p => p.id === apt.professionalId)?.name || 'Profissional'}</span>
+                                                <span>{professionals.find(p => p.id === apt.professionalId)?.name || 'Profissional'}</span>
                                             </div>
                                             <div className="flex items-center gap-1.5 text-xs">
                                                 <Clock className="h-3.5 w-3.5 text-blue-500/70" />

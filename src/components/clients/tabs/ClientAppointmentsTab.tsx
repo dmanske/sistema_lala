@@ -6,13 +6,17 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, User, Save, Loader2, StickyNote, CreditCard } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Appointment, MOCK_PROFESSIONALS, MOCK_SERVICES } from "@/core/domain/Appointment";
+import { Appointment } from "@/core/domain/Appointment";
 import { AppointmentService } from "@/core/services/AppointmentService";
 import { LocalStorageAppointmentRepository } from "@/infrastructure/repositories/LocalStorageAppointmentRepository";
 import { ClientService } from "@/core/services/ClientService";
 import { LocalStorageClientRepository } from "@/infrastructure/repositories/LocalStorageClientRepository";
 import { LocalStorageSaleRepository } from "@/infrastructure/repositories/sales/LocalStorageSaleRepository";
+import { LocalStorageServiceRepository } from "@/infrastructure/repositories/LocalStorageServiceRepository";
+import { LocalStorageProfessionalRepository } from "@/infrastructure/repositories/LocalStorageProfessionalRepository";
 import { Sale, PaymentMethod } from "@/core/domain/sales/types";
+import { Service } from "@/core/domain/Service";
+import { Professional } from "@/core/domain/Professional";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -26,6 +30,8 @@ interface ClientAppointmentsTabProps {
 export function ClientAppointmentsTab({ clientId }: ClientAppointmentsTabProps) {
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [appointmentSales, setAppointmentSales] = useState<Map<string, Sale>>(new Map());
+    const [professionals, setProfessionals] = useState<Professional[]>([]);
+    const [services, setServices] = useState<Service[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Notes
@@ -42,10 +48,14 @@ export function ClientAppointmentsTab({ clientId }: ClientAppointmentsTabProps) 
             const clientService = new ClientService(clientRepo);
 
             const saleRepo = new LocalStorageSaleRepository();
+            const serviceRepo = new LocalStorageServiceRepository();
+            const professionalRepo = new LocalStorageProfessionalRepository();
 
-            const [appData, clientData] = await Promise.all([
+            const [appData, clientData, svcsData, profsData] = await Promise.all([
                 appService.getAll({ clientId }),
-                clientService.getById(clientId)
+                clientService.getById(clientId),
+                serviceRepo.getAll(),
+                professionalRepo.getAll()
             ]);
 
             // Sort appointment by date/time descending
@@ -55,6 +65,8 @@ export function ClientAppointmentsTab({ clientId }: ClientAppointmentsTabProps) 
                 return dateB.getTime() - dateA.getTime();
             });
             setAppointments(sorted);
+            setServices(svcsData);
+            setProfessionals(profsData);
 
             // Fetch sales for each appointment
             const salesMap = new Map<string, Sale>();
@@ -139,7 +151,7 @@ export function ClientAppointmentsTab({ clientId }: ClientAppointmentsTabProps) 
                     <div className="space-y-4">
                         <div className="relative">
                             <Textarea
-                                placeholder="Escreva aqui observações importantes sobre o cliente (ex: alergias, preferências, histórico pessoal)..."
+                                placeholder="Escreva aqui observações importantes sobre o cliente (ex: alergias, histórico pessoal, informações relevantes)..."
                                 className="min-h-[120px] bg-white/50 border-white/40 focus:bg-white resize-y text-base"
                                 value={clientNotes}
                                 onChange={(e) => setClientNotes(e.target.value)}
@@ -207,7 +219,7 @@ export function ClientAppointmentsTab({ clientId }: ClientAppointmentsTabProps) 
                                                         <span className="font-bold text-slate-800 font-heading text-lg">
                                                             {apt.status === 'DONE' && apt.finalizedServices
                                                                 ? apt.finalizedServices.map(s => s.name).join(", ")
-                                                                : apt.services.map(id => MOCK_SERVICES.find(s => s.id === id)?.name || id).join(", ")
+                                                                : apt.services.map(id => services.find(s => s.id === id)?.name || id).join(", ")
                                                             }
                                                         </span>
                                                         {getStatusBadge(apt.status)}
@@ -231,7 +243,7 @@ export function ClientAppointmentsTab({ clientId }: ClientAppointmentsTabProps) 
                                                 <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-slate-500">
                                                     <div className="flex items-center gap-1.5 text-xs font-medium">
                                                         <User className="h-3.5 w-3.5 text-purple-500" />
-                                                        <span>{MOCK_PROFESSIONALS.find(p => p.id === apt.professionalId)?.name || 'Profissional'}</span>
+                                                        <span>{professionals.find(p => p.id === apt.professionalId)?.name || 'Profissional'}</span>
                                                     </div>
                                                     <div className="flex items-center gap-1.5 text-xs font-medium">
                                                         <Clock className="h-3.5 w-3.5 text-blue-500" />
