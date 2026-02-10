@@ -15,6 +15,8 @@ export class AppointmentService {
     async create(input: CreateAppointmentInput): Promise<Appointment> {
         const appointment: Appointment = {
             id: Math.random().toString(36).substring(2, 11),
+            clientId: input.clientId || "",
+            services: input.services || [],
             ...input,
         };
 

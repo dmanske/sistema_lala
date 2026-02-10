@@ -5,14 +5,15 @@ export const AppointmentStatusSchema = z.enum([
     "CONFIRMED",
     "CANCELED",
     "NO_SHOW",
-    "DONE"
+    "DONE",
+    "BLOCKED"
 ]);
 
 export type AppointmentStatus = z.infer<typeof AppointmentStatusSchema>;
 
 export interface Appointment {
     id: string;
-    clientId: string;
+    clientId?: string; // Optional - empty if BLOCKED
     professionalId: string;
     services: string[]; // List of service IDs or names for now
     date: string; // YYYY-MM-DD (civil date)
@@ -66,9 +67,9 @@ export const UsedProductSchema = z.object({
 });
 
 export const CreateAppointmentSchema = z.object({
-    clientId: z.string().min(1, "Cliente é obrigatório"),
+    clientId: z.string().optional(),
     professionalId: z.string().min(1, "Profissional é obrigatório"),
-    services: z.array(z.string()).min(1, "Selecione pelo menos um serviço"),
+    services: z.array(z.string()).optional(),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (AAAA-MM-DD)"),
     startTime: z.string().regex(/^\d{2}:\d{2}$/, "Hora inválida (HH:mm)"),
     durationMinutes: z.number().min(1, "Duração mínima de 1 minuto"),
@@ -89,6 +90,23 @@ export const CreateAppointmentSchema = z.object({
         durationSnapshot: z.number().min(1),
         priceOverride: z.number().optional()
     })).optional(),
+}).superRefine((data, ctx) => {
+    if (data.status !== "BLOCKED") {
+        if (!data.clientId || data.clientId.length === 0) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Cliente é obrigatório",
+                path: ["clientId"],
+            });
+        }
+        if (!data.services || data.services.length === 0) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Selecione pelo menos um serviço",
+                path: ["services"],
+            });
+        }
+    }
 });
 
 export type CreateAppointmentInput = z.infer<typeof CreateAppointmentSchema>;

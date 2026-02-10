@@ -59,6 +59,7 @@ type CardStyle = {
     accent: string;
     shadow: string;
     opacity?: string;
+    customStyle?: React.CSSProperties;
 };
 
 // Cores dos cards modernizadas (Glassmorphism + Gradients)
@@ -128,6 +129,20 @@ const getCardStyle = (status: string, index: number): CardStyle => {
             text: "text-rose-700",
             accent: "bg-rose-500",
             shadow: "hover:shadow-rose-500/10"
+        };
+    }
+
+    if (status === "BLOCKED") {
+        return {
+            bg: "bg-slate-100",
+            border: "border-slate-300 border-dashed",
+            text: "text-slate-500",
+            accent: "bg-slate-400",
+            shadow: "none",
+            opacity: "opacity-90",
+            customStyle: {
+                backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 10px, #f1f5f9 10px, #f1f5f9 20px)"
+            }
         };
     }
 
@@ -274,6 +289,7 @@ export default function AgendaPage() {
                 const client = clients.find(c => c.id === apt.clientId);
                 const clientName = client ? client.name.toLowerCase() : "";
                 const serviceName = getServiceNames(apt.services).toLowerCase();
+                if (apt.status === 'BLOCKED') return true; // Show blocked slots always if searching? Or filter? For now show.
                 if (!clientName.includes(searchTerm.toLowerCase()) && !serviceName.includes(searchTerm.toLowerCase())) {
                     return false;
                 }
@@ -303,11 +319,13 @@ export default function AgendaPage() {
     };
 
     const getClientName = (clientId: string) => {
+        if (!clientId) return "";
         const client = clients.find(c => c.id === clientId);
         return client ? formatName(client.name) : "Cliente";
     };
 
     const getClientInitial = (clientId: string) => {
+        if (!clientId) return "?";
         const name = getClientName(clientId);
         return name.charAt(0).toUpperCase();
     };
@@ -317,7 +335,8 @@ export default function AgendaPage() {
         return prof?.name || "Profissional";
     };
 
-    const getServiceNames = (serviceIds: string[]) => {
+    const getServiceNames = (serviceIds?: string[]) => {
+        if (!serviceIds || serviceIds.length === 0) return "";
         return serviceIds.map(id => {
             const svc = services.find(s => s.id === id);
             return svc?.name || "Serviço Indisponível";
@@ -325,20 +344,22 @@ export default function AgendaPage() {
     };
 
     const getStatusBadge = (status: Appointment["status"]) => {
-        const badgeStyles: Record<string, string> = {
-            PENDING: "bg-amber-100 text-amber-700 border-amber-200",
-            CONFIRMED: "bg-blue-100 text-blue-700 border-blue-200",
-            DONE: "bg-emerald-100 text-emerald-700 border-emerald-200",
-            CANCELED: "bg-slate-100 text-slate-700 border-slate-200",
-            NO_SHOW: "bg-rose-100 text-rose-700 border-rose-200",
-        };
-
         const labels: Record<string, string> = {
             PENDING: "Pendente",
             CONFIRMED: "Confirmado",
             DONE: "Finalizado",
             CANCELED: "Cancelado",
             NO_SHOW: "Não Compareceu",
+            BLOCKED: "Bloqueado",
+        };
+
+        const badgeStyles: Record<string, string> = {
+            PENDING: "bg-amber-100 text-amber-700 border-amber-200",
+            CONFIRMED: "bg-blue-100 text-blue-700 border-blue-200",
+            DONE: "bg-emerald-100 text-emerald-700 border-emerald-200",
+            CANCELED: "bg-slate-100 text-slate-700 border-slate-200",
+            NO_SHOW: "bg-rose-100 text-rose-700 border-rose-200",
+            BLOCKED: "bg-slate-200 text-slate-600 border-slate-300",
         };
 
         return (
@@ -375,198 +396,309 @@ export default function AgendaPage() {
                             width: `calc(${width} - 4px)`,
                             marginLeft: '2px',
                             zIndex: 10 + slotIndex,
-                            borderLeftColor: style.accent.replace("bg-", "") // Usa a cor de accent para a borda esquerda
+                            borderLeftColor: style.accent.replace("bg-", ""), // Usa a cor de accent para a borda esquerda
+                            ...(style as any).customStyle
                         }}
                     >
                         {/* Accent Bar Left (Visual indicator) */}
                         <div className={cn("absolute left-0 top-0 bottom-0 w-[3px]", style.accent)} />
 
                         <div className="flex flex-col h-full pl-1">
-                            <div className="flex items-center justify-between gap-1 w-full">
-                                <span className={cn("text-[10px] font-bold opacity-70", style.text)}>
-                                    {apt.startTime}
-                                </span>
-                                {totalInSlot === 1 && (
-                                    <Avatar className="h-5 w-5 border border-white/50">
-                                        <AvatarFallback className="text-[8px] bg-white/80 text-slate-700 font-bold">
-                                            {getClientInitial(apt.clientId)}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                )}
-                            </div>
+                            {apt.status === "BLOCKED" ? (
+                                <div className="flex items-center justify-center h-full gap-2 opacity-60">
+                                    <div className="h-4 w-4 bg-slate-200 rounded-full flex items-center justify-center">
+                                        <div className="w-2 h-2 bg-slate-400 rounded-sm" />
+                                    </div>
+                                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Bloqueado</span>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="flex items-center justify-between gap-1 w-full">
+                                        <span className={cn("text-[10px] font-bold opacity-70", style.text)}>
+                                            {apt.startTime}
+                                        </span>
+                                        {totalInSlot === 1 && (
+                                            <Avatar className="h-5 w-5 border border-white/50">
+                                                <AvatarFallback className="text-[8px] bg-white/80 text-slate-700 font-bold">
+                                                    {getClientInitial(apt.clientId || "")}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                        )}
+                                    </div>
 
-                            <span className={cn("text-xs font-semibold truncate mt-0.5 leading-tight", style.text)}>
-                                {getClientName(apt.clientId)}
-                            </span>
+                                    <span className={cn("text-xs font-semibold truncate mt-0.5 leading-tight", style.text)}>
+                                        {getClientName(apt.clientId || "")}
+                                    </span>
 
-                            <span className={cn("text-[10px] truncate opacity-80", style.text)}>
-                                {getServiceNames(apt.services).split(',')[0]}
-                            </span>
+                                    <span className={cn("text-[10px] truncate opacity-80", style.text)}>
+                                        {getServiceNames(apt.services).split(',')[0]}
+                                    </span>
+                                </>
+                            )}
                         </div>
                     </div>
                 </PopoverTrigger>
 
                 {/* Popover Detalhes */}
                 <PopoverContent className="w-80 p-0 rounded-2xl shadow-xl z-50 border-slate-100 bg-white/80 backdrop-blur-xl" align="start" sideOffset={5}>
-                    <div className="relative overflow-hidden p-4 pb-6">
-                        {/* Background Decorativo */}
-                        <div className={cn("absolute top-0 left-0 right-0 h-20 opacity-20 bg-gradient-to-b", style.accent.replace("bg-", "from-"), "to-transparent")} />
-
-                        <div className="relative z-10 flex gap-4 items-start">
-                            <Avatar className="h-16 w-16 border-4 border-white shadow-sm">
-                                <AvatarFallback className={cn("text-xl font-bold text-white", style.accent)}>
-                                    {getClientInitial(apt.clientId)}
-                                </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0 pt-1">
-                                <h4 className="font-bold text-slate-800 text-lg leading-tight truncate">
-                                    {getClientName(apt.clientId)}
-                                </h4>
-                                <div className="flex items-center gap-2 mt-1.5">
-                                    <div className="flex items-center gap-1.5 text-sm text-slate-500">
-                                        <User className="h-3.5 w-3.5" />
-                                        <span className="truncate">Cliente Recorrente</span>
+                    {apt.status === "BLOCKED" ? (
+                        /* ===== BLOCKED SLOT POPOVER ===== */
+                        <div>
+                            <div className="p-4 border-b border-slate-100 bg-slate-50/80">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-12 w-12 rounded-full bg-slate-200 flex items-center justify-center">
+                                        <Clock className="h-6 w-6 text-slate-500" />
                                     </div>
-                                    {/* Status Badge */}
-                                    <div className={cn(
-                                        "px-2 py-0.5 text-xs font-semibold rounded-full",
-                                        apt.status === "PENDING" && "bg-amber-100 text-amber-700",
-                                        apt.status === "CONFIRMED" && "bg-blue-100 text-blue-700",
-                                        apt.status === "DONE" && "bg-emerald-100 text-emerald-700",
-                                        apt.status === "CANCELED" && "bg-slate-100 text-slate-600",
-                                        apt.status === "NO_SHOW" && "bg-rose-100 text-rose-700"
-                                    )}>
-                                        {apt.status === "PENDING" && "Pendente"}
-                                        {apt.status === "CONFIRMED" && "Confirmado"}
-                                        {apt.status === "DONE" && "Finalizado"}
-                                        {apt.status === "CANCELED" && "Cancelado"}
-                                        {apt.status === "NO_SHOW" && "Não Compareceu"}
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-bold text-slate-700 text-lg">Horário Bloqueado</h4>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            <Badge variant="outline" className="bg-slate-200 text-slate-600 border-slate-300 text-[10px] uppercase tracking-wide font-medium px-2 py-0.5">
+                                                Bloqueado
+                                            </Badge>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <div className="px-5 py-3 space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Data</span>
-                                <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                                    <CalendarIcon className="h-4 w-4 text-slate-400" />
-                                    {format(new Date(apt.date + 'T00:00:00'), "dd/MM")}
+                            <div className="px-5 py-3 space-y-3">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Data</span>
+                                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                            <CalendarIcon className="h-4 w-4 text-slate-400" />
+                                            {format(new Date(apt.date + 'T00:00:00'), "dd/MM")}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Horário</span>
+                                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                            <Clock className="h-4 w-4 text-slate-400" />
+                                            {apt.startTime} - {
+                                                (() => {
+                                                    const [h, m] = apt.startTime.split(':').map(Number);
+                                                    const endMinutes = h * 60 + m + apt.durationMinutes;
+                                                    const endH = Math.floor(endMinutes / 60);
+                                                    const endM = endMinutes % 60;
+                                                    return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+                                                })()
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Profissional</span>
+                                    <div className="text-sm font-medium text-slate-700">
+                                        {getProfessionalName(apt.professionalId)}
+                                    </div>
+                                </div>
+
+                                {apt.notes && (
+                                    <div className="space-y-1">
+                                        <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Motivo</span>
+                                        <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-100 text-sm italic text-slate-600">
+                                            "{apt.notes}"
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="border-t border-slate-100" />
+
+                            <div className="px-5 py-4 space-y-2">
+                                <Button
+                                    variant="outline"
+                                    size="default"
+                                    className="w-full rounded-xl border-2 font-medium hover:bg-slate-50"
+                                    onClick={() => handleEdit(apt)}
+                                >
+                                    <Filter className="mr-2 h-4 w-4" /> Editar Bloqueio
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    size="default"
+                                    className="w-full rounded-xl font-medium"
+                                    onClick={async () => {
+                                        try {
+                                            await service.delete(apt.id);
+                                            toast.success("Horário desbloqueado!");
+                                            fetchData();
+                                        } catch (error) {
+                                            console.error(error);
+                                            toast.error("Erro ao desbloquear");
+                                        }
+                                    }}
+                                >
+                                    <Clock className="mr-2 h-4 w-4" /> Desbloquear Horário
+                                </Button>
+                            </div>
+                        </div>
+                    ) : (
+                        /* ===== REGULAR APPOINTMENT POPOVER ===== */
+                        <>
+                            <div className="relative overflow-hidden p-4 pb-6">
+                                {/* Background Decorativo */}
+                                <div className={cn("absolute top-0 left-0 right-0 h-20 opacity-20 bg-gradient-to-b", style.accent.replace("bg-", "from-"), "to-transparent")} />
+
+                                <div className="relative z-10 flex gap-4 items-start">
+                                    <Avatar className="h-16 w-16 border-4 border-white shadow-sm">
+                                        <AvatarFallback className={cn("text-xl font-bold text-white", style.accent)}>
+                                            {getClientInitial(apt.clientId || "")}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 min-w-0 pt-1">
+                                        <h4 className="font-bold text-slate-800 text-lg leading-tight truncate">
+                                            {getClientName(apt.clientId || "")}
+                                        </h4>
+                                        <div className="flex items-center gap-2 mt-1.5">
+                                            <div className="flex items-center gap-1.5 text-sm text-slate-500">
+                                                <User className="h-3.5 w-3.5" />
+                                                <span className="truncate">Cliente Recorrente</span>
+                                            </div>
+                                            {/* Status Badge */}
+                                            <div className={cn(
+                                                "px-2 py-0.5 text-xs font-semibold rounded-full",
+                                                apt.status === "PENDING" && "bg-amber-100 text-amber-700",
+                                                apt.status === "CONFIRMED" && "bg-blue-100 text-blue-700",
+                                                apt.status === "DONE" && "bg-emerald-100 text-emerald-700",
+                                                apt.status === "CANCELED" && "bg-slate-100 text-slate-600",
+                                                apt.status === "NO_SHOW" && "bg-rose-100 text-rose-700",
+                                            )}>
+                                                {apt.status === "PENDING" && "Pendente"}
+                                                {apt.status === "CONFIRMED" && "Confirmado"}
+                                                {apt.status === "DONE" && "Finalizado"}
+                                                {apt.status === "CANCELED" && "Cancelado"}
+                                                {apt.status === "NO_SHOW" && "Não Compareceu"}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="space-y-1">
-                                <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Horário</span>
-                                <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                                    <Clock className="h-4 w-4 text-slate-400" />
-                                    {apt.startTime} - {
-                                        (() => {
-                                            const [h, m] = apt.startTime.split(':').map(Number);
-                                            const endMinutes = h * 60 + m + apt.durationMinutes;
-                                            const endH = Math.floor(endMinutes / 60);
-                                            const endM = endMinutes % 60;
-                                            return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
-                                        })()
-                                    }
+
+                            <div className="px-5 py-3 space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Data</span>
+                                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                            <CalendarIcon className="h-4 w-4 text-slate-400" />
+                                            {format(new Date(apt.date + 'T00:00:00'), "dd/MM")}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Horário</span>
+                                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                            <Clock className="h-4 w-4 text-slate-400" />
+                                            {apt.startTime} - {
+                                                (() => {
+                                                    const [h, m] = apt.startTime.split(':').map(Number);
+                                                    const endMinutes = h * 60 + m + apt.durationMinutes;
+                                                    const endH = Math.floor(endMinutes / 60);
+                                                    const endM = endMinutes % 60;
+                                                    return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+                                                })()
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+                                        Serviços
+                                    </span>
+                                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm font-medium text-slate-700">
+                                        {getServiceNames(apt.services)}
+                                    </div>
+                                </div>
+
+                                {apt.notes && (
+                                    <div className="space-y-1.5">
+                                        <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Observação</span>
+                                        <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-100 text-sm italic text-slate-600">
+                                            "{apt.notes}"
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Divider */}
+                            <div className="border-t border-slate-100" />
+
+                            {/* Status Change Section */}
+                            <div className="px-5 py-3 space-y-2.5">
+                                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Alterar Status</span>
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        onClick={() => handleUpdateStatus(apt.id, "PENDING")}
+                                        className={cn(
+                                            "px-3 py-1.5 text-xs font-semibold rounded-lg border-2 transition-all",
+                                            apt.status === "PENDING"
+                                                ? "bg-amber-500 text-white border-amber-500 shadow-sm"
+                                                : "bg-white text-amber-700 border-amber-200 hover:bg-amber-50 hover:border-amber-300"
+                                        )}
+                                    >
+                                        Pendente
+                                    </button>
+                                    <button
+                                        onClick={() => handleUpdateStatus(apt.id, "CONFIRMED")}
+                                        className={cn(
+                                            "px-3 py-1.5 text-xs font-semibold rounded-lg border-2 transition-all",
+                                            apt.status === "CONFIRMED"
+                                                ? "bg-blue-500 text-white border-blue-500 shadow-sm"
+                                                : "bg-white text-blue-700 border-blue-200 hover:bg-blue-50 hover:border-blue-300"
+                                        )}
+                                    >
+                                        Confirmado
+                                    </button>
+                                    <button
+                                        onClick={() => handleUpdateStatus(apt.id, "CANCELED")}
+                                        className={cn(
+                                            "px-3 py-1.5 text-xs font-semibold rounded-lg border-2 transition-all",
+                                            apt.status === "CANCELED"
+                                                ? "bg-slate-500 text-white border-slate-500 shadow-sm"
+                                                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                                        )}
+                                    >
+                                        Cancelado
+                                    </button>
+                                    <button
+                                        onClick={() => handleUpdateStatus(apt.id, "NO_SHOW")}
+                                        className={cn(
+                                            "px-3 py-1.5 text-xs font-semibold rounded-lg border-2 transition-all",
+                                            apt.status === "NO_SHOW"
+                                                ? "bg-rose-500 text-white border-rose-500 shadow-sm"
+                                                : "bg-white text-rose-700 border-rose-200 hover:bg-rose-50 hover:border-rose-300"
+                                        )}
+                                    >
+                                        Não Compareceu
+                                    </button>
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="space-y-1.5">
-                            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Serviços</span>
-                            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm font-medium text-slate-700">
-                                {getServiceNames(apt.services)}
+                            {/* Divider */}
+                            <div className="border-t border-slate-100" />
+
+                            {/* Action Buttons */}
+                            <div className="px-5 py-4 space-y-2.5">
+                                <Button
+                                    size="lg"
+                                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all rounded-xl h-11"
+                                    onClick={() => router.push(`/appointments/${apt.id}/checkout`)}
+                                >
+                                    <ShoppingCart className="mr-2 h-5 w-5" /> Finalizar Atendimento
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="default"
+                                    className="w-full rounded-xl border-2 font-medium hover:bg-slate-50"
+                                    onClick={() => handleEdit(apt)}
+                                >
+                                    Editar Agendamento
+                                </Button>
                             </div>
-                        </div>
-
-                        {apt.notes && (
-                            <div className="space-y-1.5">
-                                <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Observação</span>
-                                <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-100 text-sm italic text-slate-600">
-                                    "{apt.notes}"
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Divider */}
-                    <div className="border-t border-slate-100" />
-
-                    {/* Status Change Section */}
-                    <div className="px-5 py-3 space-y-2.5">
-                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Alterar Status</span>
-                        <div className="flex flex-wrap gap-2">
-                            <button
-                                onClick={() => handleUpdateStatus(apt.id, "PENDING")}
-                                className={cn(
-                                    "px-3 py-1.5 text-xs font-semibold rounded-lg border-2 transition-all",
-                                    apt.status === "PENDING"
-                                        ? "bg-amber-500 text-white border-amber-500 shadow-sm"
-                                        : "bg-white text-amber-700 border-amber-200 hover:bg-amber-50 hover:border-amber-300"
-                                )}
-                            >
-                                Pendente
-                            </button>
-                            <button
-                                onClick={() => handleUpdateStatus(apt.id, "CONFIRMED")}
-                                className={cn(
-                                    "px-3 py-1.5 text-xs font-semibold rounded-lg border-2 transition-all",
-                                    apt.status === "CONFIRMED"
-                                        ? "bg-blue-500 text-white border-blue-500 shadow-sm"
-                                        : "bg-white text-blue-700 border-blue-200 hover:bg-blue-50 hover:border-blue-300"
-                                )}
-                            >
-                                Confirmado
-                            </button>
-                            <button
-                                onClick={() => handleUpdateStatus(apt.id, "CANCELED")}
-                                className={cn(
-                                    "px-3 py-1.5 text-xs font-semibold rounded-lg border-2 transition-all",
-                                    apt.status === "CANCELED"
-                                        ? "bg-slate-500 text-white border-slate-500 shadow-sm"
-                                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
-                                )}
-                            >
-                                Cancelado
-                            </button>
-                            <button
-                                onClick={() => handleUpdateStatus(apt.id, "NO_SHOW")}
-                                className={cn(
-                                    "px-3 py-1.5 text-xs font-semibold rounded-lg border-2 transition-all",
-                                    apt.status === "NO_SHOW"
-                                        ? "bg-rose-500 text-white border-rose-500 shadow-sm"
-                                        : "bg-white text-rose-700 border-rose-200 hover:bg-rose-50 hover:border-rose-300"
-                                )}
-                            >
-                                Não Compareceu
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Divider */}
-                    <div className="border-t border-slate-100" />
-
-                    {/* Action Buttons */}
-                    <div className="px-5 py-4 space-y-2.5">
-                        <Button
-                            size="lg"
-                            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all rounded-xl h-11"
-                            onClick={() => router.push(`/appointments/${apt.id}/checkout`)}
-                        >
-                            <ShoppingCart className="mr-2 h-5 w-5" /> Finalizar Atendimento
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="default"
-                            className="w-full rounded-xl border-2 font-medium hover:bg-slate-50"
-                            onClick={() => handleEdit(apt)}
-                        >
-                            Editar Agendamento
-                        </Button>
-                    </div>
-                </PopoverContent >
-            </Popover >
+                        </>
+                    )}
+                </PopoverContent>
+            </Popover>
         );
     };
 
@@ -750,8 +882,7 @@ export default function AgendaPage() {
                                                                 "absolute -top-2 right-2 px-1 z-10 transition-colors bg-white",
                                                                 isFullHour
                                                                     ? "text-[10px] font-bold text-slate-400 group-hover:text-primary"
-                                                                    : "text-[9px] font-medium text-slate-300 group-hover:text-primary/70",
-                                                                !isFullHour && "opacity-0 group-hover:opacity-100"
+                                                                    : "text-[9px] font-medium text-slate-300 group-hover:text-primary/70"
                                                             )}>
                                                                 {time}
                                                             </span>
@@ -892,11 +1023,11 @@ export default function AgendaPage() {
                                                                             <div className="flex items-center gap-3">
                                                                                 <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
                                                                                     <AvatarFallback className={cn("text-sm font-bold text-white", style.accent)}>
-                                                                                        {getClientInitial(apt.clientId)}
+                                                                                        {getClientInitial(apt.clientId || "")}
                                                                                     </AvatarFallback>
                                                                                 </Avatar>
                                                                                 <div className="flex-1 min-w-0">
-                                                                                    <div className="font-bold text-slate-800 text-sm truncate">{getClientName(apt.clientId)}</div>
+                                                                                    <div className="font-bold text-slate-800 text-sm truncate">{getClientName(apt.clientId || "")}</div>
                                                                                     <div className="text-xs text-slate-500 truncate">{getServiceNames(apt.services)}</div>
                                                                                 </div>
                                                                             </div>
