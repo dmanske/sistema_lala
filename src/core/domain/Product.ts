@@ -45,7 +45,10 @@ export const ProductMovementSchema = z.object({
     type: ProductMovementTypeSchema,
     quantity: z.number().positive("Quantidade deve ser positiva"),
     reason: z.string().min(1, "Motivo é obrigatório"), // "Compra", "Ajuste", "Uso em Atendimento"
-    referenceId: z.string().optional(), // Appointment ID or Adjustment ID
+    referenceId: z.string().optional(), // Appointment ID or Adjustment ID or Purchase ID
+    referenceType: z.enum(['APPOINTMENT', 'ADJUSTMENT', 'PURCHASE', 'REFUND']).optional(),
+    unitCost: z.number().min(0).optional(),
+    supplierId: z.string().optional(),
     date: z.string(), // ISO Date
 });
 

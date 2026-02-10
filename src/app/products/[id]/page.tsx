@@ -213,7 +213,15 @@ export default function ProductProfilePage() {
                                                 {move.type === 'IN' ? "+" : "-"}
                                             </div>
                                             <div>
-                                                <div className="font-medium text-slate-800">{move.reason}</div>
+                                                <div className="font-medium text-slate-800">
+                                                    {move.referenceType === 'PURCHASE' && move.referenceId ? (
+                                                        <Link href={`/purchases/${move.referenceId}`} className="hover:underline text-primary">
+                                                            {move.reason}
+                                                        </Link>
+                                                    ) : (
+                                                        move.reason
+                                                    )}
+                                                </div>
                                                 <div className="text-xs text-muted-foreground">
                                                     {format(new Date(move.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                                                 </div>

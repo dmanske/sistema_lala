@@ -93,6 +93,7 @@ Sistema de gestão para salão de beleza desenvolvido em **Next.js 15** com **Ty
 - ✅ Movimentação de estoque (entrada/saída)
 - ✅ Alertas de estoque crítico (quando <= minStock)
 - ✅ Cálculo automático de lucro e margem
+- ✅ Integração com Histórico de Compras (links nas movimentações)
 - ✅ PDV (Ponto de Venda) - rota `/products/pos`
 
 #### Campos do cadastro:
@@ -122,7 +123,8 @@ Sistema de gestão para salão de beleza desenvolvido em **Next.js 15** com **Ty
   type: 'IN' | 'OUT'
   quantity: number
   reason: string (ex: "Compra", "Ajuste", "Uso em Atendimento")
-  referenceId?: string (ID do agendamento ou ajuste)
+  referenceId?: string (ID do agendamento ou compra)
+  referenceType?: 'APPOINTMENT' | 'ADJUSTMENT' | 'PURCHASE' | 'REFUND'
   date: string (ISO)
 }
 ```
@@ -130,7 +132,7 @@ Sistema de gestão para salão de beleza desenvolvido em **Next.js 15** com **Ty
 #### O que NÃO está implementado:
 - ❌ Código de barras
 - ❌ Categorias de produtos
-- ❌ Fornecedores
+- ❌ Vínculo de Fornecedor Padrão (embora exista o módulo de Compras)
 - ❌ Controle de lote/validade
 - ❌ Relatórios de vendas por produto
 
@@ -176,7 +178,82 @@ Sistema de gestão para salão de beleza desenvolvido em **Next.js 15** com **Ty
 
 ---
 
-### 4. **AGENDA** ✅ Parcialmente Completo
+---
+
+### 4. **FORNECEDORES** ✅ Completo
+**Status:** Implementado e funcional
+**Localização:** `/suppliers`
+
+#### O que está implementado:
+- ✅ Listagem de fornecedores (grid e tabela)
+- ✅ Busca por nome/CNPJ/email
+- ✅ Filtro por status (ACTIVE, INACTIVE)
+- ✅ Criação de fornecedor
+- ✅ Edição de fornecedor
+- ✅ Exclusão de fornecedor (com validação de compras vinculadas)
+- ✅ Perfil detalhado do fornecedor com:
+  - Dados de contato e fiscais
+  - Histórico de compras (aba)
+  - Estatísticas de total comprado
+- ✅ Integração com módulo de Compras
+
+#### Campos do cadastro:
+```typescript
+{
+  id: string
+  name: string (obrigatório)
+  cnpj?: string
+  email?: string
+  phone?: string
+  whatsapp?: string
+  address?: string
+  notes?: string
+  status: 'ACTIVE' | 'INACTIVE'
+  createdAt: string
+  updatedAt: string
+}
+```
+
+---
+
+### 5. **COMPRAS** ✅ Completo
+**Status:** Implementado e funcional
+**Localização:** `/purchases`
+
+#### O que está implementado:
+- ✅ Listagem de compras (tabela) com filtro por fornecedor
+- ✅ Registro de nova compra (Master-Detail):
+  - Seleção de fornecedor
+  - Adição dinâmica de múltiplos produtos
+  - Definição de quantidade e custo unitário
+  - Cálculo automático de totais
+- ✅ Visualização de detalhes da compra (read-only)
+- ✅ **Integração com Estoque:** Criação automática de movimentações de entrada (IN) ao registrar compra
+- ✅ Link reverso de movimentação de produto para detalhes da compra
+
+#### Campos do cadastro:
+```typescript
+{
+  id: string
+  supplierId: string
+  date: string (YYYY-MM-DD)
+  items: PurchaseItem[]
+  total: number
+  notes?: string
+  createdAt: string
+  updatedAt: string
+}
+
+PurchaseItem {
+  productId: string
+  quantity: number
+  unitCost: number
+}
+```
+
+---
+
+### 6. **AGENDA** ✅ Parcialmente Completo
 **Status:** Funcional com limitações  
 **Localização:** `/agenda`
 
@@ -242,7 +319,7 @@ Sistema de gestão para salão de beleza desenvolvido em **Next.js 15** com **Ty
 
 ---
 
-### 5. **VENDAS/CHECKOUT** ✅ Implementado
+### 7. **VENDAS/CHECKOUT** ✅ Implementado
 **Status:** Funcional  
 **Localização:** `/appointments/[id]/checkout`
 

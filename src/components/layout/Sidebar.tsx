@@ -19,7 +19,8 @@ import {
     Menu,
     LogOut,
     Sparkles,
-    Plus
+    Plus,
+    Truck
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -54,6 +55,7 @@ export function Sidebar({ className }: SidebarProps) {
             label: "Pessoas",
             items: [
                 { name: "Clientes", icon: Users, href: "/clients", active: true },
+                { name: "Fornecedores", icon: Truck, href: "/suppliers", active: true },
                 { name: "Profissionais", icon: UserCircle, href: "/professionals", active: true },
             ],
         },
@@ -68,7 +70,7 @@ export function Sidebar({ className }: SidebarProps) {
             label: "Financeiro",
             items: [
                 { name: "Financeiro", icon: Banknote, href: "/finance", active: false },
-                { name: "Compras", icon: ShoppingBag, href: "/purchases", active: false },
+                { name: "Compras", icon: ShoppingBag, href: "/purchases", active: true },
                 { name: "Comissões", icon: Percent, href: "/commissions", active: false },
             ],
         },
