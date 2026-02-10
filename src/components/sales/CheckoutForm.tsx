@@ -141,47 +141,70 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
         handleUpdateItems(newItems)
     }
 
-    const handlePayment = async (method: PaymentMethod, amount: number) => {
+    const handlePayment = async (payments: { method: PaymentMethod; amount: number }[]) => {
         if (!sale) return
         setPaymentConfirming(true)
         try {
-            // If paying with credit, debit from customer balance
-            if (method === 'credit' && sale.customerId) {
-                if (amount > creditBalance) {
-                    toast.error("Saldo de crédito insuficiente")
-                    setPaymentConfirming(false)
-                    return
+            let latestSale = sale
+            let totalCreditUsed = 0
+            let totalFiado = 0
+
+            for (const payment of payments) {
+                const { method, amount } = payment
+
+                // If paying with credit, debit from customer balance
+                if (method === 'credit' && sale.customerId) {
+                    await creditRepo.create({
+                        id: crypto.randomUUID(),
+                        clientId: sale.customerId,
+                        type: 'DEBIT',
+                        amount,
+                        origin: 'WALLET',
+                        note: `Pagamento da venda #${sale.id.slice(0, 8)}`,
+                        createdAt: new Date().toISOString(),
+                    })
+                    totalCreditUsed += amount
                 }
-                // Create debit movement
-                await creditRepo.create({
-                    id: crypto.randomUUID(),
-                    clientId: sale.customerId,
-                    type: 'DEBIT',
+
+                // If fiado, create a debt (DEBIT) on the customer's wallet
+                if (method === 'fiado' && sale.customerId) {
+                    await creditRepo.create({
+                        id: crypto.randomUUID(),
+                        clientId: sale.customerId,
+                        type: 'DEBIT',
+                        amount,
+                        origin: 'WALLET',
+                        note: `Fiado - Venda #${sale.id.slice(0, 8)}`,
+                        createdAt: new Date().toISOString(),
+                    })
+                    totalFiado += amount
+                }
+
+                latestSale = await paySaleUseCase.execute({
+                    saleId: sale.id,
+                    method,
                     amount,
-                    origin: 'WALLET',
-                    note: `Pagamento da venda #${sale.id.slice(0, 8)}`,
-                    createdAt: new Date().toISOString(),
+                    paidAt: new Date(),
+                    createdBy: 'current-user',
                 })
-                setCreditBalance(prev => Math.max(0, prev - amount))
-                // Also sync the client.creditBalance field
+            }
+
+            // Update credit balance if credit or fiado was used
+            const totalWalletDeducted = totalCreditUsed + totalFiado
+            if (totalWalletDeducted > 0 && sale.customerId) {
+                setCreditBalance(prev => prev - totalWalletDeducted)
                 const client = await clientRepo.getById(sale.customerId)
                 if (client) {
                     await clientRepo.update(sale.customerId, {
-                        creditBalance: Math.max(0, (client.creditBalance || 0) - amount)
+                        creditBalance: (client.creditBalance || 0) - totalWalletDeducted
                     })
                 }
             }
 
-            const updated = await paySaleUseCase.execute({
-                saleId: sale.id,
-                method: method as any,
-                amount,
-                paidAt: new Date(),
-                createdBy: 'current-user',
-            })
-            setSale(updated)
-            toast.success(method === 'credit' ? "Crédito aplicado com sucesso!" : "Pagamento registrado com sucesso!")
-            if (updated.status === 'paid') {
+            setSale(latestSale)
+            const methodCount = payments.length
+            toast.success(methodCount > 1 ? `Pagamento registrado (${methodCount} formas)!` : "Pagamento registrado com sucesso!")
+            if (latestSale.status === 'paid') {
                 if (onSuccess) onSuccess()
             }
         } catch (error: any) {
@@ -308,6 +331,7 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
                 onConfirm={handlePayment}
                 creditBalance={creditBalance}
                 customerName={customerName}
+                hasCustomer={!!sale.customerId}
             />
         </div>
     )

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { saleSchema, saleItemSchema, salePaymentSchema } from './schemas';
 
 export type SaleStatus = 'draft' | 'pending_payment' | 'paid' | 'canceled' | 'refunded';
-export type PaymentMethod = 'pix' | 'card' | 'cash' | 'transfer' | 'credit';
+export type PaymentMethod = 'pix' | 'card' | 'cash' | 'transfer' | 'credit' | 'fiado';
 export type SaleItemType = 'product' | 'service';
 
 export type Sale = z.infer<typeof saleSchema>;

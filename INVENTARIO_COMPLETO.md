@@ -1,6 +1,6 @@
 # 📋 INVENTÁRIO COMPLETO DO SISTEMA LALA
 **Data:** 10/02/2026  
-**Status:** PAUSA NO DESENVOLVIMENTO - FASE DE ORGANIZAÇÃO
+**Status:** DESENVOLVIMENTO ATIVO - REFATORAÇÃO DE VENDAS E CHECKOUT
 
 ---
 
@@ -33,6 +33,8 @@ Sistema de gestão para salão de beleza desenvolvido em **Next.js 15** com **Ty
   - **Produtos:** Produtos consumidos pelo cliente
 - ✅ Saldo de crédito visível
 - ✅ Ação rápida de agendamento direto do perfil
+- ✅ Campo destacado de "Observações Gerais"
+- ✅ Aba "Histórico" (antiga Agenda) com detalhes financeiros
 - ✅ Design responsivo premium
 
 #### Campos do cadastro:
@@ -178,7 +180,10 @@ Sistema de gestão para salão de beleza desenvolvido em **Next.js 15** com **Ty
 - ✅ Suporte a múltiplos agendamentos no mesmo horário
 - ✅ Cores diferentes por status
 - ✅ Botão "Finalizar Atendimento" que redireciona para checkout
-- ✅ Exibição de observações do agendamento
+- ✅ Exibição de observações do agendamento (no popover)
+- ✅ Grid refinado com slots de 30 minutos (05:00 às 23:30)
+- ✅ Bloqueio de horários (indisponibilidade/pessoal)
+- ✅ Validação de conflito (impede agendamento em horário bloqueado)
 - ✅ Design premium com glassmorphism
 
 #### Campos do agendamento:
@@ -219,10 +224,8 @@ Sistema de gestão para salão de beleza desenvolvido em **Next.js 15** com **Ty
 #### O que NÃO está implementado:
 - ❌ Recorrência de agendamentos
 - ❌ Notificações/lembretes
-- ❌ Bloqueio de horários
 - ❌ Visualização por profissional
 - ❌ Drag & drop para reagendar
-- ❌ Conflito de horários (validação)
 - ❌ Integração com calendário externo
 
 ---
@@ -235,8 +238,12 @@ Sistema de gestão para salão de beleza desenvolvido em **Next.js 15** com **Ty
 - ✅ Criação automática de venda vinculada ao agendamento
 - ✅ Adição de produtos à venda
 - ✅ Itens de serviço pré-carregados do agendamento
-- ✅ Cálculo de totais
-- ✅ Pagamento com múltiplos métodos (PIX, Cartão, Dinheiro, Transferência)
+- ✅ Edição de preço unitário dos itens (com recálculo automático)
+- ✅ Cálculo de totais e subtotais
+- ✅ Pagamento Misto/Split (múltiplos métodos na mesma venda)
+- ✅ Opção de "Fiado" (gera dívida na carteira do cliente)
+- ✅ Pagamento com saldo de Crédito (parcial ou total)
+- ✅ Cálculo automático de Troco para pagamentos em dinheiro
 - ✅ Finalização de venda (status: paid)
 - ✅ Redução de estoque automática ao pagar
 - ✅ Atualização do agendamento com dados finalizados
@@ -270,7 +277,7 @@ SaleItem {
 
 SalePayment {
   saleId: string
-  method: 'pix' | 'card' | 'cash' | 'transfer'
+  method: 'pix' | 'card' | 'cash' | 'transfer' | 'credit' | 'fiado'
   amount: number
   paidAt: Date
   createdBy: string
@@ -325,6 +332,7 @@ SalePayment {
 - ✅ Debitar crédito
 - ✅ Histórico de movimentações
 - ✅ Saldo calculado automaticamente
+- ✅ Uso de crédito no checkout (como método de pagamento)
 - ✅ Origem do crédito (CASH, PIX, CARD, WALLET)
 
 #### Estrutura:
@@ -341,7 +349,6 @@ SalePayment {
 ```
 
 #### O que NÃO está implementado:
-- ❌ Uso automático de crédito no checkout
 - ❌ Validade de crédito
 - ❌ Bônus/cashback automático
 - ❌ Transferência de crédito entre clientes
@@ -413,6 +420,8 @@ SalePayment {
 - Gráfico de frequência
 - Preferências de serviço
 - Aniversariantes do mês
+
+**Observação:** A aba "Agenda" foi renomeada para "Histórico" para refletir melhor o conteúdo (agendamentos passados e futuros com foco financeiro).
 
 ---
 
@@ -487,14 +496,17 @@ SalePayment {
 1. Abrir agendamento na agenda
 2. Clicar em "Finalizar Atendimento"
 3. Sistema cria venda automaticamente
-4. Adicionar produtos (opcional)
-5. Revisar itens e total
-6. Selecionar método de pagamento
-7. Confirmar pagamento
+4. Adicionar produtos ou ajustar preços (opcional)
+5. Clicar em "Pagamento" para abrir o modal
+6. Adicionar pagamentos (pode misturar métodos: pix + dinheiro + crédito)
+   - Se for dinheiro, sistema calcula troco
+   - Se for fiado, sistema gera dívida
+7. Finalizar Pagamento (botão habilita quando total for coberto)
 8. Sistema:
    - Atualiza status do agendamento para DONE
    - Reduz estoque dos produtos
    - Registra venda como paid
+   - Debita crédito/Gera dívida no cliente (se aplicável)
    - Atualiza dados de finalização no agendamento
 
 #### 6. **Movimentar Estoque**
@@ -599,9 +611,9 @@ export const MOCK_SERVICES = [
 
 ### 5. **Validações Faltando**
 
-#### ❌ Conflito de Horários na Agenda
-**Problema:** Sistema permite agendar múltiplos clientes no mesmo horário para o mesmo profissional  
-**Solução:** Adicionar validação no `CreateAppointment` use case
+#### ⚠️ Validação de Conflito Parcial
+**Status:** Bloqueios impedem agendamentos, mas agendamentos normais permitem sobreposição (overbooking intencional?)
+**Ação:** Confirmar se overbooking deve ser bloqueado ou permitido.
 
 #### ❌ Validação de Estoque no Checkout
 **Problema:** Permite adicionar produtos sem estoque suficiente  
@@ -630,7 +642,7 @@ export const MOCK_SERVICES = [
 3. **Relatórios** - Não existem
 4. **Notificações** - Não existem
 5. **Recorrência de Agendamentos** - Não existe
-6. **Uso de Crédito no Checkout** - Não implementado
+6. **Uso de Crédito no Checkout** - Implementado ✅
 7. **Estorno de Vendas** - Não implementado
 8. **Upload de Imagens** - Não funcional
 
@@ -649,13 +661,14 @@ export const MOCK_SERVICES = [
    - `getStockMapByProducts()`
    - `getLowStockProducts()`
 
-3. **Adicionar validação de conflito de horários**
-   - No `CreateAppointment` use case
-   - Alertar usuário na agenda
+3. **Adicionar validação de conflito de horários (Opcional)**
+   - Atualmente permite overbooking de clientes (apenas bloqueios são restritos)
+   - Decidir se deve bloquear overbooking geral
 
-4. **Implementar uso de crédito no checkout**
-   - Adicionar opção de pagamento com crédito
-   - Debitar automaticamente do saldo
+4. **Implementar estorno de vendas**
+   - Fluxo de refund
+   - Reversão de estoque
+   - Atualização de status do agendamento
 
 ---
 
@@ -666,12 +679,7 @@ export const MOCK_SERVICES = [
    - Vincular a serviços e agendamentos
    - Remover MOCK_PROFESSIONALS
 
-6. **Implementar estorno de vendas**
-   - Fluxo de refund
-   - Reversão de estoque
-   - Atualização de status do agendamento
-
-7. **Criar perfil de Serviço**
+6. **Criar perfil de Serviço**
    - Página de detalhes
    - Histórico de execuções
    - Estatísticas
@@ -680,17 +688,17 @@ export const MOCK_SERVICES = [
 
 ### Prioridade BAIXA (Melhorias):
 
-8. **Implementar upload de imagens**
+7. **Implementar upload de imagens**
    - Para clientes
    - Para produtos
    - Integração com storage
 
-9. **Adicionar relatórios**
+8. **Adicionar relatórios**
    - Vendas por período
    - Produtos mais vendidos
    - Clientes mais frequentes
 
-10. **Notificações e lembretes**
+9. **Notificações e lembretes**
     - WhatsApp
     - E-mail
     - Push notifications

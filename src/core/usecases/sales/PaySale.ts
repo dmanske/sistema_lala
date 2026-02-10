@@ -1,5 +1,5 @@
 
-import { Sale, SalePayment, SaleStatus } from "@/core/domain/sales/types";
+import { Sale, SalePayment, SaleStatus, PaymentMethod } from "@/core/domain/sales/types";
 import { SaleRepository } from "@/core/repositories/SaleRepository";
 import { ProductRepository } from "@/core/repositories/ProductRepository";
 import { AppointmentRepository } from "@/core/repositories/AppointmentRepository";
@@ -13,7 +13,7 @@ export class PaySale {
 
     async execute(input: {
         saleId: string,
-        method: 'pix' | 'card' | 'cash' | 'transfer',
+        method: PaymentMethod,
         amount: number,
         paidAt: Date,
         createdBy: string

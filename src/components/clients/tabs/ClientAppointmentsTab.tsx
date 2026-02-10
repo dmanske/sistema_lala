@@ -114,6 +114,8 @@ export function ClientAppointmentsTab({ clientId }: ClientAppointmentsTabProps) 
             case 'card': return 'Cartão';
             case 'cash': return 'Dinheiro';
             case 'transfer': return 'Transferência';
+            case 'credit': return 'Crédito';
+            case 'fiado': return 'Fiado';
             default: return method;
         }
     };
