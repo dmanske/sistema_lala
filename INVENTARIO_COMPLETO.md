@@ -10,6 +10,18 @@ Sistema de gestão para salão de beleza desenvolvido em **Next.js 15** com **Ty
 
 **Arquitetura:** Clean Architecture com separação clara entre domínio, casos de uso, repositórios e infraestrutura.
 
+## 📏 DIRETRIZES E REGRAS GLOBAIS
+
+### UI/UX e Design
+- **Responsividade:** Mobile-first, sem scroll horizontal em nenhuma resolução. Sidebar vira Drawer/Sheet no mobile.
+- **Interação:** Proibido uso de janelas nativas (`alert`, `confirm`, `prompt`). Usar Dialogs/Toasts do shadcn/ui.
+- **Formatação:** Padrão brasileiro (R$, DD/MM/AAAA, (XX) XXXXX-XXXX). Timezone correto.
+
+### Desenvolvimento
+- **Padrão de Código:** Clean Architecture (Domain, UseCases, Repositories).
+- **Fases de Módulo:** Cadastro -> Ações -> Integrações -> Validação.
+- **Qualidade:** Limpeza constante de código morto e mocks deprecated.
+
 ---
 
 ## 📦 MÓDULOS EXISTENTES
@@ -134,7 +146,7 @@ Sistema de gestão para salão de beleza desenvolvido em **Next.js 15** com **Ty
 - ✅ Toggle entre visualização grid/lista
 - ✅ Criação de serviço
 - ✅ Edição de serviço
-- ✅ Exclusão de serviço (com confirm do navegador ⚠️)
+- ✅ Exclusão de serviço (com Diálogo de segurança ✅)
 - ✅ Cálculo automático de lucro e margem
 - ✅ Exibição de duração e comissão
 
@@ -355,6 +367,39 @@ SalePayment {
 
 ---
 
+### 8. **PROFISSIONAIS** ✅ Completo
+**Status:** Implementado e funcional
+**Localização:** `/professionals`
+
+#### O que está implementado:
+- ✅ Listagem de equipe (cards com cores)
+- ✅ CRUD completo (Criar, Editar, Excluir)
+- ✅ Definição de cor para agenda
+- ✅ Definição de comissão padrão
+- ✅ Filtro por nome
+- ✅ Status Ativo/Inativo
+
+#### Campos do cadastro:
+```typescript
+{
+  id: string
+  name: string
+  color: string (hex)
+  commission: number (%)
+  status: 'ACTIVE' | 'INACTIVE'
+  phone?: string
+  email?: string
+}
+```
+
+#### O que NÃO está implementado:
+- ❌ Metas individuais
+- ❌ Horários de trabalho específicos (escala)
+- ❌ Histórico de comissões pagas
+
+
+---
+
 ## 🗂️ TELAS IMPLEMENTADAS
 
 ### Rotas Principais:
@@ -572,28 +617,8 @@ if (confirm("Tem certeza que deseja excluir este serviço?")) {
 
 ### 3. **Inconsistências**
 
-#### ⚠️ Profissionais Mockados
-**Onde:** `Appointment.ts`
-```typescript
-export const MOCK_PROFESSIONALS = [
-    { id: "p1", name: "Lala (Principal)", color: "#8b5cf6" },
-    { id: "p2", name: "Bruna Designer", color: "#ec4899" },
-    { id: "p3", name: "Carol Estética", color: "#10b981" },
-];
-```
-**Problema:** Dados hardcoded, não há CRUD de profissionais  
-**Solução:** Criar módulo de Profissionais
-
-#### ⚠️ Serviços Mockados (Deprecated)
-**Onde:** `Appointment.ts`
-```typescript
-export const MOCK_SERVICES = [
-    { id: "s1", name: "Corte Feminino", duration: 60, price: 120 },
-    // ...
-];
-```
-**Problema:** Comentado como deprecated mas ainda existe  
-**Solução:** Remover completamente, usar ServiceRepository
+#### ✅ Profissionais e Serviços Mockados (Removidos)
+**Status:** Resolvido. Módulos reais implementados com persistência local.
 
 ---
 
@@ -629,24 +654,46 @@ export const MOCK_SERVICES = [
 |--------|--------|------------|
 | Clientes | ✅ Completo | 95% |
 | Produtos | ✅ Completo | 90% |
-| Serviços | ⚠️ Parcial | 80% |
-| Agenda | ⚠️ Parcial | 85% |
-| Vendas/Checkout | ✅ Completo | 90% |
+| Serviços | ✅ Completo | 100% |
+| Agenda | ✅ Completo | 95% |
+| Vendas/Checkout | ✅ Completo | 100% |
+| Profissionais | ✅ Completo | 100% |
 | Dashboard | ⚠️ Parcial | 60% |
-| Crédito | ✅ Completo | 85% |
+| Crédito | ✅ Completo | 100% |
 
-### Principais Gaps:
+### ⚠️ Pendências Detalhadas (Não travam MVP)
 
-1. **Módulo de Profissionais** - Não existe
-2. **Perfil de Serviço** - Não existe
-3. **Relatórios** - Não existem
-4. **Notificações** - Não existem
-5. **Recorrência de Agendamentos** - Não existe
-6. **Uso de Crédito no Checkout** - Implementado ✅
-7. **Estorno de Vendas** - Não implementado
-8. **Upload de Imagens** - Não funcional
+#### 1. Estorno/Reembolso
+- **Status:** ✅ Completo
+- **Implementação:** Fluxo de reembolso com reversão de estoque criado (`RefundSale`). Botão de "Estornar" adicionado ao Checkout.
+
+#### 2. Foto do Cliente (Upload Real)
+- **Status:** Campo `photoUrl` existe, mas sem storage.
+- **Ação:** Implementar junto com Supabase Storage (Bucket 'avatars').
+
+#### 3. Padronização de Seeds (Limpeza Final)
+- **Status:** ✅ Completo
+- **Ação:** Seeds de Clientes e Serviços extraídos para `src/lib/seedClients.ts` e `src/lib/seedServices.ts`.
+
+#### 4. Agendamento Recorrente
+- **Status:** Adiado para pós-MVP.
+- **Decisões Pendentes:** Padrões (semanal/mensal), período de geração, edição em série vs ocorrência.
 
 ---
+
+## 🚀 ESTRATÉGIA DE MIGRAÇÃO (SUPABASE)
+
+**Ordem Sugerida de Migração:**
+1.  **Clientes** (Base de tudo)
+2.  **Serviços** (Dependência para Agendamentos)
+3.  **Produtos** (Dependência para Vendas)
+4.  **Agenda/Agendamentos** (Core do negócio)
+5.  **Checkout/Vendas e Crédito** (Complexidade maior, depende de todos)
+
+**Critério de Aceitação da Migração:**
+- Dados migrados do localStorage sem perdas.
+- RLS (Row Level Security) configurado por `tenantId`.
+- Tipos do banco alinhados com Domínio atual.
 
 ## 🎯 PRÓXIMOS PASSOS RECOMENDADOS
 
@@ -674,12 +721,7 @@ export const MOCK_SERVICES = [
 
 ### Prioridade MÉDIA (Completar Funcionalidades):
 
-5. **Criar módulo de Profissionais**
-   - CRUD completo
-   - Vincular a serviços e agendamentos
-   - Remover MOCK_PROFESSIONALS
-
-6. **Criar perfil de Serviço**
+5. **Criar perfil de Serviço**
    - Página de detalhes
    - Histórico de execuções
    - Estatísticas

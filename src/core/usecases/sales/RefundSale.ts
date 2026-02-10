@@ -1,38 +1,47 @@
 
-import { SaleRepository } from '@/core/repositories/SaleRepository';
-import { StockMovementRepository } from '@/infrastructure/repositories/stock/StockMovementRepository';
-import { RefundSaleDTO } from '@/core/domain/sales/types';
+import { Sale } from "@/core/domain/sales/types";
+import { SaleRepository } from "@/core/repositories/SaleRepository";
+import { ProductRepository } from "@/core/repositories/ProductRepository"; // Correct import path? It's ProductRepository.
+// Let's check imports. PaySale used: import { ProductRepository } from "@/core/repositories/ProductRepository"; Correct.
 
-export const refundSaleUseCase = async (
-    saleRepo: SaleRepository,
-    stockRepo: StockMovementRepository,
-    dto: RefundSaleDTO
-): Promise<void> => {
-    const sale = await saleRepo.findById(dto.saleId);
-    if (!sale) throw new Error('Sale not found');
+export class RefundSale {
+    constructor(
+        private saleRepo: SaleRepository,
+        private productRepo: ProductRepository
+    ) { }
 
-    if (sale.status !== 'paid') {
-        throw new Error('Only paid sales can be refunded');
-    }
+    async execute(input: {
+        saleId: string,
+        refundedBy: string
+    }): Promise<Sale> {
+        const sale = await this.saleRepo.findById(input.saleId);
+        if (!sale) throw new Error("Sale not found");
 
-    // 1. Update Status
-    await saleRepo.update(dto.saleId, { status: 'refunded' as any });
+        if (sale.status !== 'paid') {
+            throw new Error("Only paid sales can be refunded");
+        }
 
-    // 2. Create Stock Movements (IN) for Product items (Return to stock)
-    if (sale.items) {
-        for (const item of sale.items) {
-            if (item.itemType === 'product' && item.productId) {
-                await stockRepo.createMovement({
-                    tenantId: sale.tenantId,
-                    productId: item.productId,
-                    type: 'in',
-                    qty: item.qty,
-                    reason: 'refund',
-                    referenceType: 'sale',
-                    referenceId: sale.id,
-                    createdBy: dto.createdBy,
-                });
+        // Revert Stock
+        if (sale.items) {
+            for (const item of sale.items) {
+                if (item.itemType === 'product' && item.productId) {
+                    await this.productRepo.addMovement({
+                        productId: item.productId,
+                        type: 'IN',
+                        quantity: item.qty,
+                        reason: `Reembolso Venda #${sale.id.slice(0, 8)}`,
+                        referenceId: sale.id
+                    });
+                }
             }
         }
+
+        // Update Sale Status
+        // Note: We are keeping payments as is for record, but status changes.
+        // Ideally we should record a refund transaction, but for MVP just status change + stock revert is enough.
+
+        return this.saleRepo.update(sale.id, {
+            status: 'refunded'
+        });
     }
-};
+}

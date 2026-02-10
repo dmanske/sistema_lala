@@ -20,8 +20,22 @@ import { PaymentDialog } from "./PaymentDialog"
 import { SaleSummaryCard } from "./SaleSummaryCard"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
+import { useProducts } from "@/hooks/useProducts"
 import { Product } from "@/core/domain/Product"
 import { cn } from "@/lib/utils"
+
+import { RefundSale } from "@/core/usecases/sales/RefundSale"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 // Initialize specialized repos
 const saleRepo = new LocalStorageSaleRepository()
@@ -33,6 +47,7 @@ const clientRepo = new LocalStorageClientRepository()
 const updateSaleUseCase = new UpdateSale(saleRepo)
 const paySaleUseCase = new PaySale(saleRepo, productRepo, apptRepo)
 const getSaleUseCase = new GetSale(saleRepo)
+const refundSaleUseCase = new RefundSale(saleRepo, productRepo)
 
 interface CheckoutFormProps {
     saleId: string
@@ -45,9 +60,11 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
     const [addProductOpen, setAddProductOpen] = useState(false)
     const [paymentOpen, setPaymentOpen] = useState(false)
     const [paymentConfirming, setPaymentConfirming] = useState(false)
+    const [refundConfirming, setRefundConfirming] = useState(false)
     const [creditBalance, setCreditBalance] = useState(0)
     const [customerName, setCustomerName] = useState<string | undefined>(undefined)
 
+    // ... (fetchSale logic remains same)
     const fetchSale = useCallback(async () => {
         try {
             const result = await getSaleUseCase.execute(saleId)
@@ -74,6 +91,8 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
         }
     }, [saleId])
 
+    const { products } = useProducts()
+
     useEffect(() => {
         fetchSale()
     }, [fetchSale])
@@ -92,25 +111,68 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
         }
     }
 
+    // ... (addItem, updateItemQty, updateItemPrice, removeItem logic remains)
     const addItem = (product: Product, qty: number, price: number) => {
         if (!sale) return
-        const newItem: SaleItem = {
-            id: crypto.randomUUID(),
-            saleId: saleId,
-            itemType: 'product',
-            name: product.name,
-            productId: product.id,
-            qty,
-            unitPrice: price,
-            totalPrice: price * qty
+
+        // Calculate existing quantity in cart
+        const existingItem = sale.items?.find(i => i.itemType === 'product' && i.productId === product.id)
+        const existingQty = existingItem ? existingItem.qty : 0
+        const totalQty = existingQty + qty
+
+        // Stock Validation
+        if (product.currentStock < totalQty) {
+            toast.error(`Estoque insuficiente! Disponível: ${product.currentStock}. Em carrinho: ${existingQty}.Tentativa: ${qty}`)
+            return
         }
 
-        handleUpdateItems([...(sale.items || []), newItem])
+        let newItems: SaleItem[] = [...(sale.items || [])]
+
+        if (existingItem) {
+            newItems = newItems.map(i => {
+                if (i.id === existingItem.id) {
+                    return {
+                        ...i,
+                        qty: totalQty,
+                        totalPrice: totalQty * price
+                    }
+                }
+                return i
+            })
+        } else {
+            const newItem: SaleItem = {
+                id: crypto.randomUUID(),
+                saleId: saleId,
+                itemType: 'product',
+                name: product.name,
+                productId: product.id,
+                qty,
+                unitPrice: price,
+                totalPrice: price * qty
+            }
+            newItems.push(newItem)
+        }
+
+        handleUpdateItems(newItems)
     }
 
     const updateItemQty = (itemId: string, newQty: number) => {
         if (!sale || !sale.items) return
         if (newQty < 1) return
+
+        const item = sale.items.find(i => i.id === itemId)
+        if (!item) return
+
+        // Stock Validation for Products
+        if (item.itemType === 'product' && item.productId) {
+            const product = products.find(p => p.id === item.productId)
+            if (product) {
+                if (product.currentStock < newQty) {
+                    toast.error(`Estoque insuficiente! Disponível: ${product.currentStock}`)
+                    return
+                }
+            }
+        }
 
         const newItems = sale.items.map((item: SaleItem) => {
             if (item.id === itemId) {
@@ -141,6 +203,7 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
         handleUpdateItems(newItems)
     }
 
+    // ... (handlePayment logic remains)
     const handlePayment = async (payments: { method: PaymentMethod; amount: number }[]) => {
         if (!sale) return
         setPaymentConfirming(true)
@@ -189,7 +252,7 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
                 })
             }
 
-            // Update credit balance if credit or fiado was used
+            // Update credit balance
             const totalWalletDeducted = totalCreditUsed + totalFiado
             if (totalWalletDeducted > 0 && sale.customerId) {
                 setCreditBalance(prev => prev - totalWalletDeducted)
@@ -214,23 +277,45 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
         }
     }
 
+    const handleRefund = async () => {
+        if (!sale) return
+        setRefundConfirming(true)
+        try {
+            await refundSaleUseCase.execute({
+                saleId: sale.id,
+                refundedBy: 'current-user'
+            })
+            toast.success("Venda estornada e estoque revertido!")
+            fetchSale()
+        } catch (error: any) {
+            toast.error(error.message || "Erro ao estornar venda")
+        } finally {
+            setRefundConfirming(false)
+        }
+    }
+
     if (loading) return <div>Carregando...</div>
     if (!sale) return <div>Venda não encontrada.</div>
 
     const isPaid = sale.status === 'paid'
+    const isRefunded = sale.status === 'refunded'
     const totalPaid = sale.payments?.reduce((acc: number, p: SalePayment) => acc + p.amount, 0) || 0
     const totalRemaining = Math.max(0, (sale.total ?? 0) - totalPaid)
 
     return (
         <div className="grid gap-6 md:grid-cols-3">
             <div className="md:col-span-2 space-y-6">
+                {/* ... (Table code remains mostly same, except for isRefunded check maybe?) */}
                 <div className="flex items-center justify-between">
                     <h2 className="text-xl font-semibold flex items-center gap-2">
                         <ShoppingBag className="h-5 w-5" /> Itens
+                        {isRefunded && <Badge variant="destructive" className="ml-2">ESTORNADO</Badge>}
                     </h2>
-                    <Button onClick={() => setAddProductOpen(true)} variant="outline" size="sm" disabled={isPaid}>
-                        <Plus className="mr-2 h-4 w-4" /> Adicionar Produto
-                    </Button>
+                    {!isPaid && !isRefunded && (
+                        <Button onClick={() => setAddProductOpen(true)} variant="outline" size="sm">
+                            <Plus className="mr-2 h-4 w-4" /> Adicionar Produto
+                        </Button>
+                    )}
                 </div>
 
                 <div className="border rounded-lg overflow-hidden bg-card">
@@ -242,12 +327,12 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
                                 <TableHead className="w-[100px] text-center">Qtd</TableHead>
                                 <TableHead className="text-right w-[120px]">Unitário</TableHead>
                                 <TableHead className="text-right">Total</TableHead>
-                                {!isPaid && <TableHead className="w-[50px]"></TableHead>}
+                                {!isPaid && !isRefunded && <TableHead className="w-[50px]"></TableHead>}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {sale.items?.map((item: SaleItem) => (
-                                <TableRow key={item.id}>
+                                <TableRow key={item.id} className={isRefunded ? "opacity-50" : ""}>
                                     <TableCell className="font-medium">{item.name}</TableCell>
                                     <TableCell>
                                         <Badge variant={item.itemType === 'service' ? 'secondary' : 'outline'}>
@@ -255,7 +340,7 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-center">
-                                        {isPaid ? (
+                                        {isPaid || isRefunded ? (
                                             item.qty
                                         ) : (
                                             <Input
@@ -268,7 +353,7 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
                                         )}
                                     </TableCell>
                                     <TableCell className="text-right w-[120px]">
-                                        {isPaid ? (
+                                        {isPaid || isRefunded ? (
                                             `R$ ${(item.unitPrice ?? 0).toFixed(2)}`
                                         ) : (
                                             <div className="relative">
@@ -285,7 +370,7 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
                                         )}
                                     </TableCell>
                                     <TableCell className="text-right font-bold">R$ {(item.totalPrice ?? 0).toFixed(2)}</TableCell>
-                                    {!isPaid && (
+                                    {!isPaid && !isRefunded && (
                                         <TableCell>
                                             <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)}>
                                                 <Trash2 className="h-4 w-4 text-destructive" />
@@ -306,7 +391,7 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
                 </div>
             </div>
 
-            <div>
+            <div className="space-y-4">
                 <SaleSummaryCard
                     subtotal={sale.subtotal}
                     discount={sale.discount}
@@ -314,8 +399,33 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
                     totalPaid={totalPaid}
                     onPay={() => setPaymentOpen(true)}
                     loading={paymentConfirming}
-                    paid={isPaid}
+                    paid={isPaid || isRefunded}
                 />
+
+                {isPaid && !isRefunded && (
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" className="w-full" disabled={refundConfirming}>
+                                Estornar Venda (Reembolso)
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmar Estorno?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Esta ação irá reverter o status da venda para "Refunded" e devolver os produtos ao estoque.
+                                    O histórico financeiro será mantido.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleRefund} className="bg-red-600 hover:bg-red-700">
+                                    Sim, Estornar
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                )}
             </div>
 
             <AddProductDialog
