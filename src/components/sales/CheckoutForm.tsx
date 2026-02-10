@@ -121,6 +121,20 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
         handleUpdateItems(newItems)
     }
 
+    const updateItemPrice = (itemId: string, newPrice: number) => {
+        if (!sale || !sale.items) return
+        if (newPrice < 0) return
+
+        const newItems = sale.items.map((item: SaleItem) => {
+            if (item.id === itemId) {
+                const price = Number(newPrice);
+                return { ...item, unitPrice: price, totalPrice: price * item.qty }
+            }
+            return item
+        })
+        handleUpdateItems(newItems)
+    }
+
     const removeItem = (itemId: string) => {
         if (!sale || !sale.items) return
         const newItems = sale.items.filter((item: SaleItem) => item.id !== itemId)
@@ -181,6 +195,8 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
     if (!sale) return <div>Venda não encontrada.</div>
 
     const isPaid = sale.status === 'paid'
+    const totalPaid = sale.payments?.reduce((acc: number, p: SalePayment) => acc + p.amount, 0) || 0
+    const totalRemaining = Math.max(0, (sale.total ?? 0) - totalPaid)
 
     return (
         <div className="grid gap-6 md:grid-cols-3">
@@ -201,7 +217,7 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
                                 <TableHead>Item</TableHead>
                                 <TableHead className="w-[100px]">Tipo</TableHead>
                                 <TableHead className="w-[100px] text-center">Qtd</TableHead>
-                                <TableHead className="text-right">Unitário</TableHead>
+                                <TableHead className="text-right w-[120px]">Unitário</TableHead>
                                 <TableHead className="text-right">Total</TableHead>
                                 {!isPaid && <TableHead className="w-[50px]"></TableHead>}
                             </TableRow>
@@ -228,7 +244,23 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
                                             />
                                         )}
                                     </TableCell>
-                                    <TableCell className="text-right">R$ {(item.unitPrice ?? 0).toFixed(2)}</TableCell>
+                                    <TableCell className="text-right w-[120px]">
+                                        {isPaid ? (
+                                            `R$ ${(item.unitPrice ?? 0).toFixed(2)}`
+                                        ) : (
+                                            <div className="relative">
+                                                <span className="absolute left-2 top-1.5 text-xs text-muted-foreground">R$</span>
+                                                <Input
+                                                    type="number"
+                                                    min={0}
+                                                    step="0.01"
+                                                    className="h-8 w-24 text-right pl-6 ml-auto"
+                                                    value={item.unitPrice}
+                                                    onChange={(e) => updateItemPrice(item.id, Number(e.target.value))}
+                                                />
+                                            </div>
+                                        )}
+                                    </TableCell>
                                     <TableCell className="text-right font-bold">R$ {(item.totalPrice ?? 0).toFixed(2)}</TableCell>
                                     {!isPaid && (
                                         <TableCell>
@@ -256,6 +288,7 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
                     subtotal={sale.subtotal}
                     discount={sale.discount}
                     total={sale.total}
+                    totalPaid={totalPaid}
                     onPay={() => setPaymentOpen(true)}
                     loading={paymentConfirming}
                     paid={isPaid}
@@ -271,7 +304,7 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
             <PaymentDialog
                 open={paymentOpen}
                 onOpenChange={setPaymentOpen}
-                totalRemaining={(sale.total ?? 0) - (sale.payments?.reduce((acc: number, p: SalePayment) => acc + p.amount, 0) || 0)}
+                totalRemaining={totalRemaining}
                 onConfirm={handlePayment}
                 creditBalance={creditBalance}
                 customerName={customerName}

@@ -156,13 +156,17 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
                             type="number"
                             step="0.01"
                             value={amount}
-                            onChange={(e) => setAmount(Number(e.target.value))}
+                            onChange={(e) => {
+                                const val = Number(e.target.value);
+                                const limit = method === 'credit' ? Math.min(totalRemaining, creditBalance) : totalRemaining;
+                                setAmount(Math.min(val, limit));
+                            }}
                             className="h-12 text-lg font-bold text-center bg-white border-slate-200 rounded-xl"
-                            max={method === 'credit' ? creditBalance : undefined}
+                            max={method === 'credit' ? Math.min(totalRemaining, creditBalance) : totalRemaining}
                         />
-                        {method === 'credit' && amount < totalRemaining && (
-                            <p className="text-xs text-amber-600 flex items-center gap-1">
-                                💡 O restante (R$ {(totalRemaining - amount).toFixed(2)}) poderá ser pago com outro método.
+                        {amount < totalRemaining && (
+                            <p className="text-xs text-amber-600 flex items-center gap-1 mt-2">
+                                💡 Restante: R$ {(totalRemaining - amount).toFixed(2)}
                             </p>
                         )}
                     </div>
