@@ -38,7 +38,7 @@ import { formatName } from "@/core/formatters/name";
 import { AppointmentForm } from "@/components/agenda/AppointmentForm";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { FinalizeAppointmentDialog } from "@/components/appointments/FinalizeAppointmentDialog";
+
 
 // Horários disponíveis (5h às 23h)
 // Horários disponíveis (5h às 23:30, intervalos de 30min)
@@ -145,9 +145,7 @@ export default function AgendaPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const router = useRouter();
 
-    // Finalization State
-    const [finalizeDialogOpen, setFinalizeDialogOpen] = useState(false);
-    const [appointmentToFinalize, setAppointmentToFinalize] = useState<Appointment | null>(null);
+
 
     const service = new AppointmentService(new LocalStorageAppointmentRepository());
     const clientRepo = new LocalStorageClientRepository();
@@ -404,15 +402,32 @@ export default function AgendaPage() {
                                 <h4 className="font-bold text-slate-800 text-lg leading-tight truncate">
                                     {getClientName(apt.clientId)}
                                 </h4>
-                                <div className="flex items-center gap-1.5 mt-1 text-sm text-slate-500">
-                                    <User className="h-3.5 w-3.5" />
-                                    <span className="truncate">Cliente Recorrente</span> {/* Placeholder para tipo de cliente */}
+                                <div className="flex items-center gap-2 mt-1.5">
+                                    <div className="flex items-center gap-1.5 text-sm text-slate-500">
+                                        <User className="h-3.5 w-3.5" />
+                                        <span className="truncate">Cliente Recorrente</span>
+                                    </div>
+                                    {/* Status Badge */}
+                                    <div className={cn(
+                                        "px-2 py-0.5 text-xs font-semibold rounded-full",
+                                        apt.status === "PENDING" && "bg-amber-100 text-amber-700",
+                                        apt.status === "CONFIRMED" && "bg-blue-100 text-blue-700",
+                                        apt.status === "DONE" && "bg-emerald-100 text-emerald-700",
+                                        apt.status === "CANCELED" && "bg-slate-100 text-slate-600",
+                                        apt.status === "NO_SHOW" && "bg-rose-100 text-rose-700"
+                                    )}>
+                                        {apt.status === "PENDING" && "Pendente"}
+                                        {apt.status === "CONFIRMED" && "Confirmado"}
+                                        {apt.status === "DONE" && "Finalizado"}
+                                        {apt.status === "CANCELED" && "Cancelado"}
+                                        {apt.status === "NO_SHOW" && "Não Compareceu"}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="px-5 py-2 space-y-4">
+                    <div className="px-5 py-3 space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Data</span>
@@ -438,7 +453,7 @@ export default function AgendaPage() {
                             </div>
                         </div>
 
-                        <div className="space-y-1">
+                        <div className="space-y-1.5">
                             <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Serviços</span>
                             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm font-medium text-slate-700">
                                 {getServiceNames(apt.services)}
@@ -446,94 +461,85 @@ export default function AgendaPage() {
                         </div>
 
                         {apt.notes && (
-                            <div className="space-y-1">
+                            <div className="space-y-1.5">
                                 <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Observação</span>
                                 <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-100 text-sm italic text-slate-600">
                                     "{apt.notes}"
                                 </div>
                             </div>
                         )}
+                    </div>
 
-                        <div className="space-y-2 pt-1">
-                            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Alterar Status</span>
-                            <div className="flex flex-wrap gap-1.5">
-                                <button
-                                    onClick={() => handleUpdateStatus(apt.id, "PENDING")}
-                                    className={cn(
-                                        "px-2.5 py-1 text-xs font-medium rounded-lg border transition-all",
-                                        apt.status === "PENDING"
-                                            ? "bg-amber-500 text-white border-amber-500"
-                                            : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
-                                    )}
-                                >
-                                    Pendente
-                                </button>
-                                <button
-                                    onClick={() => handleUpdateStatus(apt.id, "CONFIRMED")}
-                                    className={cn(
-                                        "px-2.5 py-1 text-xs font-medium rounded-lg border transition-all",
-                                        apt.status === "CONFIRMED"
-                                            ? "bg-blue-500 text-white border-blue-500"
-                                            : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
-                                    )}
-                                >
-                                    Confirmado
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setAppointmentToFinalize(apt);
-                                        setFinalizeDialogOpen(true);
-                                    }}
-                                    className={cn(
-                                        "px-2.5 py-1 text-xs font-medium rounded-lg border transition-all",
-                                        apt.status === "DONE"
-                                            ? "bg-emerald-500 text-white border-emerald-500"
-                                            : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                                    )}
-                                >
-                                    Finalizado
-                                </button>
-                                <button
-                                    onClick={() => handleUpdateStatus(apt.id, "CANCELED")}
-                                    className={cn(
-                                        "px-2.5 py-1 text-xs font-medium rounded-lg border transition-all",
-                                        apt.status === "CANCELED"
-                                            ? "bg-slate-500 text-white border-slate-500"
-                                            : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
-                                    )}
-                                >
-                                    Cancelado
-                                </button>
-                                <button
-                                    onClick={() => handleUpdateStatus(apt.id, "NO_SHOW")}
-                                    className={cn(
-                                        "px-2.5 py-1 text-xs font-medium rounded-lg border transition-all",
-                                        apt.status === "NO_SHOW"
-                                            ? "bg-rose-500 text-white border-rose-500"
-                                            : "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"
-                                    )}
-                                >
-                                    Não Compareceu
-                                </button>
-                            </div>
+                    {/* Divider */}
+                    <div className="border-t border-slate-100" />
+
+                    {/* Status Change Section */}
+                    <div className="px-5 py-3 space-y-2.5">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Alterar Status</span>
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                onClick={() => handleUpdateStatus(apt.id, "PENDING")}
+                                className={cn(
+                                    "px-3 py-1.5 text-xs font-semibold rounded-lg border-2 transition-all",
+                                    apt.status === "PENDING"
+                                        ? "bg-amber-500 text-white border-amber-500 shadow-sm"
+                                        : "bg-white text-amber-700 border-amber-200 hover:bg-amber-50 hover:border-amber-300"
+                                )}
+                            >
+                                Pendente
+                            </button>
+                            <button
+                                onClick={() => handleUpdateStatus(apt.id, "CONFIRMED")}
+                                className={cn(
+                                    "px-3 py-1.5 text-xs font-semibold rounded-lg border-2 transition-all",
+                                    apt.status === "CONFIRMED"
+                                        ? "bg-blue-500 text-white border-blue-500 shadow-sm"
+                                        : "bg-white text-blue-700 border-blue-200 hover:bg-blue-50 hover:border-blue-300"
+                                )}
+                            >
+                                Confirmado
+                            </button>
+                            <button
+                                onClick={() => handleUpdateStatus(apt.id, "CANCELED")}
+                                className={cn(
+                                    "px-3 py-1.5 text-xs font-semibold rounded-lg border-2 transition-all",
+                                    apt.status === "CANCELED"
+                                        ? "bg-slate-500 text-white border-slate-500 shadow-sm"
+                                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                                )}
+                            >
+                                Cancelado
+                            </button>
+                            <button
+                                onClick={() => handleUpdateStatus(apt.id, "NO_SHOW")}
+                                className={cn(
+                                    "px-3 py-1.5 text-xs font-semibold rounded-lg border-2 transition-all",
+                                    apt.status === "NO_SHOW"
+                                        ? "bg-rose-500 text-white border-rose-500 shadow-sm"
+                                        : "bg-white text-rose-700 border-rose-200 hover:bg-rose-50 hover:border-rose-300"
+                                )}
+                            >
+                                Não Compareceu
+                            </button>
                         </div>
                     </div>
 
-                    <div className="pt-2">
+                    {/* Divider */}
+                    <div className="border-t border-slate-100" />
+
+                    {/* Action Buttons */}
+                    <div className="px-5 py-4 space-y-2.5">
                         <Button
-                            size="sm"
-                            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md rounded-xl"
+                            size="lg"
+                            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all rounded-xl h-11"
                             onClick={() => router.push(`/appointments/${apt.id}/checkout`)}
                         >
-                            <ShoppingCart className="mr-2 h-4 w-4" /> Fechar Atendimento (Checkout)
+                            <ShoppingCart className="mr-2 h-5 w-5" /> Finalizar Atendimento
                         </Button>
-                    </div>
-
-                    <div className="p-3 bg-slate-50/50 border-t border-slate-100 flex gap-2 mt-2">
                         <Button
                             variant="outline"
-                            size="sm"
-                            className="flex-1 rounded-lg text-sm"
+                            size="default"
+                            className="w-full rounded-xl border-2 font-medium hover:bg-slate-50"
                             onClick={() => handleEdit(apt)}
                         >
                             Editar Agendamento
@@ -905,18 +911,7 @@ export default function AgendaPage() {
                     onSuccess={fetchData}
                 />
             </div>
-            {/* Finalization Dialog */}
-            {appointmentToFinalize && (
-                <FinalizeAppointmentDialog
-                    appointment={appointmentToFinalize}
-                    open={finalizeDialogOpen}
-                    onOpenChange={(open) => {
-                        setFinalizeDialogOpen(open);
-                        if (!open) setAppointmentToFinalize(null);
-                    }}
-                    onSuccess={fetchData}
-                />
-            )}
+
         </div>
     );
 }
