@@ -51,10 +51,9 @@ import { SupabaseStockMovementRepository } from './supabase/SupabaseStockMovemen
  * Set NEXT_PUBLIC_USE_SUPABASE=true in .env.local to enable.
  */
 function useSupabase(): boolean {
-    if (typeof window !== 'undefined') {
-        return process.env.NEXT_PUBLIC_USE_SUPABASE === 'true';
-    }
-    return process.env.NEXT_PUBLIC_USE_SUPABASE === 'true';
+    const useSupabaseEnv = process.env.NEXT_PUBLIC_USE_SUPABASE;
+    // Check if defined and explicitly true (handling potential whitespace or quotes)
+    return !!useSupabaseEnv && useSupabaseEnv.replace(/['"\s]/g, '') === 'true';
 }
 
 // Singleton instances (lazy-initialized)
