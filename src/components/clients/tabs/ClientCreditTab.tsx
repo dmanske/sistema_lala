@@ -13,8 +13,7 @@ import { RegisterCreditDialog } from "@/components/clients/RegisterCreditDialog"
 
 import { CreditMovement } from "@/core/domain/Credit";
 import { CreditService } from "@/core/services/CreditService";
-import { LocalStorageCreditRepository } from "@/infrastructure/repositories/LocalStorageCreditRepository";
-import { LocalStorageClientRepository } from "@/infrastructure/repositories/LocalStorageClientRepository";
+import { getCreditRepository, getClientRepository } from "@/infrastructure/repositories/factory";
 import { formatDate, formatDateTime } from "@/core/formatters/date";
 
 interface ClientCreditTabProps {
@@ -29,8 +28,8 @@ export function ClientCreditTab({ clientId, creditBalance }: ClientCreditTabProp
     const fetchHistory = async () => {
         setIsLoading(true);
         try {
-            const creditRepo = new LocalStorageCreditRepository();
-            const clientRepo = new LocalStorageClientRepository();
+            const creditRepo = getCreditRepository();
+            const clientRepo = getClientRepository();
             const service = new CreditService(creditRepo, clientRepo);
             const data = await service.getHistory(clientId);
             setMovements(data);

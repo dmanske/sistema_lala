@@ -3,14 +3,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { Sale, SaleItem, SalePayment, PaymentMethod } from "@/core/domain/sales/types"
-import { LocalStorageSaleRepository } from "@/infrastructure/repositories/sales/LocalStorageSaleRepository"
-import { UpdateSale } from "@/core/usecases/sales/UpdateSale"
-import { PaySale } from "@/core/usecases/sales/PaySale"
-import { GetSale } from "@/core/usecases/sales/GetSale"
-import { LocalStorageProductRepository } from "@/infrastructure/repositories/LocalStorageProductRepository"
-import { LocalStorageAppointmentRepository } from "@/infrastructure/repositories/LocalStorageAppointmentRepository"
-import { LocalStorageCreditRepository } from "@/infrastructure/repositories/LocalStorageCreditRepository"
-import { LocalStorageClientRepository } from "@/infrastructure/repositories/LocalStorageClientRepository"
+import { getSaleRepository, getProductRepository, getAppointmentRepository, getCreditRepository, getClientRepository } from "@/infrastructure/repositories/factory"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
@@ -24,6 +17,9 @@ import { useProducts } from "@/hooks/useProducts"
 import { Product } from "@/core/domain/Product"
 import { cn } from "@/lib/utils"
 
+import { UpdateSale } from "@/core/usecases/sales/UpdateSale"
+import { PaySale } from "@/core/usecases/sales/PaySale"
+import { GetSale } from "@/core/usecases/sales/GetSale"
 import { RefundSale } from "@/core/usecases/sales/RefundSale"
 import {
     AlertDialog,
@@ -38,11 +34,11 @@ import {
 } from "@/components/ui/alert-dialog"
 
 // Initialize specialized repos
-const saleRepo = new LocalStorageSaleRepository()
-const productRepo = new LocalStorageProductRepository()
-const apptRepo = new LocalStorageAppointmentRepository()
-const creditRepo = new LocalStorageCreditRepository()
-const clientRepo = new LocalStorageClientRepository()
+const saleRepo = getSaleRepository()
+const productRepo = getProductRepository()
+const apptRepo = getAppointmentRepository()
+const creditRepo = getCreditRepository()
+const clientRepo = getClientRepository()
 
 const updateSaleUseCase = new UpdateSale(saleRepo)
 const paySaleUseCase = new PaySale(saleRepo, productRepo, apptRepo)
@@ -204,7 +200,7 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
     }
 
     // ... (handlePayment logic remains)
-    const handlePayment = async (payments: { method: PaymentMethod; amount: number }[]) => {
+    const handlePayment = async (payments: { method: PaymentMethod; amount: number; change?: number }[]) => {
         if (!sale) return
         setPaymentConfirming(true)
         try {
@@ -213,7 +209,7 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
             let totalFiado = 0
 
             for (const payment of payments) {
-                const { method, amount } = payment
+                const { method, amount, change } = payment
 
                 // If paying with credit, debit from customer balance
                 if (method === 'credit' && sale.customerId) {
@@ -248,6 +244,7 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
                     method,
                     amount,
                     paidAt: new Date(),
+                    change,
                     createdBy: 'current-user',
                 })
             }

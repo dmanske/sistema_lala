@@ -20,7 +20,8 @@ export const salePaymentSchema = z.object({
     saleId: z.string().uuid(),
     method: z.enum(['pix', 'card', 'cash', 'transfer', 'credit', 'fiado']),
     amount: z.number().min(0),
-    paidAt: z.string().datetime(), // ISO string
+    paidAt: z.string().datetime(),
+    change: z.number().optional(),
 });
 
 export const saleSchema = z.object({

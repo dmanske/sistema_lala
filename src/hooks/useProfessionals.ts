@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { Professional, CreateProfessionalInput, UpdateProfessionalInput } from "@/core/domain/Professional";
-import { LocalStorageProfessionalRepository } from "@/infrastructure/repositories/LocalStorageProfessionalRepository";
+import { getProfessionalRepository } from "@/infrastructure/repositories/factory";
 import { toast } from "sonner";
 
-const repository = new LocalStorageProfessionalRepository();
+const repository = getProfessionalRepository();
 
 export function useProfessionals() {
     const [professionals, setProfessionals] = useState<Professional[]>([]);

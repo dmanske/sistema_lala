@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ClientService, BusinessError } from "@/core/services/ClientService";
-import { LocalStorageClientRepository } from "@/infrastructure/repositories/LocalStorageClientRepository";
+import { getClientRepository } from "@/infrastructure/repositories/factory";
 
 interface DeleteClientDialogProps {
     clientId: string;
@@ -39,7 +39,7 @@ export function DeleteClientDialog({
         message: "",
     });
 
-    const repo = new LocalStorageClientRepository();
+    const repo = getClientRepository();
     const service = new ClientService(repo);
     const router = useRouter();
 

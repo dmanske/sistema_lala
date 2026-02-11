@@ -1,6 +1,4 @@
-import { LocalStorageSaleRepository } from "@/infrastructure/repositories/sales/LocalStorageSaleRepository";
-import { LocalStorageServiceRepository } from "@/infrastructure/repositories/LocalStorageServiceRepository";
-import { LocalStorageAppointmentRepository } from "@/infrastructure/repositories/LocalStorageAppointmentRepository";
+import { getSaleRepository, getServiceRepository, getAppointmentRepository } from "@/infrastructure/repositories/factory";
 import { SaleItem } from "@/core/domain/sales/types";
 
 export interface LastService {
@@ -27,9 +25,9 @@ export interface CustomerOverview {
 }
 
 export async function getCustomerOverview(customerId: string): Promise<CustomerOverview> {
-    const saleRepo = new LocalStorageSaleRepository();
-    const serviceRepo = new LocalStorageServiceRepository();
-    const appointmentRepo = new LocalStorageAppointmentRepository();
+    const saleRepo = getSaleRepository();
+    const serviceRepo = getServiceRepository();
+    const appointmentRepo = getAppointmentRepository();
 
     // 1. Buscar todas as vendas pagas do cliente
     const allSales = await saleRepo.findByCustomerId(customerId);

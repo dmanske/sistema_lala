@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Product, CreateProductInput, CreateProductMovementInput, ProductMovement } from '@/core/domain/Product';
-import { LocalStorageProductRepository } from '@/infrastructure/repositories/LocalStorageProductRepository';
+import { getProductRepository } from '@/infrastructure/repositories/factory';
 
 export function useProducts() {
     const [products, setProducts] = useState<Product[]>([]);
@@ -8,7 +8,7 @@ export function useProducts() {
     const [loading, setLoading] = useState(true);
 
     // In a real app, singleton or context
-    const repo = useMemo(() => new LocalStorageProductRepository(), []);
+    const repo = useMemo(() => getProductRepository(), []);
 
     const fetchProducts = useCallback(async (search?: string, lowStock?: boolean) => {
         setLoading(true);

@@ -8,12 +8,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Appointment } from "@/core/domain/Appointment";
 import { AppointmentService } from "@/core/services/AppointmentService";
-import { LocalStorageAppointmentRepository } from "@/infrastructure/repositories/LocalStorageAppointmentRepository";
 import { ClientService } from "@/core/services/ClientService";
-import { LocalStorageClientRepository } from "@/infrastructure/repositories/LocalStorageClientRepository";
-import { LocalStorageSaleRepository } from "@/infrastructure/repositories/sales/LocalStorageSaleRepository";
-import { LocalStorageServiceRepository } from "@/infrastructure/repositories/LocalStorageServiceRepository";
-import { LocalStorageProfessionalRepository } from "@/infrastructure/repositories/LocalStorageProfessionalRepository";
+import { getAppointmentRepository, getClientRepository, getSaleRepository, getServiceRepository, getProfessionalRepository } from "@/infrastructure/repositories/factory";
 import { Sale, PaymentMethod } from "@/core/domain/sales/types";
 import { Service } from "@/core/domain/Service";
 import { Professional } from "@/core/domain/Professional";
@@ -41,15 +37,15 @@ export function ClientAppointmentsTab({ clientId }: ClientAppointmentsTabProps) 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const appRepo = new LocalStorageAppointmentRepository();
+            const appRepo = getAppointmentRepository();
             const appService = new AppointmentService(appRepo);
 
-            const clientRepo = new LocalStorageClientRepository();
+            const clientRepo = getClientRepository();
             const clientService = new ClientService(clientRepo);
 
-            const saleRepo = new LocalStorageSaleRepository();
-            const serviceRepo = new LocalStorageServiceRepository();
-            const professionalRepo = new LocalStorageProfessionalRepository();
+            const saleRepo = getSaleRepository();
+            const serviceRepo = getServiceRepository();
+            const professionalRepo = getProfessionalRepository();
 
             const [appData, clientData, svcsData, profsData] = await Promise.all([
                 appService.getAll({ clientId }),
@@ -96,7 +92,7 @@ export function ClientAppointmentsTab({ clientId }: ClientAppointmentsTabProps) 
     const handleSaveNotes = async () => {
         setIsSavingNotes(true);
         try {
-            const clientRepo = new LocalStorageClientRepository();
+            const clientRepo = getClientRepository();
             const clientService = new ClientService(clientRepo);
             await clientService.update(clientId, { notes: clientNotes });
             toast.success("Observações salvas com sucesso!");

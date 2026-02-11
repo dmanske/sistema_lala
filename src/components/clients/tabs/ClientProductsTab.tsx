@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ShoppingBag } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { LocalStorageSaleRepository } from "@/infrastructure/repositories/sales/LocalStorageSaleRepository";
+import { getSaleRepository } from "@/infrastructure/repositories/factory";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SaleItem } from "@/core/domain/sales/types";
 
@@ -35,7 +35,7 @@ export function ClientProductsTab({ clientId }: ClientProductsTabProps) {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const saleRepo = new LocalStorageSaleRepository();
+                const saleRepo = getSaleRepository();
                 const sales = await saleRepo.findByCustomerId(clientId);
 
                 let items: ProductHistoryItem[] = [];

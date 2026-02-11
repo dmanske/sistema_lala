@@ -1,0 +1,10 @@
+export { SupabaseClientRepository } from './SupabaseClientRepository';
+export { SupabaseProductRepository } from './SupabaseProductRepository';
+export { SupabaseServiceRepository } from './SupabaseServiceRepository';
+export { SupabaseSupplierRepository } from './SupabaseSupplierRepository';
+export { SupabaseProfessionalRepository } from './SupabaseProfessionalRepository';
+export { SupabasePurchaseRepository } from './SupabasePurchaseRepository';
+export { SupabaseAppointmentRepository } from './SupabaseAppointmentRepository';
+export { SupabaseSaleRepository } from './SupabaseSaleRepository';
+export { SupabaseCreditRepository } from './SupabaseCreditRepository';
+export { SupabaseStockMovementRepository } from './SupabaseStockMovementRepository';

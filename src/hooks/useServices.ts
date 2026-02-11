@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Service, CreateServiceInput } from '@/core/domain/Service';
-import { LocalStorageServiceRepository } from '@/infrastructure/repositories/LocalStorageServiceRepository';
+import { getServiceRepository } from '@/infrastructure/repositories/factory';
 
 export function useServices() {
     const [services, setServices] = useState<Service[]>([]);
     const [loading, setLoading] = useState(true);
     // In a real app, this should be a singleton or provided via context/DI
-    const repo = new LocalStorageServiceRepository();
+    const repo = getServiceRepository();
 
     const fetchServices = useCallback(async (search?: string) => {
         setLoading(true);

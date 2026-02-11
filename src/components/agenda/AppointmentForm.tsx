@@ -69,10 +69,7 @@ import {
     ServiceLine
 } from "@/core/domain/Appointment";
 import { AppointmentService } from "@/core/services/AppointmentService";
-import { LocalStorageAppointmentRepository } from "@/infrastructure/repositories/LocalStorageAppointmentRepository";
-import { LocalStorageClientRepository } from "@/infrastructure/repositories/LocalStorageClientRepository";
-import { LocalStorageServiceRepository } from "@/infrastructure/repositories/LocalStorageServiceRepository";
-import { LocalStorageProfessionalRepository } from "@/infrastructure/repositories/LocalStorageProfessionalRepository";
+import { getAppointmentRepository, getClientRepository, getServiceRepository, getProfessionalRepository } from "@/infrastructure/repositories/factory";
 import { Client } from "@/core/domain/Client";
 import { Service } from "@/core/domain/Service";
 import { Professional } from "@/core/domain/Professional";
@@ -102,10 +99,10 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
     const [activeTab, setActiveTab] = useState("appointment");
     const [endTime, setEndTime] = useState("10:00");
 
-    const appointmentService = new AppointmentService(new LocalStorageAppointmentRepository());
-    const clientRepo = new LocalStorageClientRepository();
-    const serviceRepo = new LocalStorageServiceRepository();
-    const professionalRepo = new LocalStorageProfessionalRepository();
+    const appointmentService = new AppointmentService(getAppointmentRepository());
+    const clientRepo = getClientRepository();
+    const serviceRepo = getServiceRepository();
+    const professionalRepo = getProfessionalRepository();
 
     const form = useForm<CreateAppointmentInput>({
         resolver: zodResolver(CreateAppointmentSchema) as any,

@@ -1,0 +1,178 @@
+/**
+ * Repository Factory
+ * 
+ * Centralizes repository instantiation with environment-based switching.
+ * When USE_SUPABASE=true, returns Supabase implementations.
+ * When USE_SUPABASE=false (default), returns LocalStorage implementations.
+ * 
+ * Usage:
+ *   import { getClientRepository } from '@/infrastructure/repositories/factory';
+ *   const clientRepo = getClientRepository();
+ */
+
+import { ClientRepository } from '@/core/repositories/ClientRepository';
+import { ProductRepository } from '@/core/repositories/ProductRepository';
+import { ServiceRepository } from '@/core/repositories/ServiceRepository';
+import { SupplierRepository } from '@/core/repositories/SupplierRepository';
+import { ProfessionalRepository } from '@/core/repositories/ProfessionalRepository';
+import { PurchaseRepository } from '@/core/repositories/PurchaseRepository';
+import { AppointmentRepository } from '@/core/repositories/AppointmentRepository';
+import { SaleRepository } from '@/core/repositories/SaleRepository';
+import { CreditRepository } from '@/core/repositories/CreditRepository';
+import { StockMovementRepository as CoreStockMovementRepository } from '@/core/repositories/StockMovementRepository';
+import { StockMovementRepository as LocalStockMovementInterface } from './stock/StockMovementRepository';
+
+// LocalStorage implementations
+import { LocalStorageClientRepository } from './LocalStorageClientRepository';
+import { LocalStorageProductRepository } from './LocalStorageProductRepository';
+import { LocalStorageServiceRepository } from './LocalStorageServiceRepository';
+import { LocalStorageSupplierRepository } from './LocalStorageSupplierRepository';
+import { LocalStorageProfessionalRepository } from './LocalStorageProfessionalRepository';
+import { LocalStoragePurchaseRepository } from './LocalStoragePurchaseRepository';
+import { LocalStorageAppointmentRepository } from './LocalStorageAppointmentRepository';
+import { LocalStorageSaleRepository } from './sales/LocalStorageSaleRepository';
+import { LocalStorageCreditRepository } from './LocalStorageCreditRepository';
+import { LocalStorageStockMovementRepository } from './stock/LocalStorageStockMovementRepository';
+
+// Supabase implementations
+import { SupabaseClientRepository } from './supabase/SupabaseClientRepository';
+import { SupabaseProductRepository } from './supabase/SupabaseProductRepository';
+import { SupabaseServiceRepository } from './supabase/SupabaseServiceRepository';
+import { SupabaseSupplierRepository } from './supabase/SupabaseSupplierRepository';
+import { SupabaseProfessionalRepository } from './supabase/SupabaseProfessionalRepository';
+import { SupabasePurchaseRepository } from './supabase/SupabasePurchaseRepository';
+import { SupabaseAppointmentRepository } from './supabase/SupabaseAppointmentRepository';
+import { SupabaseSaleRepository } from './supabase/SupabaseSaleRepository';
+import { SupabaseCreditRepository } from './supabase/SupabaseCreditRepository';
+import { SupabaseStockMovementRepository } from './supabase/SupabaseStockMovementRepository';
+
+/**
+ * Check if Supabase should be used.
+ * Set NEXT_PUBLIC_USE_SUPABASE=true in .env.local to enable.
+ */
+function useSupabase(): boolean {
+    if (typeof window !== 'undefined') {
+        return process.env.NEXT_PUBLIC_USE_SUPABASE === 'true';
+    }
+    return process.env.NEXT_PUBLIC_USE_SUPABASE === 'true';
+}
+
+// Singleton instances (lazy-initialized)
+let clientRepo: ClientRepository | null = null;
+let productRepo: ProductRepository | null = null;
+let serviceRepo: ServiceRepository | null = null;
+let supplierRepo: SupplierRepository | null = null;
+let professionalRepo: ProfessionalRepository | null = null;
+let purchaseRepo: PurchaseRepository | null = null;
+let appointmentRepo: AppointmentRepository | null = null;
+let saleRepo: SaleRepository | null = null;
+let creditRepo: CreditRepository | null = null;
+// Note: LocalStorage and Supabase implement different interfaces during migration.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let stockMovementRepo: any = null;
+
+export function getClientRepository(): ClientRepository {
+    if (!clientRepo) {
+        clientRepo = useSupabase()
+            ? new SupabaseClientRepository()
+            : new LocalStorageClientRepository();
+    }
+    return clientRepo;
+}
+
+export function getProductRepository(): ProductRepository {
+    if (!productRepo) {
+        productRepo = useSupabase()
+            ? new SupabaseProductRepository()
+            : new LocalStorageProductRepository();
+    }
+    return productRepo;
+}
+
+export function getServiceRepository(): ServiceRepository {
+    if (!serviceRepo) {
+        serviceRepo = useSupabase()
+            ? new SupabaseServiceRepository()
+            : new LocalStorageServiceRepository();
+    }
+    return serviceRepo;
+}
+
+export function getSupplierRepository(): SupplierRepository {
+    if (!supplierRepo) {
+        supplierRepo = useSupabase()
+            ? new SupabaseSupplierRepository()
+            : new LocalStorageSupplierRepository();
+    }
+    return supplierRepo;
+}
+
+export function getProfessionalRepository(): ProfessionalRepository {
+    if (!professionalRepo) {
+        professionalRepo = useSupabase()
+            ? new SupabaseProfessionalRepository()
+            : new LocalStorageProfessionalRepository();
+    }
+    return professionalRepo;
+}
+
+export function getPurchaseRepository(): PurchaseRepository {
+    if (!purchaseRepo) {
+        purchaseRepo = useSupabase()
+            ? new SupabasePurchaseRepository()
+            : new LocalStoragePurchaseRepository();
+    }
+    return purchaseRepo;
+}
+
+export function getAppointmentRepository(): AppointmentRepository {
+    if (!appointmentRepo) {
+        appointmentRepo = useSupabase()
+            ? new SupabaseAppointmentRepository()
+            : new LocalStorageAppointmentRepository();
+    }
+    return appointmentRepo;
+}
+
+export function getSaleRepository(): SaleRepository {
+    if (!saleRepo) {
+        saleRepo = useSupabase()
+            ? new SupabaseSaleRepository()
+            : new LocalStorageSaleRepository();
+    }
+    return saleRepo;
+}
+
+export function getCreditRepository(): CreditRepository {
+    if (!creditRepo) {
+        creditRepo = useSupabase()
+            ? new SupabaseCreditRepository()
+            : new LocalStorageCreditRepository();
+    }
+    return creditRepo;
+}
+
+export function getStockMovementRepository(): CoreStockMovementRepository | LocalStockMovementInterface {
+    if (!stockMovementRepo) {
+        stockMovementRepo = useSupabase()
+            ? new SupabaseStockMovementRepository()
+            : new LocalStorageStockMovementRepository();
+    }
+    return stockMovementRepo;
+}
+
+/**
+ * Reset all singletons (useful for testing or switching backends)
+ */
+export function resetRepositories(): void {
+    clientRepo = null;
+    productRepo = null;
+    serviceRepo = null;
+    supplierRepo = null;
+    professionalRepo = null;
+    purchaseRepo = null;
+    appointmentRepo = null;
+    saleRepo = null;
+    creditRepo = null;
+    stockMovementRepo = null;
+}

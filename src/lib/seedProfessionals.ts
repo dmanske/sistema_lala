@@ -1,4 +1,4 @@
-import { LocalStorageProfessionalRepository } from "@/infrastructure/repositories/LocalStorageProfessionalRepository";
+import { getProfessionalRepository } from "@/infrastructure/repositories/factory";
 
 // Dados dos profissionais mockados originais
 const MOCK_PROFESSIONALS_DATA = [
@@ -8,7 +8,7 @@ const MOCK_PROFESSIONALS_DATA = [
 ];
 
 export async function seedProfessionals() {
-    const repo = new LocalStorageProfessionalRepository();
+    const repo = getProfessionalRepository();
     const existing = await repo.getAll();
 
     // Só faz seed se não houver profissionais cadastrados

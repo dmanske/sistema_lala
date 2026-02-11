@@ -27,7 +27,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 
 import { CreateSupplierSchema, Supplier } from "@/core/domain/Supplier";
-import { LocalStorageSupplierRepository } from "@/infrastructure/repositories/LocalStorageSupplierRepository";
+import { getSupplierRepository } from "@/infrastructure/repositories/factory";
 import { normalizePhone } from "@/core/formatters/phone";
 
 const FormSchema = CreateSupplierSchema.omit({ status: true }).extend({
@@ -54,7 +54,7 @@ export function SupplierForm({ initialData, mode }: SupplierFormProps) {
         },
     });
 
-    const repo = new LocalStorageSupplierRepository();
+    const repo = getSupplierRepository();
 
     async function onSubmit(data: z.infer<typeof FormSchema>) {
         try {

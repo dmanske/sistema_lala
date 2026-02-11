@@ -30,9 +30,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 import { CreatePurchaseSchema } from "@/core/domain/Purchase";
 import { CreatePurchase } from "@/core/usecases/purchases/CreatePurchase";
-import { LocalStoragePurchaseRepository } from "@/infrastructure/repositories/LocalStoragePurchaseRepository";
-import { LocalStorageSupplierRepository } from "@/infrastructure/repositories/LocalStorageSupplierRepository";
-import { LocalStorageProductRepository } from "@/infrastructure/repositories/LocalStorageProductRepository";
+import { getPurchaseRepository, getSupplierRepository, getProductRepository } from "@/infrastructure/repositories/factory";
 import { Supplier } from "@/core/domain/Supplier";
 import { Product } from "@/core/domain/Product";
 
@@ -62,9 +60,9 @@ export function PurchaseForm() {
     });
 
     // Repositories & UseCase
-    const purchaseRepo = new LocalStoragePurchaseRepository();
-    const productRepo = new LocalStorageProductRepository();
-    const supplierRepo = new LocalStorageSupplierRepository();
+    const purchaseRepo = getPurchaseRepository();
+    const productRepo = getProductRepository();
+    const supplierRepo = getSupplierRepository();
     const createUseCase = new CreatePurchase(purchaseRepo, productRepo);
 
     useEffect(() => {

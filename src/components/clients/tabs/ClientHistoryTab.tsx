@@ -8,9 +8,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Appointment } from "@/core/domain/Appointment";
 import { AppointmentService } from "@/core/services/AppointmentService";
-import { LocalStorageAppointmentRepository } from "@/infrastructure/repositories/LocalStorageAppointmentRepository";
-import { LocalStorageProfessionalRepository } from "@/infrastructure/repositories/LocalStorageProfessionalRepository";
-import { LocalStorageServiceRepository } from "@/infrastructure/repositories/LocalStorageServiceRepository";
+import { getAppointmentRepository, getProfessionalRepository, getServiceRepository } from "@/infrastructure/repositories/factory";
 import { Professional } from "@/core/domain/Professional";
 import { Service } from "@/core/domain/Service";
 import { cn } from "@/lib/utils";
@@ -28,10 +26,10 @@ export function ClientHistoryTab({ clientId }: ClientHistoryTabProps) {
     const fetchAppointments = async () => {
         setLoading(true);
         try {
-            const repo = new LocalStorageAppointmentRepository();
+            const repo = getAppointmentRepository();
             const service = new AppointmentService(repo);
-            const professionalRepo = new LocalStorageProfessionalRepository();
-            const serviceRepo = new LocalStorageServiceRepository();
+            const professionalRepo = getProfessionalRepository();
+            const serviceRepo = getServiceRepository();
             const [data, profsData, svcsData] = await Promise.all([
                 service.getAll({ clientId }),
                 professionalRepo.getAll(),

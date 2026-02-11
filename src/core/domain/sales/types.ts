@@ -27,6 +27,7 @@ export interface PaySaleDTO {
     method: PaymentMethod;
     amount: number;
     paidAt: Date;
+    change?: number;
     createdBy: string;
 }
 

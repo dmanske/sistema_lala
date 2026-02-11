@@ -29,7 +29,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { CreateClientSchema, Client } from "@/core/domain/Client";
 import { ClientService } from "@/core/services/ClientService";
-import { LocalStorageClientRepository } from "@/infrastructure/repositories/LocalStorageClientRepository";
+import { getClientRepository } from "@/infrastructure/repositories/factory";
 import { normalizePhone } from "@/core/formatters/phone";
 
 const FormSchema = CreateClientSchema.omit({ status: true }).extend({
@@ -61,7 +61,7 @@ export function ClientForm({ initialData, mode }: ClientFormProps) {
         },
     });
 
-    const repo = new LocalStorageClientRepository();
+    const repo = getClientRepository();
     const service = new ClientService(repo);
 
     async function onSubmit(data: z.infer<typeof FormSchema>) {

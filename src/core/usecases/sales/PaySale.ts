@@ -16,6 +16,7 @@ export class PaySale {
         method: PaymentMethod,
         amount: number,
         paidAt: Date,
+        change?: number,
         createdBy: string
     }): Promise<Sale> {
         const sale = await this.saleRepo.findById(input.saleId);
@@ -30,6 +31,7 @@ export class PaySale {
             saleId: sale.id,
             method: input.method,
             amount: input.amount,
+            change: input.change,
             paidAt: input.paidAt.toISOString()
         };
 

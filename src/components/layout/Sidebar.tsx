@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/contexts/AuthProvider";
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> { }
 
@@ -36,6 +37,13 @@ import { useState, useEffect } from "react";
 export function Sidebar({ className }: SidebarProps) {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
+    const { user, profile, signOut } = useAuth();
+
+    const userInitials = profile?.full_name
+        ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+        : user?.email?.charAt(0).toUpperCase() ?? 'U';
+    const userName = profile?.full_name ?? 'Usuário';
+    const userEmail = user?.email ?? '';
 
     // Close sidebar when route changes
     useEffect(() => {
@@ -141,14 +149,19 @@ export function Sidebar({ className }: SidebarProps) {
 
             <div className="mt-auto p-4 m-4 rounded-2xl bg-white/40 backdrop-blur-sm border border-white/40 shadow-sm flex items-center gap-3">
                 <Avatar className="h-9 w-9 border border-white/50">
-                    <AvatarImage src="https://github.com/shadcn.png" />
-                    <AvatarFallback>AD</AvatarFallback>
+                    <AvatarFallback className="bg-gradient-to-br from-rose-400 to-pink-500 text-white text-xs font-semibold">{userInitials}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 overflow-hidden">
-                    <p className="text-sm font-medium leading-none truncate text-foreground/80">Admin User</p>
-                    <p className="text-xs text-muted-foreground truncate">admin@lalasystem.com</p>
+                    <p className="text-sm font-medium leading-none truncate text-foreground/80">{userName}</p>
+                    <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
                 </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                    onClick={() => signOut()}
+                    title="Sair"
+                >
                     <LogOut className="h-4 w-4" />
                 </Button>
             </div>

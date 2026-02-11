@@ -42,7 +42,7 @@ interface PaymentDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     totalRemaining: number
-    onConfirm: (payments: { method: PaymentMethod; amount: number }[]) => void
+    onConfirm: (payments: { method: PaymentMethod; amount: number; change?: number }[]) => void
     creditBalance?: number
     customerName?: string
     hasCustomer?: boolean
@@ -123,7 +123,11 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
             toast.error("Adicione pagamentos até cobrir o valor total")
             return
         }
-        onConfirm(entries.map(e => ({ method: e.method, amount: e.amount })))
+        onConfirm(entries.map(e => ({
+            method: e.method,
+            amount: e.amount,
+            change: e.cashGiven && e.cashGiven > e.amount ? e.cashGiven - e.amount : undefined
+        })))
         onOpenChange(false)
     }
 

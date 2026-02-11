@@ -36,8 +36,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 
 import { CreditService } from "@/core/services/CreditService";
-import { LocalStorageCreditRepository } from "@/infrastructure/repositories/LocalStorageCreditRepository";
-import { LocalStorageClientRepository } from "@/infrastructure/repositories/LocalStorageClientRepository";
+import { getCreditRepository, getClientRepository } from "@/infrastructure/repositories/factory";
 import { CreateCreditMovementSchema, CreditOriginSchema } from "@/core/domain/Credit";
 
 interface RegisterCreditDialogProps {
@@ -67,8 +66,8 @@ export function RegisterCreditDialog({ clientId, onSuccess }: RegisterCreditDial
     const onSubmit = async (data: z.infer<typeof FormSchema>) => {
         setIsSubmitting(true);
         try {
-            const creditRepo = new LocalStorageCreditRepository();
-            const clientRepo = new LocalStorageClientRepository();
+            const creditRepo = getCreditRepository();
+            const clientRepo = getClientRepository();
             const service = new CreditService(creditRepo, clientRepo);
 
             await service.addCredit(clientId, {

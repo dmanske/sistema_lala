@@ -15,8 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { DeleteSupplier } from "@/core/usecases/suppliers/DeleteSupplier";
-import { LocalStorageSupplierRepository } from "@/infrastructure/repositories/LocalStorageSupplierRepository";
-import { LocalStoragePurchaseRepository } from "@/infrastructure/repositories/LocalStoragePurchaseRepository";
+import { getSupplierRepository, getPurchaseRepository } from "@/infrastructure/repositories/factory";
 
 interface DeleteSupplierDialogProps {
     supplierId: string;
@@ -39,8 +38,8 @@ export function DeleteSupplierDialog({
         message: "",
     });
 
-    const supplierRepo = new LocalStorageSupplierRepository();
-    const purchaseRepo = new LocalStoragePurchaseRepository();
+    const supplierRepo = getSupplierRepository();
+    const purchaseRepo = getPurchaseRepository();
     const deleteUseCase = new DeleteSupplier(supplierRepo, purchaseRepo);
 
     const router = useRouter();
