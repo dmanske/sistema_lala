@@ -317,24 +317,30 @@ PurchaseItem {
 **Localização:** `/agenda`
 
 #### O que está implementado:
-- ✅ Visualização em 3 modos: Dia, Semana, Mês
+- ✅ Visualização em 5 modos: Dia, Dia Full, Semana, Semana Full, Mês
 - ✅ Navegação entre períodos
 - ✅ Criação de agendamento
 - ✅ Edição de agendamento
 - ✅ Alteração de status (PENDING, CONFIRMED, CANCELED, NO_SHOW, DONE)
-- ✅ Popover com detalhes do agendamento
+- ✅ Popover com detalhes do agendamento (abre no hover)
 - ✅ Busca por cliente ou serviço
 - ✅ Grid de horários (5h às 23:30, intervalos de 30min)
 - ✅ Suporte a múltiplos agendamentos no mesmo horário
 - ✅ Cores diferentes por status
 - ✅ Botão "Finalizar Atendimento" que redireciona para checkout
 - ✅ Exibição de observações do agendamento (no popover)
-- ✅ Grid refinado com slots de 30 minutos (05:00 às 23:30)
 - ✅ Bloqueio de horários (indisponibilidade/pessoal)
 - ✅ Validação de conflito (impede agendamento em horário bloqueado)
 - ✅ Design premium com glassmorphism
 - ✅ **Drag & Drop** nativo (Ghost Card + Snap 30min)
-- ✅ Grid visual compacto (80px) + Indicador de Tempo
+- ✅ **Modos de Visualização Otimizados:**
+  - **Dia/Semana:** 55px por hora - mostra mais horas na tela com scroll
+  - **Dia Full/Semana Full:** 30px por hora - agenda completa (5h-23:30) numa tela só sem scroll
+- ✅ Cards compactos e informativos:
+  - Linha 1: Horário + Nome do Cliente + Avatar
+  - Linha 2: Serviço
+- ✅ Indicador de Tempo atual (linha vermelha)
+- ✅ Header dos dias compacto para maximizar espaço da agenda
 
 #### Campos do agendamento:
 ```typescript
