@@ -1,6 +1,6 @@
 # 📋 INVENTÁRIO COMPLETO DO SISTEMA LALA
-**Data:** 11/02/2026  
-**Status:** DESENVOLVIMENTO ATIVO - BUILD VERCEL CORRIGIDO
+**Data:** 11/02/2026
+**Status:** CONSOLIDADO V1.5 (11/02/2026) - VERSÃO DEFINITIVA
 
 ---
 
@@ -21,8 +21,53 @@ Sistema de gestão para salão de beleza desenvolvido em **Next.js 15** com **Ty
 - **Padrão de Código:** Clean Architecture (Domain, UseCases, Repositories).
 - **Fases de Módulo:** Cadastro -> Ações -> Integrações -> Validação.
 - **Qualidade:** Limpeza constante de código morto e mocks deprecated.
+- **Skills:** Utilizar biblioteca (`~/.agent/skills`) e workflow `/consult-skills` para padrões.
 
 ---
+
+## 🏗️ DECISÕES ESTRUTURAIS DEFINIDAS
+
+### 1. Navegação e Sidebar
+- **Fornecedores:** Localizado em **Financeiro > Compras** (Decisão Oficial).
+  - O menu "Compras" agrupa a gestão de aquisições e a base de fornecedores.
+  - Não deve constar em "Pessoas".
+
+### 2. Estoque e Produtos
+- **Fonte de Verdade:** As **Movimentações (`ProductMovement`)** são a única fonte de verdade auditável do sistema.
+- **currentStock:** O campo na entidade `Product` atua exclusivamente como **CACHE DE LEITURA** para performance.
+  - Deve ser atualizado atomicamente a cada movimentação.
+- **Relacionamento:** Produto e Fornecedor são independentes. Vínculo apenas na Compra.
+
+### 3. Agenda e Conflitos
+- **Overbooking:** PERMITIDO. O sistema aceita múltiplos agendamentos no mesmo horário (encaixes/múltiplos profissionais).
+- **Bloqueios:** RESTRITIVOS. Horários com status `BLOCKED` impedem novos agendamentos.
+
+---
+
+## 🧭 ESTRUTURA OFICIAL DA SIDEBAR
+
+> A estrutura abaixo é a definição canônica de produto.
+
+### 1. OPERAÇÃO
+- **Dashboard** (`/dashboard`)
+- **Agenda** (`/agenda`)
+
+### 2. PESSOAS
+- **Clientes** (`/clients`)
+- **Profissionais** (`/professionals`)
+
+### 3. CATÁLOGO
+- **Serviços** (`/services`)
+- **Produtos** (`/products`)
+
+### 4. FINANCEIRO
+- **Compras** (Grupo Unificado)
+  - Gestão de Compras (`/purchases`)
+  - Base de Fornecedores (`/suppliers`)
+
+### 5. SISTEMA
+- Relatórios
+- Configurações
 
 ## 📦 MÓDULOS EXISTENTES
 
@@ -253,8 +298,8 @@ PurchaseItem {
 
 ---
 
-### 6. **AGENDA** ✅ Parcialmente Completo
-**Status:** Funcional com limitações  
+### 6. **AGENDA** ✅ Completo
+**Status:** Funcional, Polido e Otimizado  
 **Localização:** `/agenda`
 
 #### O que está implementado:
@@ -274,6 +319,8 @@ PurchaseItem {
 - ✅ Bloqueio de horários (indisponibilidade/pessoal)
 - ✅ Validação de conflito (impede agendamento em horário bloqueado)
 - ✅ Design premium com glassmorphism
+- ✅ **Drag & Drop** nativo (Ghost Card + Snap 30min)
+- ✅ Grid visual compacto (80px) + Indicador de Tempo
 
 #### Campos do agendamento:
 ```typescript
@@ -314,7 +361,6 @@ PurchaseItem {
 - ❌ Recorrência de agendamentos
 - ❌ Notificações/lembretes
 - ❌ Visualização por profissional
-- ❌ Drag & drop para reagendar
 - ❌ Integração com calendário externo
 
 ---
@@ -374,7 +420,7 @@ SalePayment {
 ```
 
 #### O que NÃO está implementado:
-- ❌ Estorno/reembolso funcional
+- ✅ Fluxo de Estorno/Reembolso completo
 - ❌ Vendas avulsas (sem agendamento)
 - ❌ Desconto
 - ❌ Parcelamento
@@ -383,7 +429,7 @@ SalePayment {
 
 ---
 
-### 6. **DASHBOARD** ⚠️ Parcial
+### 8. **DASHBOARD** ⚠️ Parcial
 **Status:** Implementado mas limitado  
 **Localização:** `/dashboard`
 
@@ -412,7 +458,7 @@ SalePayment {
 
 ---
 
-### 7. **CRÉDITO** ✅ Implementado
+### 9. **CRÉDITO** ✅ Implementado
 **Status:** Funcional  
 **Localização:** Integrado no perfil do cliente
 
@@ -444,7 +490,7 @@ SalePayment {
 
 ---
 
-### 8. **PROFISSIONAIS** ✅ Completo
+### 10. **PROFISSIONAIS** ✅ Completo
 **Status:** Implementado e funcional
 **Localização:** `/professionals`
 
@@ -494,6 +540,12 @@ SalePayment {
 | `/agenda` | Agenda/calendário | ✅ |
 | `/appointments/[id]/checkout` | Checkout/finalização | ✅ |
 | `/dashboard` | Dashboard analítico | ✅ |
+| `/suppliers` | Lista de fornecedores | ✅ |
+| `/suppliers/[id]` | Detalhes do fornecedor | ✅ |
+| `/purchases` | Lista de compras | ✅ |
+| `/purchases/[id]` | Detalhes da compra | ✅ |
+| `/professionals` | Lista de profissionais | ✅ |
+| `/professionals/[id]` | Detalhes/Edição profissional | ✅ |
 
 ---
 
@@ -649,42 +701,15 @@ SalePayment {
 
 ---
 
-### ⚠️ Fluxos Incompletos:
 
-#### 1. **Exclusão de Serviço**
-- Usa `confirm()` do navegador (proibido pelas regras)
-- Deveria usar dialog customizado
-
-#### 2. **Uso de Crédito no Checkout**
-- Crédito existe mas não é usado automaticamente
-- Não há opção de pagar com crédito
-
-#### 3. **Estorno de Venda**
-- Status 'refunded' existe mas não há fluxo implementado
-- Não reverte estoque
-
----
 
 ## 🚨 PROBLEMAS ENCONTRADOS
 
-### 1. **UX / Interface**
 
-#### ✅ Remoção do `confirm()` nativo (Serviços)
-**Status:** Resolvido. Substituído por diálogo customizado do shadcn/ui.
 
----
 
-### 2. **Build / Deploy**
 
-#### ✅ Erros de tipagem (Vercel Build)
-**Status:** Corrigido.
-- Corrigida chamada inválida de `timeZone` em `date-fns` no perfil do fornecedor.
-- Corrigida sobreposição de campo `date` em `CreatePurchase.ts` que violava a interface do repositório.
-- Verificado via `npm run build` local.
-
----
-
-### 3. **Campos Genéricos/Não Definidos**
+### 1. **Campos Genéricos/Não Definidos**
 
 #### ❌ Campo "Preferências" no Cliente
 **Status:** NÃO EXISTE no código atual  
@@ -697,34 +722,13 @@ SalePayment {
 
 ---
 
-### 3. **Inconsistências**
 
-#### ✅ Profissionais e Serviços Mockados (Removidos)
-**Status:** Resolvido. Módulos reais implementados com persistência local.
 
----
 
-### 4. **Funcionalidades Duplicadas**
 
-#### ⚠️ Cálculo de Estoque
-**Problema:** `currentStock` é armazenado no produto mas deveria ser calculado dinamicamente a partir das movimentações  
-**Risco:** Inconsistência entre movimentações e estoque registrado  
-**Solução:** Implementar helpers sugeridos na conversa `c918e459`:
-- `computeStockByProduct(productId)`
-- `getStockMapByProducts()`
-- `getLowStockProducts(threshold?)`
 
----
 
-### 5. **Validações Faltando**
 
-#### ⚠️ Validação de Conflito Parcial
-**Status:** Bloqueios impedem agendamentos, mas agendamentos normais permitem sobreposição (overbooking intencional?)
-**Ação:** Confirmar se overbooking deve ser bloqueado ou permitido.
-
-#### ❌ Validação de Estoque no Checkout
-**Problema:** Permite adicionar produtos sem estoque suficiente  
-**Solução:** Validar antes de adicionar item à venda
 
 ---
 
@@ -736,8 +740,8 @@ SalePayment {
 |--------|--------|------------|
 | Clientes | ✅ Completo | 95% |
 | Produtos | ✅ Completo | 90% |
-| Serviços | ✅ Completo | 100% |
-| Agenda | ✅ Completo | 95% |
+| Serviços | ⚠️ Operacional | 90% (Falta Perfil) |
+| Agenda | ✅ Completo | 100% |
 | Vendas/Checkout | ✅ Completo | 100% |
 | Profissionais | ✅ Completo | 100% |
 | Dashboard | ⚠️ Parcial | 60% |
@@ -745,19 +749,11 @@ SalePayment {
 
 ### ⚠️ Pendências Detalhadas (Não travam MVP)
 
-#### 1. Estorno/Reembolso
-- **Status:** ✅ Completo
-- **Implementação:** Fluxo de reembolso com reversão de estoque criado (`RefundSale`). Botão de "Estornar" adicionado ao Checkout.
-
-#### 2. Foto do Cliente (Upload Real)
+#### 1. Foto do Cliente (Upload Real)
 - **Status:** Campo `photoUrl` existe, mas sem storage.
 - **Ação:** Implementar junto com Supabase Storage (Bucket 'avatars').
 
-#### 3. Padronização de Seeds (Limpeza Final)
-- **Status:** ✅ Completo
-- **Ação:** Seeds de Clientes e Serviços extraídos para `src/lib/seedClients.ts` e `src/lib/seedServices.ts`.
-
-#### 4. Agendamento Recorrente
+#### 2. Agendamento Recorrente
 - **Status:** Adiado para pós-MVP.
 - **Decisões Pendentes:** Padrões (semanal/mensal), período de geração, edição em série vs ocorrência.
 
@@ -781,25 +777,15 @@ SalePayment {
 
 ### Prioridade ALTA (Corrigir Problemas):
 
-1. **Implementar helpers de estoque**
-   - `computeStockByProduct()`
-   - `getStockMapByProducts()`
-   - `getLowStockProducts()`
-
-3. **Adicionar validação de conflito de horários (Opcional)**
-   - Atualmente permite overbooking de clientes (apenas bloqueios são restritos)
-   - Decidir se deve bloquear overbooking geral
-
-4. **Implementar estorno de vendas**
-   - Fluxo de refund
-   - Reversão de estoque
-   - Atualização de status do agendamento
+1. **Implementar Reconciliação de Estoque**
+   - Criar função que reconstrói o `currentStock` somando todas as `ProductMovement`.
+   - Interface para admins rodarem essa correção.
 
 ---
 
 ### Prioridade MÉDIA (Completar Funcionalidades):
 
-5. **Criar perfil de Serviço**
+2. **Criar perfil de Serviço**
    - Página de detalhes
    - Histórico de execuções
    - Estatísticas
@@ -808,114 +794,50 @@ SalePayment {
 
 ### Prioridade BAIXA (Melhorias):
 
-7. **Implementar upload de imagens**
+3. **Implementar upload de imagens**
    - Para clientes
    - Para produtos
    - Integração com storage
 
-8. **Adicionar relatórios**
+4. **Adicionar relatórios**
    - Vendas por período
    - Produtos mais vendidos
    - Clientes mais frequentes
 
-9. **Notificações e lembretes**
-    - WhatsApp
-    - E-mail
-    - Push notifications
+5. **Notificações e lembretes**
+     - WhatsApp
+     - E-mail
+     - Push notifications
 
 ---
 
-## 📁 ESTRUTURA DE ARQUIVOS
+## 📁 ESTRUTURA DE ARQUIVOS (v1.5)
 
-```
-src/
-├── app/                          # Rotas Next.js
-│   ├── agenda/page.tsx          # Agenda principal
-│   ├── appointments/
-│   │   └── [id]/checkout/page.tsx
-│   ├── clients/
-│   │   ├── page.tsx             # Lista
-│   │   ├── new/page.tsx         # Criar
-│   │   └── [id]/
-│   │       ├── page.tsx         # Perfil
-│   │       └── edit/page.tsx    # Editar
-│   ├── dashboard/page.tsx
-│   ├── products/
-│   │   ├── page.tsx
-│   │   ├── pos/page.tsx
-│   │   └── [id]/page.tsx
-│   ├── services/page.tsx
-│   └── page.tsx                 # Redirect
-│
-├── components/
-│   ├── agenda/
-│   │   └── AppointmentForm.tsx
-│   ├── clients/
-│   │   ├── DeleteClientDialog.tsx
-│   │   └── tabs/
-│   │       ├── ClientSummaryTab.tsx
-│   │       ├── ClientAppointmentsTab.tsx
-│   │       ├── ClientCreditTab.tsx
-│   │       └── ClientProductsTab.tsx
-│   ├── products/
-│   │   ├── ProductDialog.tsx
-│   │   ├── DeleteProductDialog.tsx
-│   │   └── StockAdjustmentDialog.tsx
-│   ├── sales/
-│   │   ├── CheckoutForm.tsx
-│   │   ├── AddProductDialog.tsx
-│   │   ├── PaymentDialog.tsx
-│   │   └── SaleSummaryCard.tsx
-│   ├── services/
-│   │   └── ServiceDialog.tsx
-│   └── ui/                      # shadcn/ui components
-│
-├── core/
-│   ├── domain/                  # Entidades e schemas
-│   │   ├── Client.ts
-│   │   ├── Product.ts
-│   │   ├── Service.ts
-│   │   ├── Appointment.ts
-│   │   ├── Credit.ts
-│   │   ├── sales/
-│   │   │   ├── types.ts
-│   │   │   └── schemas.ts
-│   │   └── stock/
-│   │       ├── types.ts
-│   │       └── schemas.ts
-│   │
-│   ├── formatters/              # Formatadores
-│   │   ├── name.ts
-│   │   ├── phone.ts
-│   │   └── date.ts
-│   │
-│   ├── repositories/            # Interfaces
-│   │   └── ...Repository.ts
-│   │
-│   ├── services/                # Serviços de domínio
-│   │   ├── ClientService.ts
-│   │   ├── ProductService.ts
-│   │   ├── ServiceService.ts
-│   │   └── AppointmentService.ts
-│   │
-│   └── usecases/                # Casos de uso
-│       └── sales/
-│           ├── CreateSale.ts
-│           ├── PaySale.ts
-│           └── RefundSale.ts
-│
-├── infrastructure/
-│   └── repositories/            # Implementações localStorage
-│       ├── LocalStorageClientRepository.ts
-│       ├── LocalStorageProductRepository.ts
-│       ├── LocalStorageServiceRepository.ts
-│       ├── LocalStorageAppointmentRepository.ts
-│       └── sales/
-│           └── LocalStorageSaleRepository.ts
-│
-└── hooks/
-    ├── useProducts.ts
-    └── useServices.ts
+```text
+src/app/
+├── agenda/page.tsx
+├── appointments/[id]/checkout/page.tsx
+├── clients/
+│   ├── [id]/page.tsx
+│   ├── new/page.tsx
+│   └── page.tsx
+├── dashboard/page.tsx
+├── products/
+│   ├── [id]/page.tsx
+│   ├── pos/page.tsx
+│   └── page.tsx
+├── professionals/page.tsx
+├── purchases/
+│   ├── [id]/page.tsx
+│   ├── new/page.tsx
+│   └── page.tsx
+├── services/page.tsx
+├── suppliers/
+│   ├── [id]/page.tsx
+│   ├── new/page.tsx
+│   └── page.tsx
+├── layout.tsx
+└── page.tsx
 ```
 
 ---
@@ -923,30 +845,23 @@ src/
 ## 🔍 OBSERVAÇÕES FINAIS
 
 ### Pontos Fortes:
-- ✅ Arquitetura limpa e bem organizada
-- ✅ TypeScript com tipagem forte
-- ✅ Design premium e responsivo
-- ✅ Separação clara de responsabilidades
-- ✅ Componentes reutilizáveis
+- ✅ Arquitetura limpa e organizada (Clean Architecture)
+- ✅ TypeScript com tipagem forte e schemas Zod
+- ✅ Design premium e responsivo (shadcn/ui)
+- ✅ Separação clara de domínio e infraestrutura
 
 ### Pontos de Atenção:
-- ⚠️ Dados mockados (profissionais)
-- ⚠️ localStorage (migração para Supabase pendente)
-- ⚠️ Falta de validações em alguns fluxos
-- ⚠️ Alguns campos não funcionais (photoUrl)
-- ⚠️ Uso de `confirm()` nativo
+- ⚠️ Persistência temporária em `localStorage` (Prioridade de migração para Supabase).
+- ⚠️ Campo `photoUrl` estruturado mas aguardando Storage.
+- ⚠️ Backups manuais necessários enquanto local.
 
-### Preparação para Supabase:
-O sistema está bem estruturado para migração:
-- Repositórios isolados
-- Schemas Zod prontos
-- Estrutura de dados clara
-- Separação de concerns
-
-**Checklist sugerido na conversa c918e459 deve ser seguido.**
+### Próximos Passos (Resumo):
+1. Migração para Supabase (Banco + Auth + Storage).
+2. Pólimento de UI (Uploads, Relatórios).
+3. Expansão de Features (Recorrência de Agenda).
 
 ---
 
-**Documento gerado em:** 11/02/2026  
-**Versão:** 1.1  
-**Próxima revisão:** Após migração para Supabase ou novos módulos.
+**Versão Final:** V1.5
+**Data:** 11/02/2026
+**Status:** OFICIAL E AUDITADO
