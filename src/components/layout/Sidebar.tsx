@@ -56,7 +56,7 @@ export function Sidebar({ className }: SidebarProps) {
             items: [
                 { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard", active: true },
                 { name: "Agenda", icon: Calendar, href: "/agenda", active: true },
-                { name: "Caixa", icon: Wallet, href: "/cashier", active: false },
+                { name: "Caixa", icon: Wallet, href: "/cash", active: true },
             ],
         },
         {

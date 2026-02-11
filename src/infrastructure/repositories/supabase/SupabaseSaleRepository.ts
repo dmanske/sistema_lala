@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
-import { Sale } from '@/core/domain/sales/types';
+import { Sale, PaymentMethod } from '@/core/domain/sales/types';
 import { SaleRepository } from '@/core/repositories/SaleRepository';
 
 export class SupabaseSaleRepository implements SaleRepository {
@@ -216,6 +216,38 @@ export class SupabaseSaleRepository implements SaleRepository {
             .eq('id', id);
 
         if (error) throw new Error(`Failed to delete sale: ${error.message}`);
+    }
+
+    async pay(
+        saleId: string,
+        payments: { method: PaymentMethod, amount: number }[],
+        stockItems?: { productId: string, qty: number }[],
+        creditDebit?: { clientId: string, amount: number },
+        change?: number
+    ): Promise<void> {
+        const { error } = await this.supabase.rpc('pay_sale', {
+            p_sale_id: saleId,
+            p_payments: payments,
+            p_stock_items: stockItems || [],
+            p_credit_debit: creditDebit || null,
+            p_change_amount: change || 0
+        });
+
+        if (error) {
+            console.error('RPC pay_sale error:', error);
+            throw new Error(`Failed to pay sale via RPC: ${error.message}`);
+        }
+    }
+
+    async refund(saleId: string): Promise<void> {
+        const { error } = await this.supabase.rpc('refund_sale', {
+            p_sale_id: saleId
+        });
+
+        if (error) {
+            console.error('RPC refund_sale error:', error);
+            throw new Error(`Failed to refund sale via RPC: ${error.message}`);
+        }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

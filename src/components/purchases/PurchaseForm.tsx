@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, ShoppingBag } from "lucide-react";
+import { Loader2, Plus, ShoppingBag, CreditCard } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,13 +26,15 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 import { CreatePurchaseSchema } from "@/core/domain/Purchase";
 import { CreatePurchase } from "@/core/usecases/purchases/CreatePurchase";
 import { getPurchaseRepository, getSupplierRepository, getProductRepository } from "@/infrastructure/repositories/factory";
 import { Supplier } from "@/core/domain/Supplier";
 import { Product } from "@/core/domain/Product";
+import { PurchaseItemRow } from "./PurchaseItemRow";
 
 const FormSchema = CreatePurchaseSchema;
 
@@ -41,6 +43,7 @@ export function PurchaseForm() {
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoadingData, setIsLoadingData] = useState(true);
+    const [isPaid, setIsPaid] = useState(false);
 
     const form = useForm<z.infer<typeof FormSchema>>({
         resolver: zodResolver(FormSchema),
@@ -48,9 +51,9 @@ export function PurchaseForm() {
             supplierId: "",
             date: new Date().toISOString().split('T')[0],
             notes: "",
-            items: [
-                { productId: "", quantity: 1, unitCost: 0 }
-            ],
+            items: [{ productId: "", quantity: 1, unitCost: 0 }],
+            paymentMethod: "CASH" as any,
+            paidAmount: 0,
         },
     });
 
@@ -59,7 +62,6 @@ export function PurchaseForm() {
         name: "items",
     });
 
-    // Repositories & UseCase
     const purchaseRepo = getPurchaseRepository();
     const productRepo = getProductRepository();
     const supplierRepo = getSupplierRepository();
@@ -74,19 +76,6 @@ export function PurchaseForm() {
                 ]);
                 setSuppliers(s);
                 setProducts(p);
-                // Or "Product" domain field `itemType`.
-                // Actually `Product` interface doesn't strictly have `itemType` field in Domain?
-                // Let's check `Product.ts`... `itemType: z.literal("product")` in generic Item?
-                // `Product` domain has `type`? No.
-                // Wait, checking `Product.ts`.
-                // Step 841: `LocalStorageProductRepository` imports `Product`.
-                // Step 819: `Product` schema.
-                // I'll assume `p` are items that can be stocked.
-                // Simple getAll usually returns products. Services are in ServiceRepository.
-                // If `products` contains services, I should filter.
-                // But `LocalStorageProductRepository` is for PRODUCTS. `LocalStorageServiceRepository` is for SERVICES.
-                // So all items from `productRepo` are products.
-                setProducts(p);
             } catch (err) {
                 console.error(err);
                 toast.error("Erro ao carregar dados.");
@@ -97,10 +86,29 @@ export function PurchaseForm() {
         load();
     }, []);
 
+    const watchItems = form.watch("items");
+    const grandTotal = watchItems?.reduce((acc, item) => {
+        const qty = Number(item.quantity) || 0;
+        const cost = Number(item.unitCost) || 0;
+        return acc + (qty * cost);
+    }, 0) || 0;
+
+    useEffect(() => {
+        if (isPaid && form.getValues("paidAmount") === 0) {
+            form.setValue("paidAmount", grandTotal);
+        }
+    }, [isPaid, grandTotal, form]);
+
     async function onSubmit(data: z.infer<typeof FormSchema>) {
         try {
-            await createUseCase.execute(data);
-            toast.success("Compra registrada com sucesso! Estoque atualizado.");
+            const input = {
+                ...data,
+                paymentMethod: isPaid ? data.paymentMethod : undefined,
+                paidAmount: isPaid ? data.paidAmount : undefined,
+                paidAt: isPaid ? new Date().toISOString() : undefined,
+            };
+            await createUseCase.execute(input);
+            toast.success("Compra registrada com sucesso!");
             router.push("/purchases");
             router.refresh();
         } catch (error) {
@@ -109,13 +117,6 @@ export function PurchaseForm() {
         }
     }
 
-    const watchItems = form.watch("items");
-    const grandTotal = watchItems?.reduce((acc, item) => {
-        const qty = Number(item.quantity) || 0;
-        const cost = Number(item.unitCost) || 0;
-        return acc + (qty * cost);
-    }, 0) || 0;
-
     if (isLoadingData) {
         return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
     }
@@ -123,7 +124,6 @@ export function PurchaseForm() {
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                {/* Header Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                         control={form.control}
@@ -137,7 +137,7 @@ export function PurchaseForm() {
                                             <SelectValue placeholder="Selecione o fornecedor" />
                                         </SelectTrigger>
                                     </FormControl>
-                                    <SelectContent className="max-h-[200px] rounded-xl border-white/20 bg-white/80 backdrop-blur-xl">
+                                    <SelectContent className="rounded-xl border-white/20 bg-white/80 backdrop-blur-xl">
                                         {suppliers.map(s => (
                                             <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                         ))}
@@ -147,7 +147,6 @@ export function PurchaseForm() {
                             </FormItem>
                         )}
                     />
-
                     <FormField
                         control={form.control}
                         name="date"
@@ -163,7 +162,6 @@ export function PurchaseForm() {
                     />
                 </div>
 
-                {/* Items Section */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
                         <h3 className="text-lg font-heading font-semibold flex items-center gap-2">
@@ -175,109 +173,24 @@ export function PurchaseForm() {
                             variant="outline"
                             size="sm"
                             onClick={() => append({ productId: "", quantity: 1, unitCost: 0 })}
-                            className="bg-white/40 border-primary/20 hover:bg-white/60 text-primary"
+                            className="bg-white/40 border-primary/20 text-primary"
                         >
                             <Plus className="mr-2 h-4 w-4" />
                             Adicionar Item
                         </Button>
                     </div>
-
                     <div className="space-y-3">
                         {fields.map((field, index) => (
-                            <Card key={field.id} className="border-white/20 bg-white/40 backdrop-blur-sm shadow-sm">
-                                <CardContent className="p-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                                    <div className="md:col-span-4">
-                                        <FormField
-                                            control={form.control}
-                                            name={`items.${index}.productId`}
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel className="text-xs">Produto</FormLabel>
-                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                        <FormControl>
-                                                            <SelectTrigger className="h-9">
-                                                                <SelectValue placeholder="Selecione..." />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent className="max-h-[200px]">
-                                                            {products.map(p => (
-                                                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </div>
-                                    <div className="md:col-span-2">
-                                        <FormField
-                                            control={form.control}
-                                            name={`items.${index}.quantity`}
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel className="text-xs">Qtd.</FormLabel>
-                                                    <FormControl>
-                                                        <Input
-                                                            type="number"
-                                                            min="1"
-                                                            className="h-9"
-                                                            {...field}
-                                                            onChange={e => field.onChange(Number(e.target.value))}
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </div>
-                                    <div className="md:col-span-3">
-                                        <FormField
-                                            control={form.control}
-                                            name={`items.${index}.unitCost`}
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel className="text-xs">Custo Unit. (R$)</FormLabel>
-                                                    <FormControl>
-                                                        <Input
-                                                            type="number"
-                                                            step="0.01"
-                                                            min="0"
-                                                            className="h-9"
-                                                            {...field}
-                                                            onChange={e => field.onChange(Number(e.target.value))}
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </div>
-                                    <div className="md:col-span-2 text-right">
-                                        <p className="text-xs text-muted-foreground mb-1">Subtotal</p>
-                                        <div className="h-9 flex items-center justify-end font-semibold text-sm">
-                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                                                (form.getValues(`items.${index}.quantity`) || 0) * (form.getValues(`items.${index}.unitCost`) || 0)
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="md:col-span-1 flex justify-end">
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => remove(index)}
-                                            className="h-9 w-9 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                            disabled={fields.length === 1}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                            <PurchaseItemRow
+                                key={field.id}
+                                index={index}
+                                form={form}
+                                products={products}
+                                remove={remove}
+                                fieldsCount={fields.length}
+                            />
                         ))}
                     </div>
-
                     <div className="flex justify-end pt-4 bg-white/20 p-4 rounded-xl border border-white/10">
                         <div className="text-right">
                             <p className="text-sm text-muted-foreground">Total da Compra</p>
@@ -288,33 +201,93 @@ export function PurchaseForm() {
                     </div>
                 </div>
 
+                <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-200 space-y-6">
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label className="text-base font-semibold flex items-center gap-2">
+                                <CreditCard className="h-4 w-4 text-primary" />
+                                Registrar Pagamento (Sair do Caixa)
+                            </Label>
+                            <p className="text-sm text-muted-foreground">
+                                Se ativado, registrará uma saída imediata no livro de caixa.
+                            </p>
+                        </div>
+                        <Checkbox
+                            id="isPaid"
+                            checked={isPaid}
+                            onCheckedChange={(checked) => setIsPaid(checked === true)}
+                        />
+                    </div>
+
+                    {isPaid && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <FormField
+                                control={form.control}
+                                name="paymentMethod"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-xs">Forma de Pagamento</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger className="h-10 rounded-xl">
+                                                    <SelectValue placeholder="Selecione..." />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent className="rounded-xl">
+                                                <SelectItem value="CASH">Dinheiro</SelectItem>
+                                                <SelectItem value="PIX">Pix</SelectItem>
+                                                <SelectItem value="CARD">Cartão</SelectItem>
+                                                <SelectItem value="TRANSFER">Transferência</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="paidAmount"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-xs">Valor Pago (R$)</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="number"
+                                                step="0.01"
+                                                className="h-10 rounded-xl"
+                                                {...field}
+                                                onChange={e => field.onChange(Number(e.target.value))}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                    )}
+                </div>
+
                 <FormField
                     control={form.control}
                     name="notes"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Observações</FormLabel>
+                            <FormLabel className="text-sm font-semibold text-slate-700">Observações</FormLabel>
                             <FormControl>
-                                <Textarea
-                                    placeholder="Observações adicionais..."
-                                    className="resize-none"
-                                    {...field}
-                                />
+                                <Textarea placeholder="Observações adicionais..." className="resize-none rounded-xl" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
 
-                <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
-                    <Button variant="ghost" type="button" onClick={() => router.back()} className="h-11 rounded-xl order-2 sm:order-1">
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                    <Button variant="ghost" type="button" onClick={() => router.back()} className="h-11 rounded-xl">
                         Cancelar
                     </Button>
-                    <Button type="submit" disabled={form.formState.isSubmitting} className="h-11 rounded-xl shadow-lg shadow-primary/20 order-1 sm:order-2">
-                        {form.formState.isSubmitting && (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        )}
-                        Registrar Entrada
+                    <Button type="submit" disabled={form.formState.isSubmitting} className="h-11 rounded-xl px-10 shadow-lg shadow-primary/20">
+                        {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Salvar Compra
                     </Button>
                 </div>
             </form>

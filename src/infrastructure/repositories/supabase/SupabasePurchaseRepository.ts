@@ -71,7 +71,7 @@ export class SupabasePurchaseRepository implements PurchaseRepository {
     async create(input: CreatePurchaseInput): Promise<Purchase> {
         const tenantId = await this.getTenantId();
 
-        // Use RPC for atomicity (creates purchase + items + stock movements)
+        // Use RPC for atomicity (creates purchase + items + stock movements + cash movement)
         const { data: purchaseId, error } = await this.supabase.rpc('create_purchase_with_movements', {
             p_tenant_id: tenantId,
             p_supplier_id: input.supplierId,
@@ -82,6 +82,9 @@ export class SupabasePurchaseRepository implements PurchaseRepository {
                 quantity: item.quantity,
                 unitCost: item.unitCost,
             })),
+            p_payment_method: input.paymentMethod || null,
+            p_paid_amount: input.paidAmount || 0,
+            p_paid_at: input.paidAt || null,
         });
 
         if (error) throw new Error(`Failed to create purchase: ${error.message}`);
@@ -110,6 +113,9 @@ export class SupabasePurchaseRepository implements PurchaseRepository {
             notes: row.notes || undefined,
             total: Number(row.total) || 0,
             items: items.length > 0 ? items : undefined,
+            paymentMethod: row.payment_method || undefined,
+            paidAmount: Number(row.paid_amount) || 0,
+            paidAt: row.paid_at || undefined,
             createdAt: row.created_at,
         };
     }

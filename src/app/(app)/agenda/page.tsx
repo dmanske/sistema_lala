@@ -150,12 +150,16 @@ const getCardStyle = (status: string, index: number): CardStyle => {
 export default function AgendaPage() {
     const [currentTime, setCurrentTime] = useState<string>("");
     const [hoveredAppointmentId, setHoveredAppointmentId] = useState<string | null>(null);
+    const hoverTimeoutRef = useRef<any>(null);
 
     useEffect(() => {
         const updateTime = () => setCurrentTime(format(new Date(), 'HH:mm'));
         updateTime();
         const interval = setInterval(updateTime, 60000);
-        return () => clearInterval(interval);
+        return () => {
+            clearInterval(interval);
+            if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+        };
     }, []);
     const [viewMode, setViewMode] = useState<"day" | "week" | "month" | "day-compact" | "week-compact">("week");
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -544,8 +548,15 @@ export default function AgendaPage() {
                     ...(style as any).customStyle
                 }}
                 onMouseDown={canDrag ? (e) => handleDragStart(e, apt) : undefined}
-                onMouseEnter={() => setHoveredAppointmentId(apt.id)}
-                onMouseLeave={() => setHoveredAppointmentId(null)}
+                onMouseEnter={() => {
+                    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+                    setHoveredAppointmentId(apt.id);
+                }}
+                onMouseLeave={() => {
+                    hoverTimeoutRef.current = setTimeout(() => {
+                        setHoveredAppointmentId(null);
+                    }, 200);
+                }}
             >
                 {/* Accent Bar Left (Visual indicator) */}
                 <div className={cn("absolute left-0 top-0 bottom-0", isCompactMode ? "w-[2px]" : "w-[3px]", style.accent)} />
@@ -601,7 +612,19 @@ export default function AgendaPage() {
                 </PopoverTrigger>
 
                 {/* Popover Detalhes */}
-                <PopoverContent className="w-80 p-0 rounded-2xl shadow-xl z-50 border-slate-100 bg-white/80 backdrop-blur-xl" align="start" sideOffset={5}>
+                <PopoverContent
+                    className="w-80 p-0 rounded-2xl shadow-xl z-50 border-slate-100 bg-white/80 backdrop-blur-xl"
+                    align="start"
+                    sideOffset={5}
+                    onMouseEnter={() => {
+                        if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+                    }}
+                    onMouseLeave={() => {
+                        hoverTimeoutRef.current = setTimeout(() => {
+                            setHoveredAppointmentId(null);
+                        }, 200);
+                    }}
+                >
                     {apt.status === "BLOCKED" ? (
                         /* ===== BLOCKED SLOT POPOVER ===== */
                         <div>
@@ -1063,8 +1086,8 @@ export default function AgendaPage() {
                                             onMouseUp={handleDragEnd}
                                             onMouseLeave={() => { if (isDragging) handleDragEnd(); }}
                                         >
-                                            <div className="relative" style={{ 
-                                                height: `${TIME_SLOTS.length * ((viewMode === "day-compact" || viewMode === "week-compact") ? GRID_HOUR_HEIGHT_COMPACT / 2 : GRID_HOUR_HEIGHT / 2)}px` 
+                                            <div className="relative" style={{
+                                                height: `${TIME_SLOTS.length * ((viewMode === "day-compact" || viewMode === "week-compact") ? GRID_HOUR_HEIGHT_COMPACT / 2 : GRID_HOUR_HEIGHT / 2)}px`
                                             }}>
                                                 {/* Linhas de Fundo e Horas */}
                                                 {TIME_SLOTS.map((time) => {
@@ -1109,8 +1132,8 @@ export default function AgendaPage() {
                                                 })}
 
                                                 {/* Layer de Agendamentos (Posicionamento Absoluto) */}
-                                                <div className="absolute inset-0 pointer-events-none grid" style={{ 
-                                                    gridTemplateColumns: (viewMode === 'day' || viewMode === 'day-compact') ? '60px 1fr' : '60px repeat(7, 1fr)' 
+                                                <div className="absolute inset-0 pointer-events-none grid" style={{
+                                                    gridTemplateColumns: (viewMode === 'day' || viewMode === 'day-compact') ? '60px 1fr' : '60px repeat(7, 1fr)'
                                                 }}>
                                                     {/* Spacer para coluna de horas */}
                                                     <div />

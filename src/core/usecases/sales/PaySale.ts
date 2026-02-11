@@ -13,12 +13,9 @@ export class PaySale {
 
     async execute(input: {
         saleId: string,
-        method: PaymentMethod,
-        amount: number,
-        paidAt: Date,
-        change?: number,
+        payments: { method: PaymentMethod, amount: number, change?: number }[],
         createdBy: string
-    }): Promise<Sale> {
+    }): Promise<void> {
         const sale = await this.saleRepo.findById(input.saleId);
         if (!sale) throw new Error("Sale not found");
 
@@ -26,59 +23,33 @@ export class PaySale {
             throw new Error("Sale already paid or refunded");
         }
 
-        const payment: SalePayment = {
-            id: crypto.randomUUID(),
-            saleId: sale.id,
-            method: input.method,
-            amount: input.amount,
-            change: input.change,
-            paidAt: input.paidAt.toISOString()
-        };
+        // Map domain stock items to repository format
+        const stockItems = sale.items
+            ?.filter(item => item.itemType === 'product' && item.productId)
+            .map(item => ({
+                productId: item.productId as string,
+                qty: item.qty
+            }));
 
-        const updatedPayments = [...(sale.payments || []), payment];
-        const totalPaid = updatedPayments.reduce((acc, p) => acc + p.amount, 0);
+        // Summarize Wallet deductions (Credit or Fiado)
+        const walletDeduction = input.payments
+            .filter(p => p.method === 'credit' || p.method === 'fiado')
+            .reduce((acc, p) => acc + p.amount, 0);
 
-        // Check if fully paid
-        let newStatus: SaleStatus = sale.status;
-        if (totalPaid >= sale.total - 0.01) { // Floating point tolerance
-            newStatus = 'paid';
-
-            // Deduct Stock for products only
-            if (sale.items) {
-                for (const item of sale.items) {
-                    if (item.itemType === 'product' && item.productId) {
-                        // We don't wait for individual stock updates to block, but for consistency we should await
-                        await this.productRepo.addMovement({
-                            productId: item.productId,
-                            type: 'OUT',
-                            quantity: item.qty,
-                            reason: `Sale ${sale.id}`,
-                            referenceId: sale.id
-                        });
-                    }
-                }
-            }
-
-            // Update Appointment Status if linked
-            if (sale.appointmentId) {
-                // Fetch appointment to ensure it exists
-                const appt = await this.appointmentRepo.getById(sale.appointmentId);
-                if (appt) {
-                    await this.appointmentRepo.update(sale.appointmentId, {
-                        ...appt, // Must pass full object if required, or partial if supported. 
-                        // AppointmentRepository usually takes Partial. Check repo.
-                        status: 'DONE',
-                        finalizedAt: new Date().toISOString()
-                    });
-                }
-            }
-        } else {
-            newStatus = 'pending_payment';
+        let creditDebit = undefined;
+        if (walletDeduction > 0 && sale.customerId) {
+            creditDebit = {
+                clientId: sale.customerId,
+                amount: walletDeduction
+            };
         }
 
-        return this.saleRepo.update(sale.id, {
-            status: newStatus,
-            payments: updatedPayments
-        });
+        await this.saleRepo.pay(
+            sale.id,
+            input.payments,
+            stockItems,
+            creditDebit,
+            input.payments.find(p => p.change && p.change > 0)?.change || 0
+        );
     }
 }

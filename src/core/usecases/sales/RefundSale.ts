@@ -13,7 +13,7 @@ export class RefundSale {
     async execute(input: {
         saleId: string,
         refundedBy: string
-    }): Promise<Sale> {
+    }): Promise<void> {
         const sale = await this.saleRepo.findById(input.saleId);
         if (!sale) throw new Error("Sale not found");
 
@@ -21,27 +21,7 @@ export class RefundSale {
             throw new Error("Only paid sales can be refunded");
         }
 
-        // Revert Stock
-        if (sale.items) {
-            for (const item of sale.items) {
-                if (item.itemType === 'product' && item.productId) {
-                    await this.productRepo.addMovement({
-                        productId: item.productId,
-                        type: 'IN',
-                        quantity: item.qty,
-                        reason: `Reembolso Venda #${sale.id.slice(0, 8)}`,
-                        referenceId: sale.id
-                    });
-                }
-            }
-        }
-
-        // Update Sale Status
-        // Note: We are keeping payments as is for record, but status changes.
-        // Ideally we should record a refund transaction, but for MVP just status change + stock revert is enough.
-
-        return this.saleRepo.update(sale.id, {
-            status: 'refunded'
-        });
+        // Atomic refund via repository (calls RPC)
+        await this.saleRepo.refund(sale.id);
     }
 }

@@ -26,6 +26,12 @@ export const PurchaseSchema = z.object({
     notes: z.string().optional(),
     total: z.number().min(0),
     items: z.array(PurchaseItemSchema).optional(),
+
+    // Payment info
+    paymentMethod: z.enum(["CASH", "PIX", "CARD", "TRANSFER", "WALLET"]).optional(),
+    paidAmount: z.number().min(0).optional(),
+    paidAt: z.string().optional(), // ISO string
+
     createdAt: z.string(),
 });
 

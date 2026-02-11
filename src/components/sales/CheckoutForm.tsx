@@ -204,69 +204,19 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
         if (!sale) return
         setPaymentConfirming(true)
         try {
-            let latestSale = sale
-            let totalCreditUsed = 0
-            let totalFiado = 0
+            await paySaleUseCase.execute({
+                saleId: sale.id,
+                payments: payments,
+                createdBy: 'current-user', // Should ideally come from auth context
+            })
 
-            for (const payment of payments) {
-                const { method, amount, change } = payment
+            // Update local state after successful payment
+            await fetchSale()
 
-                // If paying with credit, debit from customer balance
-                if (method === 'credit' && sale.customerId) {
-                    await creditRepo.create({
-                        id: crypto.randomUUID(),
-                        clientId: sale.customerId,
-                        type: 'DEBIT',
-                        amount,
-                        origin: 'WALLET',
-                        note: `Pagamento da venda #${sale.id.slice(0, 8)}`,
-                        createdAt: new Date().toISOString(),
-                    })
-                    totalCreditUsed += amount
-                }
-
-                // If fiado, create a debt (DEBIT) on the customer's wallet
-                if (method === 'fiado' && sale.customerId) {
-                    await creditRepo.create({
-                        id: crypto.randomUUID(),
-                        clientId: sale.customerId,
-                        type: 'DEBIT',
-                        amount,
-                        origin: 'WALLET',
-                        note: `Fiado - Venda #${sale.id.slice(0, 8)}`,
-                        createdAt: new Date().toISOString(),
-                    })
-                    totalFiado += amount
-                }
-
-                latestSale = await paySaleUseCase.execute({
-                    saleId: sale.id,
-                    method,
-                    amount,
-                    paidAt: new Date(),
-                    change,
-                    createdBy: 'current-user',
-                })
-            }
-
-            // Update credit balance
-            const totalWalletDeducted = totalCreditUsed + totalFiado
-            if (totalWalletDeducted > 0 && sale.customerId) {
-                setCreditBalance(prev => prev - totalWalletDeducted)
-                const client = await clientRepo.getById(sale.customerId)
-                if (client) {
-                    await clientRepo.update(sale.customerId, {
-                        creditBalance: (client.creditBalance || 0) - totalWalletDeducted
-                    })
-                }
-            }
-
-            setSale(latestSale)
             const methodCount = payments.length
             toast.success(methodCount > 1 ? `Pagamento registrado (${methodCount} formas)!` : "Pagamento registrado com sucesso!")
-            if (latestSale.status === 'paid') {
-                if (onSuccess) onSuccess()
-            }
+
+            if (onSuccess) onSuccess()
         } catch (error: any) {
             toast.error(error.message || "Erro ao registrar pagamento")
         } finally {

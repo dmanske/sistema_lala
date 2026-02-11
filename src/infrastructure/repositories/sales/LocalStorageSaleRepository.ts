@@ -1,10 +1,31 @@
-
-import { Sale, SaleStatus } from "@/core/domain/sales/types";
+import { Sale, SaleStatus, PaymentMethod } from "@/core/domain/sales/types";
 import { SaleRepository } from "@/core/repositories/SaleRepository";
 
 const STORAGE_KEY = 'salon_sales';
 
 export class LocalStorageSaleRepository implements SaleRepository {
+    async pay(saleId: string, payments: { method: PaymentMethod; amount: number; }[], stockItems?: { productId: string; qty: number; }[], creditDebit?: { clientId: string; amount: number; }, change?: number): Promise<void> {
+        // Basic implementation for local storage
+        const sale = await this.findById(saleId);
+        if (!sale) throw new Error("Sale not found");
+
+        await this.update(saleId, {
+            status: 'paid',
+            payments: payments.map(p => ({
+                id: Math.random().toString(36).substr(2, 9),
+                saleId,
+                method: p.method,
+                amount: p.amount,
+                change: change || 0,
+                paidAt: new Date().toISOString()
+            }))
+        });
+    }
+
+    async refund(saleId: string): Promise<void> {
+        await this.update(saleId, { status: 'refunded' });
+    }
+
     private getStorage(): Sale[] {
         if (typeof window === 'undefined') return [];
         const data = localStorage.getItem(STORAGE_KEY);

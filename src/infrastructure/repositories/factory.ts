@@ -21,6 +21,7 @@ import { SaleRepository } from '@/core/repositories/SaleRepository';
 import { CreditRepository } from '@/core/repositories/CreditRepository';
 import { StockMovementRepository as CoreStockMovementRepository } from '@/core/repositories/StockMovementRepository';
 import { StockMovementRepository as LocalStockMovementInterface } from './stock/StockMovementRepository';
+import { CashMovementRepository } from '@/core/repositories/CashMovementRepository';
 
 // LocalStorage implementations
 import { LocalStorageClientRepository } from './LocalStorageClientRepository';
@@ -45,6 +46,7 @@ import { SupabaseAppointmentRepository } from './supabase/SupabaseAppointmentRep
 import { SupabaseSaleRepository } from './supabase/SupabaseSaleRepository';
 import { SupabaseCreditRepository } from './supabase/SupabaseCreditRepository';
 import { SupabaseStockMovementRepository } from './supabase/SupabaseStockMovementRepository';
+import { SupabaseCashMovementRepository } from './supabase/SupabaseCashMovementRepository';
 
 /**
  * Check if Supabase should be used.
@@ -69,6 +71,7 @@ let creditRepo: CreditRepository | null = null;
 // Note: LocalStorage and Supabase implement different interfaces during migration.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let stockMovementRepo: any = null;
+let cashMovementRepo: CashMovementRepository | null = null;
 
 export function getClientRepository(): ClientRepository {
     if (!clientRepo) {
@@ -139,7 +142,7 @@ export function getSaleRepository(): SaleRepository {
             ? new SupabaseSaleRepository()
             : new LocalStorageSaleRepository();
     }
-    return saleRepo;
+    return saleRepo as SaleRepository;
 }
 
 export function getCreditRepository(): CreditRepository {
@@ -160,6 +163,17 @@ export function getStockMovementRepository(): CoreStockMovementRepository | Loca
     return stockMovementRepo;
 }
 
+export function getCashMovementRepository(): CashMovementRepository {
+    if (!cashMovementRepo) {
+        if (useSupabase()) {
+            cashMovementRepo = new SupabaseCashMovementRepository();
+        } else {
+            throw new Error('Cash module is only available with Supabase backend.');
+        }
+    }
+    return cashMovementRepo;
+}
+
 /**
  * Reset all singletons (useful for testing or switching backends)
  */
@@ -174,4 +188,5 @@ export function resetRepositories(): void {
     saleRepo = null;
     creditRepo = null;
     stockMovementRepo = null;
+    cashMovementRepo = null;
 }

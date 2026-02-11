@@ -53,6 +53,7 @@ Sistema de gestão para salão de beleza desenvolvido em **Next.js 15** com **Ty
 ### 1. OPERAÇÃO
 - **Dashboard** (`/dashboard`)
 - **Agenda** (`/agenda`)
+- **Caixa** (`/cash`)
 
 ### 2. PESSOAS
 - **Clientes** (`/clients`)
@@ -543,6 +544,28 @@ SalePayment {
 
 ---
 
+### 11. **CAIXA (MVP)** ✅ Implementado
+**Status:** Funcional (Ledger)
+**Localização:** `/cash`
+
+#### O que está implementado:
+- ✅ Livro Caixa (Ledger) com Entradas e Saídas
+- ✅ Dashboard com totais e saldo do período
+- ✅ Filtro por data
+- ✅ Lançamentos manuais (Nova Entrada / Nova Saída)
+- ✅ **Integração Automática:**
+  - Vendas pagas (`pay_sale`) -> Geram Entrada (CASH, PIX, CARD, TRANSFER, WALLET)
+  - Estornos (`refund_sale`) -> Geram Saída
+- ✅ **Decisão de Negócio:**
+  - `CREDIT` e `FIADO` **NÃO** entram no Caixa.
+  - Apenas métodos com fluxo financeiro real são registrados.
+
+#### Campos de Movimentação:
+- id, type (IN/OUT), amount, method, source_type, description, occurred_at.
+- RLS por Tenant.
+
+---
+
 ## 🗂️ TELAS IMPLEMENTADAS
 
 ### Rotas Principais:
@@ -566,6 +589,7 @@ SalePayment {
 | `/purchases/[id]` | Detalhes da compra | ✅ |
 | `/professionals` | Lista de profissionais | ✅ |
 | `/professionals/[id]` | Detalhes/Edição profissional | ✅ |
+| `/cash` | Livro Caixa (Ledger) | ✅ |
 
 ---
 
