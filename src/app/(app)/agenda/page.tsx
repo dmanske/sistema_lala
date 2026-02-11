@@ -149,6 +149,7 @@ const getCardStyle = (status: string, index: number): CardStyle => {
 
 export default function AgendaPage() {
     const [currentTime, setCurrentTime] = useState<string>("");
+    const [hoveredAppointmentId, setHoveredAppointmentId] = useState<string | null>(null);
 
     useEffect(() => {
         const updateTime = () => setCurrentTime(format(new Date(), 'HH:mm'));
@@ -156,7 +157,7 @@ export default function AgendaPage() {
         const interval = setInterval(updateTime, 60000);
         return () => clearInterval(interval);
     }, []);
-    const [viewMode, setViewMode] = useState<"day" | "week" | "month">("week");
+    const [viewMode, setViewMode] = useState<"day" | "week" | "month" | "day-compact" | "week-compact">("week");
     const [currentDate, setCurrentDate] = useState(new Date());
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [clients, setClients] = useState<Client[]>([]);
@@ -190,9 +191,9 @@ export default function AgendaPage() {
 
     // Calcular range de datas baseado no viewMode
     const dateRange = useMemo(() => {
-        if (viewMode === "day") {
+        if (viewMode === "day" || viewMode === "day-compact") {
             return { start: currentDate, end: currentDate };
-        } else if (viewMode === "week") {
+        } else if (viewMode === "week" || viewMode === "week-compact") {
             const start = startOfWeek(currentDate, { weekStartsOn: 1 });
             return { start, end: addDays(start, 6) };
         } else {
@@ -204,9 +205,9 @@ export default function AgendaPage() {
 
     // Dias a exibir
     const displayDays = useMemo(() => {
-        if (viewMode === "day") {
+        if (viewMode === "day" || viewMode === "day-compact") {
             return [currentDate];
-        } else if (viewMode === "week") {
+        } else if (viewMode === "week" || viewMode === "week-compact") {
             const start = startOfWeek(currentDate, { weekStartsOn: 1 });
             return eachDayOfInterval({ start, end: addDays(start, 6) });
         } else {
@@ -243,9 +244,9 @@ export default function AgendaPage() {
 
     // Navegação
     const handlePrev = () => {
-        if (viewMode === "day") {
+        if (viewMode === "day" || viewMode === "day-compact") {
             setCurrentDate(addDays(currentDate, -1));
-        } else if (viewMode === "week") {
+        } else if (viewMode === "week" || viewMode === "week-compact") {
             setCurrentDate(subWeeks(currentDate, 1));
         } else {
             setCurrentDate(subMonths(currentDate, 1));
@@ -253,9 +254,9 @@ export default function AgendaPage() {
     };
 
     const handleNext = () => {
-        if (viewMode === "day") {
+        if (viewMode === "day" || viewMode === "day-compact") {
             setCurrentDate(addDays(currentDate, 1));
-        } else if (viewMode === "week") {
+        } else if (viewMode === "week" || viewMode === "week-compact") {
             setCurrentDate(addWeeks(currentDate, 1));
         } else {
             setCurrentDate(addMonths(currentDate, 1));
@@ -432,23 +433,27 @@ export default function AgendaPage() {
     };
 
     // Helpers visuais
-    const GRID_HOUR_HEIGHT = 80; // Altura fixa por hora em pixels
+    const GRID_HOUR_HEIGHT = 55; // Altura fixa por hora em pixels (reduzido para mostrar mais horas)
+    const GRID_HOUR_HEIGHT_COMPACT = 30; // Altura compacta para visualização completa
     const START_HOUR = 5; // Hora inicial do grid
 
     const getTopOffsetPx = (startTime: string): number => {
         const [h, m] = startTime.split(':').map(Number);
         const totalMinutesFromStart = (h - START_HOUR) * 60 + m;
-        return (totalMinutesFromStart / 60) * GRID_HOUR_HEIGHT;
+        const heightPerHour = (viewMode === "day-compact" || viewMode === "week-compact") ? GRID_HOUR_HEIGHT_COMPACT : GRID_HOUR_HEIGHT;
+        return (totalMinutesFromStart / 60) * heightPerHour;
     };
 
     const getCurrentTimeOffsetPx = (): number => {
         const now = new Date();
         const minutes = (now.getHours() - START_HOUR) * 60 + now.getMinutes();
-        return (minutes / 60) * GRID_HOUR_HEIGHT;
+        const heightPerHour = (viewMode === "day-compact" || viewMode === "week-compact") ? GRID_HOUR_HEIGHT_COMPACT : GRID_HOUR_HEIGHT;
+        return (minutes / 60) * heightPerHour;
     };
 
     const getHeightPx = (durationMinutes: number): number => {
-        return (durationMinutes / 60) * GRID_HOUR_HEIGHT;
+        const heightPerHour = (viewMode === "day-compact" || viewMode === "week-compact") ? GRID_HOUR_HEIGHT_COMPACT : GRID_HOUR_HEIGHT;
+        return (durationMinutes / 60) * heightPerHour;
     };
 
     const getClientName = (clientId: string) => {
@@ -506,7 +511,9 @@ export default function AgendaPage() {
     const renderAppointmentCard = (apt: Appointment, index: number, totalInSlot: number, slotIndex: number) => {
         const style = getCardStyle(apt.status, index);
         const topPx = getTopOffsetPx(apt.startTime);
-        const heightPx = Math.max(getHeightPx(apt.durationMinutes), 40); // Mínimo de 40px
+        const isCompactMode = viewMode === "day-compact" || viewMode === "week-compact";
+        const minHeight = isCompactMode ? 20 : 50; // Ajustado para 50px
+        const heightPx = Math.max(getHeightPx(apt.durationMinutes), minHeight);
 
         const width = totalInSlot > 1 ? `${100 / totalInSlot}%` : '100%';
         const left = totalInSlot > 1 ? `${(slotIndex / totalInSlot) * 100}%` : '0';
@@ -517,13 +524,14 @@ export default function AgendaPage() {
         const cardContent = (
             <div
                 className={cn(
-                    "absolute rounded-xl border border-l-[3px] p-2 transition-all duration-200 hover:z-20 group overflow-hidden pointer-events-auto",
+                    "absolute rounded-xl border border-l-[3px] transition-all duration-200 hover:z-20 group overflow-hidden pointer-events-auto",
                     canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
                     style.bg,
                     style.border,
                     style.shadow,
                     style.opacity,
-                    isBeingDragged && "opacity-30 ring-2 ring-indigo-400 ring-dashed"
+                    isBeingDragged && "opacity-30 ring-2 ring-indigo-400 ring-dashed",
+                    isCompactMode ? "p-1" : "p-2"
                 )}
                 style={{
                     top: `${topPx}px`,
@@ -536,38 +544,41 @@ export default function AgendaPage() {
                     ...(style as any).customStyle
                 }}
                 onMouseDown={canDrag ? (e) => handleDragStart(e, apt) : undefined}
+                onMouseEnter={() => setHoveredAppointmentId(apt.id)}
+                onMouseLeave={() => setHoveredAppointmentId(null)}
             >
                 {/* Accent Bar Left (Visual indicator) */}
-                <div className={cn("absolute left-0 top-0 bottom-0 w-[3px]", style.accent)} />
+                <div className={cn("absolute left-0 top-0 bottom-0", isCompactMode ? "w-[2px]" : "w-[3px]", style.accent)} />
 
-                <div className="flex flex-col h-full pl-1">
+                <div className={cn("flex flex-col h-full justify-center", isCompactMode ? "pl-0.5 gap-0" : "pl-1 gap-0.5")}>
                     {apt.status === "BLOCKED" ? (
-                        <div className="flex items-center justify-center h-full gap-2 opacity-60">
-                            <div className="h-4 w-4 bg-slate-200 rounded-full flex items-center justify-center">
-                                <div className="w-2 h-2 bg-slate-400 rounded-sm" />
+                        <div className={cn("flex items-center justify-center h-full gap-2 opacity-60", isCompactMode && "gap-1")}>
+                            <div className={cn("bg-slate-200 rounded-full flex items-center justify-center", isCompactMode ? "h-3 w-3" : "h-4 w-4")}>
+                                <div className={cn("bg-slate-400 rounded-sm", isCompactMode ? "w-1.5 h-1.5" : "w-2 h-2")} />
                             </div>
-                            <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Bloqueado</span>
+                            <span className={cn("font-semibold text-slate-500 uppercase tracking-widest", isCompactMode ? "text-[8px]" : "text-[10px]")}>
+                                {isCompactMode ? "Bloq" : "Bloqueado"}
+                            </span>
                         </div>
                     ) : (
                         <>
-                            <div className="flex items-center justify-between gap-1 w-full">
-                                <span className={cn("text-[10px] font-bold opacity-70", style.text)}>
+                            <div className="flex items-center gap-2 w-full">
+                                <span className={cn("font-bold opacity-70 shrink-0", style.text, isCompactMode ? "text-[8px]" : "text-[11px]")}>
                                     {apt.startTime}
                                 </span>
-                                {totalInSlot === 1 && (
-                                    <Avatar className="h-5 w-5 border border-white/50">
-                                        <AvatarFallback className="text-[8px] bg-white/80 text-slate-700 font-bold">
+                                <span className={cn("font-semibold truncate leading-tight flex-1", style.text, isCompactMode ? "text-[9px]" : "text-sm")}>
+                                    {isCompactMode ? getClientName(apt.clientId || "").split(' ')[0] : getClientName(apt.clientId || "")}
+                                </span>
+                                {totalInSlot === 1 && !isCompactMode && (
+                                    <Avatar className="border border-white/50 shrink-0 h-6 w-6">
+                                        <AvatarFallback className="bg-white/80 text-slate-700 font-bold text-[9px]">
                                             {getClientInitial(apt.clientId || "")}
                                         </AvatarFallback>
                                     </Avatar>
                                 )}
                             </div>
 
-                            <span className={cn("text-xs font-semibold truncate mt-0.5 leading-tight", style.text)}>
-                                {getClientName(apt.clientId || "")}
-                            </span>
-
-                            <span className={cn("text-[10px] truncate opacity-80", style.text)}>
+                            <span className={cn("truncate opacity-80 leading-tight", style.text, isCompactMode ? "text-[8px]" : "text-[11px]")}>
                                 {getServiceNames(apt.services).split(',')[0]}
                             </span>
                         </>
@@ -582,7 +593,9 @@ export default function AgendaPage() {
         }
 
         return (
-            <Popover key={apt.id}>
+            <Popover key={apt.id} open={hoveredAppointmentId === apt.id} onOpenChange={(open) => {
+                if (!open) setHoveredAppointmentId(null);
+            }}>
                 <PopoverTrigger asChild>
                     {cardContent}
                 </PopoverTrigger>
@@ -850,12 +863,12 @@ export default function AgendaPage() {
         );
     };
 
-    const gridCols = viewMode === "day" ? "grid-cols-[60px_1fr]" : viewMode === "week" ? "grid-cols-[60px_repeat(7,1fr)]" : "";
+    const gridCols = (viewMode === "day" || viewMode === "day-compact") ? "grid-cols-[60px_1fr]" : (viewMode === "week" || viewMode === "week-compact") ? "grid-cols-[60px_repeat(7,1fr)]" : "";
 
     const getNavigationText = () => {
-        if (viewMode === "day") {
+        if (viewMode === "day" || viewMode === "day-compact") {
             return format(currentDate, "dd 'de' MMMM, yyyy", { locale: ptBR });
-        } else if (viewMode === "week") {
+        } else if (viewMode === "week" || viewMode === "week-compact") {
             const start = startOfWeek(currentDate, { weekStartsOn: 1 });
             return `${format(start, "dd/MM")} - ${format(addDays(start, 6), "dd/MM/yyyy")}`;
         } else {
@@ -914,6 +927,17 @@ export default function AgendaPage() {
                                 <Button
                                     variant="ghost"
                                     size="sm"
+                                    onClick={() => setViewMode("day-compact")}
+                                    className={cn(
+                                        "rounded-xl h-9 px-3 font-medium transition-all duration-300 text-xs",
+                                        viewMode === "day-compact" ? "bg-white text-indigo-600 shadow-md scale-105 font-bold" : "text-slate-500 hover:bg-white/40 hover:text-slate-700"
+                                    )}
+                                >
+                                    Dia Full
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={() => setViewMode("week")}
                                     className={cn(
                                         "rounded-xl h-9 px-5 font-medium transition-all duration-300",
@@ -921,6 +945,17 @@ export default function AgendaPage() {
                                     )}
                                 >
                                     Semana
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setViewMode("week-compact")}
+                                    className={cn(
+                                        "rounded-xl h-9 px-3 font-medium transition-all duration-300 text-xs",
+                                        viewMode === "week-compact" ? "bg-white text-indigo-600 shadow-md scale-105 font-bold" : "text-slate-500 hover:bg-white/40 hover:text-slate-700"
+                                    )}
+                                >
+                                    Semana Full
                                 </Button>
                                 <Button
                                     variant="ghost"
@@ -980,12 +1015,12 @@ export default function AgendaPage() {
                             {/* Content */}
                             <div className="flex-1 overflow-hidden relative bg-slate-50/30">
                                 {/* Day/Week View */}
-                                {(viewMode === "day" || viewMode === "week") && (
+                                {(viewMode === "day" || viewMode === "week" || viewMode === "day-compact" || viewMode === "week-compact") && (
                                     <div className="flex flex-col h-full">
                                         {/* Week Header - Sticky */}
                                         <div className={cn("grid border-b border-slate-100 bg-white z-20 shrink-0 shadow-sm", gridCols)}>
-                                            <div className="p-4 text-center border-r border-slate-50 bg-slate-50/50">
-                                                <Clock className="w-5 h-5 mx-auto text-slate-300" />
+                                            <div className="p-2 text-center border-r border-slate-50 bg-slate-50/50">
+                                                <Clock className="w-4 h-4 mx-auto text-slate-300" />
                                             </div>
                                             {displayDays.map((day, idx) => {
                                                 const isToday = isSameDay(day, new Date());
@@ -993,7 +1028,7 @@ export default function AgendaPage() {
                                                     <div
                                                         key={idx}
                                                         className={cn(
-                                                            "py-3 px-2 text-center border-r border-slate-50 last:border-r-0 relative transition-colors duration-300",
+                                                            "py-2 px-2 text-center border-r border-slate-50 last:border-r-0 relative transition-colors duration-300",
                                                             isToday ? "bg-primary/5" : "hover:bg-slate-50"
                                                         )}
                                                     >
@@ -1001,13 +1036,13 @@ export default function AgendaPage() {
                                                             <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
                                                         )}
                                                         <div className={cn(
-                                                            "text-[11px] font-bold uppercase tracking-widest mb-1",
+                                                            "text-[10px] font-bold uppercase tracking-widest mb-0.5",
                                                             isToday ? "text-primary" : "text-slate-400"
                                                         )}>
                                                             {format(day, "EEE", { locale: ptBR })}
                                                         </div>
                                                         <div className={cn(
-                                                            "w-10 h-10 mx-auto flex items-center justify-center rounded-full text-lg font-bold transition-all",
+                                                            "w-8 h-8 mx-auto flex items-center justify-center rounded-full text-base font-bold transition-all",
                                                             isToday ? "bg-primary text-white shadow-lg shadow-primary/30 scale-110" : "text-slate-700 hover:bg-slate-100"
                                                         )}>
                                                             {format(day, "dd")}
@@ -1020,21 +1055,27 @@ export default function AgendaPage() {
                                         {/* Scrollable Grid */}
                                         <div
                                             ref={gridRef}
-                                            className="overflow-y-auto flex-1 custom-scrollbar"
+                                            className={cn(
+                                                "flex-1 custom-scrollbar",
+                                                (viewMode === "day-compact" || viewMode === "week-compact") ? "overflow-y-hidden" : "overflow-y-auto"
+                                            )}
                                             onMouseMove={handleDragMove}
                                             onMouseUp={handleDragEnd}
                                             onMouseLeave={() => { if (isDragging) handleDragEnd(); }}
                                         >
-                                            <div className="relative" style={{ height: `${TIME_SLOTS.length * (GRID_HOUR_HEIGHT / 2)}px` }}>
+                                            <div className="relative" style={{ 
+                                                height: `${TIME_SLOTS.length * ((viewMode === "day-compact" || viewMode === "week-compact") ? GRID_HOUR_HEIGHT_COMPACT / 2 : GRID_HOUR_HEIGHT / 2)}px` 
+                                            }}>
                                                 {/* Linhas de Fundo e Horas */}
                                                 {TIME_SLOTS.map((time) => {
                                                     const isFullHour = time.endsWith(":00");
+                                                    const heightPerSlot = (viewMode === "day-compact" || viewMode === "week-compact") ? GRID_HOUR_HEIGHT_COMPACT / 2 : GRID_HOUR_HEIGHT / 2;
                                                     return (
-                                                        <div key={time} className={cn("grid group", gridCols)} style={{ height: `${GRID_HOUR_HEIGHT / 2}px` }}>
+                                                        <div key={time} className={cn("grid group", gridCols)} style={{ height: `${heightPerSlot}px` }}>
                                                             {/* Hora */}
-                                                            <div className="relative border-r border-slate-100/50 bg-white">
+                                                            <div className="relative border-r border-slate-100/50 bg-white flex items-start pt-1">
                                                                 <span className={cn(
-                                                                    "absolute -top-2 right-2 px-1 z-10 transition-colors bg-white",
+                                                                    "right-2 px-1 z-10 transition-colors bg-white ml-auto",
                                                                     isFullHour
                                                                         ? "text-[10px] font-bold text-slate-400 group-hover:text-primary"
                                                                         : "text-[9px] font-medium text-slate-300 group-hover:text-primary/70"
@@ -1068,7 +1109,9 @@ export default function AgendaPage() {
                                                 })}
 
                                                 {/* Layer de Agendamentos (Posicionamento Absoluto) */}
-                                                <div className="absolute inset-0 pointer-events-none grid" style={{ gridTemplateColumns: viewMode === 'day' ? '60px 1fr' : '60px repeat(7, 1fr)' }}>
+                                                <div className="absolute inset-0 pointer-events-none grid" style={{ 
+                                                    gridTemplateColumns: (viewMode === 'day' || viewMode === 'day-compact') ? '60px 1fr' : '60px repeat(7, 1fr)' 
+                                                }}>
                                                     {/* Spacer para coluna de horas */}
                                                     <div />
 

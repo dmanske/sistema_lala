@@ -1,6 +1,6 @@
 # 📋 INVENTÁRIO COMPLETO DO SISTEMA LALA
 **Data:** 11/02/2026
-**Status:** CONSOLIDADO V1.8 (11/02/2026) - SUPABASE MULTI-TENANT ATIVO
+**Status:** CONSOLIDADO V1.9 (11/02/2026) - SUPABASE PROD ESTÁVEL
 
 ---
 
@@ -733,6 +733,12 @@ SalePayment {
 **Status:** RESOLVIDO
 **Solução:** Implementado Supabase Storage com buckets isolados por `tenantId`.
 
+### 2. **Divergência de Dados (Local vs Produção)**
+#### ✅ Variáveis de Ambiente Vercel
+**Status:** RESOLVIDO (11/02/2026)
+**Problema:** A Vercel injetava `NEXT_PUBLIC_USE_SUPABASE="true"` (com aspas), e o código comparava estritamente com `true` boleano ou string sem aspas, caindo no fallback do LocalStorage com dados seed (falsos).
+**Solução:** Ajuste no `factory.ts` para parsing robusto de strings booleanas (`replace(/['"\s]/g, '')`). Produção agora reflete 100% o banco Supabase.
+
 ---
 
 
@@ -929,8 +935,8 @@ Todas as 27 referências diretas a `new LocalStorage*Repository()` foram substit
 
 ---
 
-**Versão Final:** V1.7
+**Versão Final:** V1.9
 **Data:** 11/02/2026
-**Status:** OFICIAL E AUDITADO — AUTH SSR COMPLETO + MIGRAÇÃO FACTORY
+**Status:** OFICIAL E AUDITADO — FIX CRÍTICO DE AMBIENTE APLICADO
 
 
