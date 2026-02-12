@@ -11,7 +11,8 @@ import {
     Calendar as CalendarIcon,
     Search,
     Filter,
-    ShoppingCart
+    ShoppingCart,
+    Eye
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks, addMonths, subMonths, startOfMonth, endOfMonth, getDay } from "date-fns";
@@ -30,7 +31,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import { Appointment } from "@/core/domain/Appointment";
 import { AppointmentService } from "@/core/services/AppointmentService";
-import { getAppointmentRepository, getClientRepository, getServiceRepository, getProfessionalRepository } from "@/infrastructure/repositories/factory";
+import { getAppointmentRepository, getClientRepository, getServiceRepository, getProfessionalRepository, getSaleRepository } from "@/infrastructure/repositories/factory";
 import { Service } from "@/core/domain/Service";
 import { Client } from "@/core/domain/Client";
 import { Professional } from "@/core/domain/Professional";
@@ -172,6 +173,7 @@ export default function AgendaPage() {
     const [editingAppointment, setEditingAppointment] = useState<Appointment | undefined>();
     const [selectedSlot, setSelectedSlot] = useState<{ date: string, time: string } | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
+    const [paidAppointments, setPaidAppointments] = useState<Set<string>>(new Set());
     const router = useRouter();
 
     // ===== DRAG & DROP STATE =====
@@ -192,6 +194,7 @@ export default function AgendaPage() {
     const clientRepo = getClientRepository();
     const serviceRepo = getServiceRepository();
     const professionalRepo = getProfessionalRepository();
+    const saleRepo = getSaleRepository();
 
     // Calcular range de datas baseado no viewMode
     const dateRange = useMemo(() => {
@@ -235,6 +238,20 @@ export default function AgendaPage() {
             setClients(clientsData);
             setServices(servicesData);
             setProfessionals(professionalsData);
+            
+            // Verificar quais agendamentos têm vendas pagas
+            const paidSet = new Set<string>();
+            for (const apt of appointmentsData) {
+                try {
+                    const sale = await saleRepo.findByAppointmentId(apt.id);
+                    if (sale && sale.status === 'paid') {
+                        paidSet.add(apt.id);
+                    }
+                } catch (error) {
+                    // Ignorar erros individuais
+                }
+            }
+            setPaidAppointments(paidSet);
         } catch (error) {
             console.error(error);
         } finally {
@@ -863,13 +880,26 @@ export default function AgendaPage() {
 
                             {/* Action Buttons */}
                             <div className="px-5 py-4 space-y-2.5">
-                                <Button
-                                    size="lg"
-                                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all rounded-xl h-11"
-                                    onClick={() => router.push(`/appointments/${apt.id}/checkout`)}
-                                >
-                                    <ShoppingCart className="mr-2 h-5 w-5" /> Finalizar Atendimento
-                                </Button>
+                                {paidAppointments.has(apt.id) ? (
+                                    // Agendamento já pago - mostrar botão para ver pagamento
+                                    <Button
+                                        size="lg"
+                                        variant="outline"
+                                        className="w-full border-2 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-xl h-11"
+                                        onClick={() => router.push(`/appointments/${apt.id}/checkout`)}
+                                    >
+                                        <Eye className="mr-2 h-5 w-5" /> Ver Pagamento
+                                    </Button>
+                                ) : (
+                                    // Agendamento não pago - mostrar botão para finalizar
+                                    <Button
+                                        size="lg"
+                                        className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all rounded-xl h-11"
+                                        onClick={() => router.push(`/appointments/${apt.id}/checkout`)}
+                                    >
+                                        <ShoppingCart className="mr-2 h-5 w-5" /> Finalizar Atendimento
+                                    </Button>
+                                )}
                                 <Button
                                     variant="outline"
                                     size="default"

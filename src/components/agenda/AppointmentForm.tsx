@@ -625,10 +625,26 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
                                     name="clientId"
                                     render={({ field }) => (
                                         <FormItem className="flex flex-col">
-                                            <FormLabel className="text-slate-700 font-semibold flex items-center gap-2">
-                                                <User className="h-4 w-4 text-primary" />
-                                                Cliente
-                                            </FormLabel>
+                                            <div className="flex items-center justify-between">
+                                                <FormLabel className="text-slate-700 font-semibold flex items-center gap-2">
+                                                    <User className="h-4 w-4 text-primary" />
+                                                    Cliente
+                                                </FormLabel>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 px-2 text-xs text-primary hover:text-primary hover:bg-primary/10"
+                                                    onClick={() => {
+                                                        // Abrir modal de novo cliente em nova aba
+                                                        window.open('/clients/new', '_blank');
+                                                        toast.info("Após criar o cliente, volte aqui e atualize a lista");
+                                                    }}
+                                                >
+                                                    <Plus className="h-3 w-3 mr-1" />
+                                                    Novo Cliente
+                                                </Button>
+                                            </div>
                                             <Popover open={clientPopoverOpen} onOpenChange={setClientPopoverOpen}>
                                                 <PopoverTrigger asChild>
                                                     <FormControl>
