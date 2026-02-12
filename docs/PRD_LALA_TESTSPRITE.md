@@ -1,8 +1,8 @@
 # Product Requirements Document (PRD) - Lala System
 
-**Version:** 2.0
+**Version:** 2.1
 **Date:** 2026-02-12
-**Status:** Production Ready - Full Feature Set Implemented
+**Status:** Production Ready - Enhanced Checkout & Payment Experience
 
 ## 1. Product Overview
 Lala System is a production-ready SaaS management platform for beauty salons, designed to streamline operations including scheduling, client management, inventory control, and financial transactions. Built with Next.js 15, TypeScript, and Supabase backend.
@@ -51,23 +51,32 @@ Lala System is a production-ready SaaS management platform for beauty salons, de
 - **Acceptance Criteria 7:** Service lines store price and duration snapshots for historical accuracy.
 - **Acceptance Criteria 8:** Professional color coding for visual identification in calendar.
 - **Acceptance Criteria 9:** The ID generated for the appointment must be a valid UUID.
+- **Acceptance Criteria 10:** User can create new client inline during appointment creation via modal dialog.
+- **Acceptance Criteria 11:** Newly created client is automatically selected in appointment form.
 
 ### 3.3. Sales & Checkout
-**User Story:** As a User, I want to finalize appointments with flexible payment options and automatic inventory updates.
+**User Story:** As a User, I want to finalize appointments with flexible payment options, visual progress tracking, and automatic inventory updates.
 - **Acceptance Criteria 1:** User can convert Appointment into Sale via "Checkout" button.
 - **Acceptance Criteria 2:** User can add/remove products during checkout with quantity adjustment.
-- **Acceptance Criteria 3:** User can select multiple payment methods (Split Payment): PIX, Card, Cash, Transfer, Credit, Fiado.
-- **Acceptance Criteria 4:** If "Cash" is selected, system calculates "Change" (Troco) based on amount given.
-- **Acceptance Criteria 5:** "Credit" payment deducts from client's credit balance (wallet).
-- **Acceptance Criteria 6:** "Fiado" (debt) creates negative client balance and excludes from cash ledger.
-- **Acceptance Criteria 7:** Upon finalization:
+- **Acceptance Criteria 3:** Checkout displays 3-step progress: Items → Payment → Completed.
+- **Acceptance Criteria 4:** User can select multiple payment methods (Split Payment): PIX, Card, Cash, Transfer, Credit, Fiado.
+- **Acceptance Criteria 5:** Payment dialog shows formatted currency values (R$ 1.234,56) with input masks.
+- **Acceptance Criteria 6:** User can edit previously added payments before finalizing.
+- **Acceptance Criteria 7:** If "Cash" is selected, system calculates "Change" (Troco) based on amount given.
+- **Acceptance Criteria 8:** "Credit" payment deducts from client's credit balance (wallet).
+- **Acceptance Criteria 9:** "Fiado" (debt) creates negative client balance and excludes from cash ledger.
+- **Acceptance Criteria 10:** Upon finalization:
     - Appointment status changes to "DONE"
     - Sale status changes to "PAID"
     - Product stock automatically decremented via ProductMovement
-    - Cash movements automatically created for PIX/Card/Cash/Transfer
+    - Cash movements automatically created for PIX/Card/Cash/Transfer with descriptive labels
     - Client credit balance updated if Credit or Fiado used
-- **Acceptance Criteria 8:** User can refund sales, which reverses stock and creates negative cash movement.
-- **Acceptance Criteria 9:** Refunded sales can be re-paid with new payment methods.
+    - Celebration animation shown for 3 seconds
+    - User remains on step 3 (Completed) to review payment details
+- **Acceptance Criteria 11:** System prevents duplicate payments on already-paid sales.
+- **Acceptance Criteria 12:** User can refund sales, which reverses stock and creates negative cash movement.
+- **Acceptance Criteria 13:** Refunded sales can be re-paid with new payment methods.
+- **Acceptance Criteria 14:** Paid appointments show discrete green checkmark indicator in agenda views.
 
 ### 3.4. Multi-Tenant Isolation (Critical)
 **User Story:** As a System, I must ensure complete data isolation so that one salon cannot see another's data.
@@ -127,11 +136,13 @@ Lala System is a production-ready SaaS management platform for beauty salons, de
 - **Pricing:** Service price can be overridden at Checkout (stored in service line snapshot).
 - **Totals:** `Total = (Services + Products) - Discount`.
 - **Split Payments:** Multiple payment methods in single sale, sum must equal total.
-- **Cash Change:** Automatic calculation when cash given > amount due.
+- **Payment Dialog:** Currency-formatted inputs with masks, edit capability for added payments.
+- **Cash Change:** Automatic calculation when cash given > amount due, displayed in payment summary.
 - **Credit Payment:** Deducts from client's positive credit balance.
 - **Fiado (Debt):** Creates negative client balance, excluded from cash ledger, marked with red indicator.
-- **Cash Ledger:** Automatic entries for PIX, Card, Cash, Transfer (excludes Credit and Fiado).
+- **Cash Ledger:** Automatic entries for PIX, Card, Cash, Transfer with descriptive labels including customer/supplier name and change amount.
 - **Refunds:** Reverse stock movements, create negative cash entries, allow re-payment.
+- **Duplicate Prevention:** System blocks payment processing on already-paid sales.
 
 ### 4.3. Appointment Logic
 - **Overbooking:** ALLOWED - Multiple appointments can exist at same time slot.
@@ -232,17 +243,23 @@ Lala System is a production-ready SaaS management platform for beauty salons, de
 - Overbooking support
 - Professional color coding
 - Service line normalization
+- Paid appointment indicators (discrete green checkmark)
 
 ### 7.4. Sales & Checkout ✅
 - Convert appointment to sale
 - Add/remove products during checkout
-- Split payment (multiple methods)
-- Cash change calculation
+- 3-step progress indicator (Items → Payment → Completed)
+- Split payment (multiple methods) with currency formatting
+- Edit added payments before finalizing
+- Cash change calculation with visual display
 - Credit payment from wallet
 - Fiado (debt) tracking
 - Automatic stock reduction
+- Celebration animation on completion
 - Refund with stock reversal
 - Re-payment of refunded sales
+- Duplicate payment prevention
+- Descriptive cash movement labels
 
 ### 7.5. Inventory Management ✅
 - Product CRUD
@@ -343,3 +360,57 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 - **Efficiency:** Average time to complete checkout
 - **Accuracy:** Stock discrepancy rate (should be near 0%)
 - **Satisfaction:** User feedback and support ticket volume
+
+
+## 11. Changelog
+
+### Version 2.2 (2026-02-12) - Appointment Client Creation Flow
+
+**Appointment Form Improvements:**
+- Added inline client creation modal during appointment scheduling
+- New `ClientDialog` component for quick client registration
+- Seamless flow: create client → auto-select → continue appointment
+- Eliminated need to open new tab for client creation
+- Automatic client list refresh after creation
+- Optimized state management to prevent infinite loops
+
+**Technical Implementation:**
+- Created reusable `ClientDialog` component (`src/components/clients/ClientDialog.tsx`)
+- Integrated modal into `AppointmentForm` with version-based refresh pattern
+- Added `clientsVersion` state to trigger controlled reloads
+- Callback system to auto-select newly created client
+
+**User Experience:**
+- Click "Novo Cliente" button opens modal overlay
+- Fill client form without leaving appointment context
+- On save, client is automatically selected in appointment
+- Toast confirmation of successful creation and selection
+- No page navigation or context loss
+
+### Version 2.1 (2026-02-12) - Enhanced Checkout & Payment Experience
+
+**Checkout Improvements:**
+- Added 3-step progress indicator (Items → Payment → Completed)
+- Implemented celebration animation on payment completion (3-second overlay)
+- Changed flow to keep user on step 3 after payment for review
+- Auto-detect paid sales and skip directly to step 3
+- Added discrete paid indicator (green checkmark) on agenda appointment cards
+
+**Payment Dialog Enhancements:**
+- Complete currency formatting (R$ 1.234,56) throughout interface
+- Input masks for monetary values with comma as decimal separator
+- Edit capability for added payments (pencil icon)
+- Visual highlighting of payment being edited
+- Larger, more readable input fields (56px height)
+- Prevent finalization while editing a payment
+- Auto-formatted initial values
+
+**Backend Improvements:**
+- Added duplicate payment prevention in `pay_sale` RPC function
+- Enhanced cash movement descriptions with customer/supplier names
+- Standardized description format across all payment types
+- Include change amount in cash movement descriptions
+
+**Bug Fixes:**
+- Fixed payment summary showing incorrect totals from duplicate payments
+- Corrected initial value formatting in payment dialog (was showing 5000 instead of 50,00)

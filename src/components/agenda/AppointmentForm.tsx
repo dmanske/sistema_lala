@@ -76,6 +76,7 @@ import { Service } from "@/core/domain/Service";
 import { Professional } from "@/core/domain/Professional";
 import { toast } from "sonner";
 import { formatName } from "@/core/formatters/name";
+import { ClientDialog } from "@/components/clients/ClientDialog";
 
 interface AppointmentFormProps {
     isOpen: boolean;
@@ -99,6 +100,7 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
     const [calendarPopoverOpen, setCalendarPopoverOpen] = useState(false);
     const [activeTab, setActiveTab] = useState("appointment");
     const [endTime, setEndTime] = useState("10:00");
+    const [clientDialogOpen, setClientDialogOpen] = useState(false);
 
     const appointmentService = new AppointmentService(getAppointmentRepository());
     const clientRepo = getClientRepository();
@@ -121,6 +123,8 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
     });
 
     // Load Clients
+    const [clientsVersion, setClientsVersion] = useState(0);
+    
     useEffect(() => {
         const loadClients = async () => {
             try {
@@ -131,7 +135,7 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
             }
         };
         loadClients();
-    }, []);
+    }, [clientsVersion]);
 
     // Load Services
     useEffect(() => {
@@ -636,11 +640,7 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
                                                     variant="ghost"
                                                     size="sm"
                                                     className="h-7 px-2 text-xs text-primary hover:text-primary hover:bg-primary/10"
-                                                    onClick={() => {
-                                                        // Abrir modal de novo cliente em nova aba
-                                                        window.open('/clients/new', '_blank');
-                                                        toast.info("Após criar o cliente, volte aqui e atualize a lista");
-                                                    }}
+                                                    onClick={() => setClientDialogOpen(true)}
                                                 >
                                                     <Plus className="h-3 w-3 mr-1" />
                                                     Novo Cliente
@@ -1050,6 +1050,19 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
                     </Form>
                 </Tabs>
             </DialogContent>
+
+            {/* Modal de Novo Cliente */}
+            <ClientDialog
+                isOpen={clientDialogOpen}
+                onOpenChange={setClientDialogOpen}
+                onSuccess={(newClient) => {
+                    // Recarregar lista de clientes incrementando a versão
+                    setClientsVersion(v => v + 1);
+                    // Selecionar o novo cliente automaticamente
+                    form.setValue("clientId", newClient.id);
+                    toast.success("Cliente cadastrado e selecionado!");
+                }}
+            />
         </Dialog>
     );
 }

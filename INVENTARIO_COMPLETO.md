@@ -1,6 +1,6 @@
 # 📋 INVENTÁRIO COMPLETO DO SISTEMA LALA
 **Data:** 12/02/2026
-**Status:** CONSOLIDADO V2.2 (12/02/2026) - MELHORIAS VISUAIS NO CLIENTE + FIX SALDO FIADO
+**Status:** CONSOLIDADO V2.4 (12/02/2026) - INLINE CLIENT CREATION + MELHORIAS CHECKOUT + AGENDA + PAGAMENTOS
 
 ---
 
@@ -321,7 +321,7 @@ PurchaseItem {
 #### O que está implementado:
 - ✅ Visualização em 5 modos: Dia, Dia Full, Semana, Semana Full, Mês
 - ✅ Navegação entre períodos
-- ✅ Criação de agendamento
+- ✅ Criação de agendamento com modal inline de cliente
 - ✅ Edição de agendamento
 - ✅ Alteração de status (PENDING, CONFIRMED, CANCELED, NO_SHOW, DONE)
 - ✅ Popover com detalhes do agendamento (abre no hover)
@@ -335,6 +335,7 @@ PurchaseItem {
 - ✅ Validação de conflito (impede agendamento em horário bloqueado)
 - ✅ Design premium com glassmorphism
 - ✅ **Drag & Drop** nativo (Ghost Card + Snap 30min)
+- ✅ **Cadastro Inline de Cliente:** Modal integrado para criar cliente sem sair do agendamento
 - ✅ **Modos de Visualização Otimizados:**
   - **Dia/Semana:** 55px por hora - mostra mais horas na tela com scroll
   - **Dia Full/Semana Full:** 30px por hora - agenda completa (5h-23:30) numa tela só sem scroll
@@ -717,10 +718,14 @@ SalePayment {
 
 #### 4. **Criar Agendamento**
 1. Clicar em "Novo Agendamento" na agenda
-2. Selecionar cliente, profissional, serviços
-3. Escolher data e horário
-4. Adicionar observações (opcional)
-5. Salvar
+2. Selecionar cliente (ou criar novo via modal inline)
+   - Se cliente não existe: clicar "Novo Cliente"
+   - Preencher dados no modal
+   - Cliente é criado e automaticamente selecionado
+3. Selecionar profissional e serviços
+4. Escolher data e horário
+5. Adicionar observações (opcional)
+6. Salvar
 
 #### 5. **Finalizar Atendimento (Checkout)**
 1. Abrir agendamento na agenda
@@ -977,8 +982,120 @@ Todas as 27 referências diretas a `new LocalStorage*Repository()` foram substit
 
 ---
 
-**Versão Final:** V2.2
+**Versão Final:** V2.4
 **Data:** 12/02/2026
-**Status:** OFICIAL E AUDITADO — FIX CRÍTICO DE AMBIENTE + CAIXA + MELHORIAS CLIENTE
+**Status:** OFICIAL E AUDITADO — INLINE CLIENT CREATION + CHECKOUT IMPROVEMENTS + AGENDA INDICATORS + PAYMENT DIALOG ENHANCEMENTS
 
+---
 
+## 🆕 ATUALIZAÇÕES RECENTES (V2.4 - 12/02/2026)
+
+### Criação Inline de Cliente no Agendamento ✅
+
+#### 1. **Modal de Cadastro Rápido** ✅
+- **Implementado:** Componente `ClientDialog` reutilizável para criação de cliente
+- **Localização:** `src/components/clients/ClientDialog.tsx`
+- **Comportamento:**
+  - Abre como modal overlay sem sair do contexto de agendamento
+  - Formulário completo com todos os campos do cliente
+  - Validação Zod integrada
+  - Feedback visual de loading durante salvamento
+- **Integração:** Usado no `AppointmentForm` via botão "Novo Cliente"
+
+#### 2. **Fluxo Otimizado de Agendamento** ✅
+- **Antes:** Botão abria nova aba, usuário precisava voltar e atualizar manualmente
+- **Agora:** 
+  - Clique em "Novo Cliente" abre modal
+  - Preenche dados do cliente
+  - Salva e modal fecha automaticamente
+  - Cliente recém-criado é selecionado automaticamente no agendamento
+  - Lista de clientes atualizada em tempo real
+  - Toast de confirmação: "Cliente cadastrado e selecionado!"
+- **Benefício:** Fluxo contínuo sem perda de contexto
+
+#### 3. **Gerenciamento de Estado Otimizado** ✅
+- **Implementação Técnica:**
+  - Estado `clientsVersion` para controlar recargas
+  - Pattern de incremento (`v => v + 1`) para trigger de useEffect
+  - Previne loops infinitos causados por recriação de funções
+  - Callback `onSuccess` com auto-seleção do novo cliente
+- **Arquivo:** `src/components/agenda/AppointmentForm.tsx`
+
+#### 4. **Componentes Criados/Modificados** ✅
+- **Novo:** `src/components/clients/ClientDialog.tsx`
+  - Modal reutilizável para cadastro de cliente
+  - Props: `isOpen`, `onOpenChange`, `onSuccess`
+  - Retorna cliente criado via callback
+- **Modificado:** `src/components/agenda/AppointmentForm.tsx`
+  - Adicionado estado `clientDialogOpen`
+  - Adicionado estado `clientsVersion` para refresh controlado
+  - Integrado `ClientDialog` com callback de sucesso
+  - Botão "Novo Cliente" agora abre modal ao invés de nova aba
+
+### Melhorias no Checkout e Finalização de Atendimento (V2.3)
+
+#### 1. **Indicador de Pagamento na Agenda** ✅
+- **Implementado:** Ícone discreto de checkmark verde nos cards de agendamentos pagos
+- **Localização:** Visível em todas as visualizações da agenda (Dia, Semana, Mês)
+- **Comportamento:** 
+  - Aparece no canto superior direito do card do agendamento
+  - Tamanho adaptativo (menor em modo compacto)
+  - Não aparece em slots bloqueados
+- **Arquivo:** `src/app/(app)/agenda/page.tsx`
+
+#### 2. **Fluxo de Checkout Melhorado** ✅
+- **Progresso em 3 Etapas:**
+  - Etapa 1: Itens (serviços + produtos)
+  - Etapa 2: Pagamento (ativa ao clicar "Receber Pagamento")
+  - Etapa 3: Concluído (mostra resumo final)
+- **Animação de Celebração:**
+  - Overlay com checkmark verde animado
+  - Duração: 3 segundos
+  - Botão para voltar à agenda manualmente
+- **Comportamento:** Sistema permanece no passo 3 após pagamento para conferência
+- **Auto-detecção:** Vendas já pagas vão direto para etapa 3 ao abrir checkout
+- **Arquivo:** `src/app/(app)/appointments/[id]/checkout/page.tsx`
+
+#### 3. **Modal de Pagamento Reformulado** ✅
+- **Formatação Monetária:**
+  - Todos os valores exibidos em formato brasileiro (R$ 1.234,56)
+  - Inputs com máscara de moeda (vírgula como separador decimal)
+  - Símbolo R$ fixo nos campos de entrada
+  - Formatação automática ao sair do campo
+- **Edição de Pagamentos:**
+  - Botão de lápis para editar pagamentos já adicionados
+  - Destaque visual (roxo) do pagamento em edição
+  - Botão "Cancelar" para desistir da edição
+  - Botão muda para "Salvar Alteração" durante edição
+- **Melhorias de UX:**
+  - Inputs maiores e mais legíveis (altura 56px)
+  - Feedback visual claro do estado de edição
+  - Não permite finalizar se houver pagamento sendo editado
+  - Valores inicializados automaticamente com formatação correta
+- **Arquivo:** `src/components/sales/PaymentDialog.tsx`
+
+#### 4. **Proteção Contra Pagamentos Duplicados** ✅
+- **Implementado:** Validação na função RPC `pay_sale`
+- **Comportamento:** Impede processar pagamento em venda já paga
+- **Mensagem de Erro:** "Esta venda já foi paga. Não é possível processar pagamento duplicado."
+- **Benefício:** Evita registros duplicados durante testes ou cliques múltiplos
+- **Arquivo:** Migration `prevent_duplicate_payments`
+
+#### 5. **Descrições Melhoradas em Movimentos de Caixa** ✅
+- **Formato Padronizado:** Todas as funções RPC agora geram descrições consistentes
+- **Padrões por Tipo:**
+  - Vendas: `Venda - [Método] - [Cliente] (troco R$ X)`
+  - Recargas: `Recarga de Crédito - [Método] - [Cliente]`
+  - Compras: `Compra - [Método] - [Fornecedor]`
+  - Estornos: `Estorno - [Método] - [Cliente]`
+- **Informações Incluídas:**
+  - Nome do cliente/fornecedor
+  - Método de pagamento em português
+  - Valor do troco quando aplicável
+- **Funções Atualizadas:**
+  - `pay_sale`
+  - `add_client_credit`
+  - `create_purchase_with_movements`
+  - `refund_sale`
+
+---
