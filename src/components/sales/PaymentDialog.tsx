@@ -8,8 +8,19 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { PaymentMethod } from "@/core/domain/sales/types"
-import { CreditCard, Banknote, QrCode, ArrowRightLeft, Wallet, Check, Plus, X, CheckCircle2, HandCoins, AlertTriangle } from "lucide-react"
+import { CreditCard, Banknote, QrCode, ArrowRightLeft, Wallet, Check, Plus, X, CheckCircle2, HandCoins, AlertTriangle, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+// Formatar valor para exibição em R$
+const formatCurrency = (value: number): string => {
+    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+// Parse string de moeda para número
+const parseCurrency = (value: string): number => {
+    const cleaned = value.replace(/[^\d,]/g, '').replace(',', '.')
+    return parseFloat(cleaned) || 0
+}
 
 interface PaymentEntry {
     id: string
@@ -50,9 +61,14 @@ interface PaymentDialogProps {
 
 export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, creditBalance = 0, customerName, hasCustomer = false }: PaymentDialogProps) {
     const [method, setMethod] = useState<PaymentMethod>('pix')
-    const [amount, setAmount] = useState(0)
-    const [cashGiven, setCashGiven] = useState(0) // For cash: actual amount handed
+    const [amountInput, setAmountInput] = useState('') // String para formatação
+    const [cashGivenInput, setCashGivenInput] = useState('') // String para formatação
     const [entries, setEntries] = useState<PaymentEntry[]>([])
+    const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
+
+    // Parse inputs para números
+    const amount = parseCurrency(amountInput)
+    const cashGiven = parseCurrency(cashGivenInput)
 
     const entriesTotal = useMemo(() => entries.reduce((acc, e) => acc + e.amount, 0), [entries])
     const remaining = useMemo(() => Math.max(0, totalRemaining - entriesTotal), [totalRemaining, entriesTotal])
@@ -68,22 +84,25 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
         if (open) {
             setEntries([])
             setMethod('pix')
-            setAmount(totalRemaining)
-            setCashGiven(0)
+            setAmountInput(totalRemaining.toFixed(2).replace('.', ','))
+            setCashGivenInput('')
+            setEditingEntryId(null)
         }
     }, [open, totalRemaining])
 
     // Update amount when method changes or remaining changes
     useEffect(() => {
+        if (editingEntryId) return // Don't auto-update when editing
+        
         if (method === 'credit') {
-            setAmount(Math.min(availableCredit, remaining))
+            setAmountInput(Math.min(availableCredit, remaining).toFixed(2).replace('.', ','))
         } else if (method === 'fiado') {
-            setAmount(remaining)
+            setAmountInput(remaining.toFixed(2).replace('.', ','))
         } else {
-            setAmount(remaining)
+            setAmountInput(remaining.toFixed(2).replace('.', ','))
         }
-        setCashGiven(0)
-    }, [method, remaining, availableCredit])
+        setCashGivenInput('')
+    }, [method, remaining, availableCredit, editingEntryId])
 
     const handleAddEntry = () => {
         if (amount <= 0) {
@@ -104,23 +123,57 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
         }
 
         const entry: PaymentEntry = {
-            id: crypto.randomUUID(),
+            id: editingEntryId || crypto.randomUUID(),
             method,
             amount: Math.round(amount * 100) / 100,
             cashGiven: method === 'cash' && cashGiven > amount ? cashGiven : undefined,
         }
-        setEntries(prev => [...prev, entry])
+        
+        if (editingEntryId) {
+            // Update existing entry
+            setEntries(prev => prev.map(e => e.id === editingEntryId ? entry : e))
+            setEditingEntryId(null)
+            toast.success("Pagamento atualizado")
+        } else {
+            // Add new entry
+            setEntries(prev => [...prev, entry])
+        }
+        
         setMethod('pix')
-        setCashGiven(0)
+        setCashGivenInput('')
+        setAmountInput('')
+    }
+
+    const handleEditEntry = (entry: PaymentEntry) => {
+        setEditingEntryId(entry.id)
+        setMethod(entry.method)
+        setAmountInput(entry.amount.toFixed(2).replace('.', ','))
+        if (entry.cashGiven) {
+            setCashGivenInput(entry.cashGiven.toFixed(2).replace('.', ','))
+        }
+    }
+
+    const handleCancelEdit = () => {
+        setEditingEntryId(null)
+        setMethod('pix')
+        setAmountInput(remaining.toFixed(2).replace('.', ','))
+        setCashGivenInput('')
     }
 
     const handleRemoveEntry = (id: string) => {
         setEntries(prev => prev.filter(e => e.id !== id))
+        if (editingEntryId === id) {
+            handleCancelEdit()
+        }
     }
 
     const handleFinalize = () => {
         if (!isFullyPaid) {
             toast.error("Adicione pagamentos até cobrir o valor total")
+            return
+        }
+        if (editingEntryId) {
+            toast.error("Finalize a edição do pagamento antes de confirmar")
             return
         }
         onConfirm(entries.map(e => ({
@@ -147,7 +200,7 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
                     <DialogHeader>
                         <DialogTitle className="text-xl font-bold text-white">Receber Pagamento</DialogTitle>
                         <DialogDescription className="text-purple-100 mt-1">
-                            Total: <span className="font-bold text-white">R$ {totalRemaining.toFixed(2)}</span>
+                            Total: <span className="font-bold text-white text-lg">{formatCurrency(totalRemaining)}</span>
                         </DialogDescription>
                     </DialogHeader>
                 </div>
@@ -159,37 +212,53 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
                         <div className="space-y-2">
                             <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pagamentos Adicionados</Label>
                             <div className="space-y-1.5">
-                                {entries.map((entry) => (
-                                    <div key={entry.id} className={cn(
-                                        "flex items-center gap-3 p-2.5 border rounded-xl animate-in fade-in slide-in-from-top-2 duration-200",
-                                        entry.method === 'fiado' ? "bg-rose-50 border-rose-200" : "bg-green-50 border-green-200"
-                                    )}>
-                                        <div className={cn("h-7 w-7 rounded-lg flex items-center justify-center text-white bg-gradient-to-br", getMethodColor(entry.method))}>
-                                            {getMethodIcon(entry.method)}
-                                        </div>
-                                        <div className="flex-1">
-                                            <span className="text-sm font-medium text-slate-700">{getMethodLabel(entry.method)}</span>
-                                            {entry.cashGiven && entry.cashGiven > entry.amount && (
-                                                <span className="text-xs text-amber-600 ml-2">
-                                                    (recebido R$ {entry.cashGiven.toFixed(2)})
-                                                </span>
-                                            )}
-                                        </div>
-                                        <span className={cn(
-                                            "text-sm font-bold",
-                                            entry.method === 'fiado' ? "text-rose-700" : "text-green-700"
+                                {entries.map((entry) => {
+                                    const isEditing = editingEntryId === entry.id
+                                    return (
+                                        <div key={entry.id} className={cn(
+                                            "flex items-center gap-3 p-2.5 border rounded-xl animate-in fade-in slide-in-from-top-2 duration-200",
+                                            isEditing ? "bg-purple-50 border-purple-300 ring-2 ring-purple-200" :
+                                            entry.method === 'fiado' ? "bg-rose-50 border-rose-200" : "bg-green-50 border-green-200"
                                         )}>
-                                            R$ {entry.amount.toFixed(2)}
-                                        </span>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleRemoveEntry(entry.id)}
-                                            className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-red-100 text-slate-400 hover:text-red-500 transition-colors"
-                                        >
-                                            <X className="h-3.5 w-3.5" />
-                                        </button>
-                                    </div>
-                                ))}
+                                            <div className={cn("h-7 w-7 rounded-lg flex items-center justify-center text-white bg-gradient-to-br", getMethodColor(entry.method))}>
+                                                {getMethodIcon(entry.method)}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <span className="text-sm font-medium text-slate-700">{getMethodLabel(entry.method)}</span>
+                                                {entry.cashGiven && entry.cashGiven > entry.amount && (
+                                                    <span className="text-xs text-amber-600 ml-2">
+                                                        (recebido {formatCurrency(entry.cashGiven)})
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <span className={cn(
+                                                "text-sm font-bold",
+                                                isEditing ? "text-purple-700" :
+                                                entry.method === 'fiado' ? "text-rose-700" : "text-green-700"
+                                            )}>
+                                                {formatCurrency(entry.amount)}
+                                            </span>
+                                            {!isEditing && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleEditEntry(entry)}
+                                                    className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-purple-100 text-slate-400 hover:text-purple-600 transition-colors"
+                                                    title="Editar"
+                                                >
+                                                    <Pencil className="h-3.5 w-3.5" />
+                                                </button>
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveEntry(entry.id)}
+                                                className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-red-100 text-slate-400 hover:text-red-500 transition-colors"
+                                                title="Remover"
+                                            >
+                                                <X className="h-3.5 w-3.5" />
+                                            </button>
+                                        </div>
+                                    )
+                                })}
                             </div>
 
                             {/* Progress bar */}
@@ -204,8 +273,8 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
                                     />
                                 </div>
                                 <div className="flex justify-between text-xs text-slate-500">
-                                    <span>Pago: R$ {entriesTotal.toFixed(2)}</span>
-                                    {!isFullyPaid && <span className="text-amber-600 font-medium">Falta: R$ {remaining.toFixed(2)}</span>}
+                                    <span>Pago: {formatCurrency(entriesTotal)}</span>
+                                    {!isFullyPaid && <span className="text-amber-600 font-medium">Falta: {formatCurrency(remaining)}</span>}
                                     {isFullyPaid && <span className="text-green-600 font-medium flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Completo!</span>}
                                 </div>
                             </div>
@@ -215,7 +284,7 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
                                 <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-xl">
                                     <Banknote className="h-5 w-5 text-amber-600" />
                                     <span className="text-sm font-semibold text-amber-800">
-                                        Troco: R$ {totalChange.toFixed(2)}
+                                        Troco: {formatCurrency(totalChange)}
                                     </span>
                                 </div>
                             )}
@@ -228,8 +297,23 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
                             {/* Payment Method Selection */}
                             <div className="space-y-3">
                                 <Label className="text-sm font-semibold text-slate-700">
-                                    {entries.length > 0 ? "Adicionar outro pagamento" : "Forma de Pagamento"}
+                                    {editingEntryId ? "Editando Pagamento" : entries.length > 0 ? "Adicionar outro pagamento" : "Forma de Pagamento"}
                                 </Label>
+                                {editingEntryId && (
+                                    <div className="flex items-center gap-2 p-2 bg-purple-50 border border-purple-200 rounded-lg">
+                                        <Pencil className="h-4 w-4 text-purple-600" />
+                                        <span className="text-sm text-purple-700 font-medium">Editando pagamento existente</span>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={handleCancelEdit}
+                                            className="ml-auto h-7 text-xs"
+                                        >
+                                            Cancelar
+                                        </Button>
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-2 gap-2">
                                     {PAYMENT_OPTIONS.map((option) => (
                                         <button
@@ -288,7 +372,7 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
                                                 Crédito do Cliente
                                             </span>
                                             <span className="text-xs text-green-500">
-                                                Saldo: R$ {availableCredit.toFixed(2)}
+                                                Saldo: {formatCurrency(availableCredit)}
                                                 {customerName && ` • ${customerName}`}
                                             </span>
                                         </div>
@@ -339,39 +423,75 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
                             <div className="space-y-3">
                                 <div className="space-y-2">
                                     <Label className="text-sm font-semibold text-slate-700">
-                                        {method === 'cash' ? 'Valor a cobrar (R$)' : 'Valor (R$)'}
+                                        {method === 'cash' ? 'Valor a cobrar' : 'Valor'}
                                     </Label>
-                                    <Input
-                                        type="number"
-                                        step="0.01"
-                                        value={amount}
-                                        onChange={(e) => {
-                                            const val = Number(e.target.value);
-                                            const limit = method === 'credit' ? Math.min(remaining, availableCredit) : remaining;
-                                            setAmount(Math.min(val, limit));
-                                        }}
-                                        className="h-12 text-lg font-bold text-center bg-white border-slate-200 rounded-xl"
-                                        max={method === 'credit' ? Math.min(remaining, availableCredit) : remaining}
-                                    />
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-slate-400">R$</span>
+                                        <Input
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={amountInput}
+                                            onChange={(e) => {
+                                                let val = e.target.value.replace(/[^\d,]/g, '')
+                                                // Limitar casas decimais
+                                                const parts = val.split(',')
+                                                if (parts.length > 1) {
+                                                    val = parts[0] + ',' + parts[1].slice(0, 2)
+                                                }
+                                                setAmountInput(val)
+                                            }}
+                                            onBlur={() => {
+                                                // Formatar ao sair do campo
+                                                const num = parseCurrency(amountInput)
+                                                if (num > 0) {
+                                                    setAmountInput(num.toFixed(2).replace('.', ','))
+                                                }
+                                            }}
+                                            placeholder="0,00"
+                                            className="h-14 text-xl font-bold text-center bg-white border-2 border-slate-200 rounded-xl pl-12 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                                        />
+                                    </div>
+                                    <p className="text-xs text-slate-500 text-center">
+                                        {method === 'credit' 
+                                            ? `Máximo: ${formatCurrency(Math.min(remaining, availableCredit))}`
+                                            : `Restante: ${formatCurrency(remaining)}`
+                                        }
+                                    </p>
                                 </div>
 
                                 {/* Cash: "Valor recebido" field for change calculation */}
                                 {method === 'cash' && (
                                     <div className="space-y-2">
-                                        <Label className="text-sm font-semibold text-slate-700">Valor recebido do cliente (R$)</Label>
-                                        <Input
-                                            type="number"
-                                            step="0.01"
-                                            value={cashGiven || ''}
-                                            onChange={(e) => setCashGiven(Number(e.target.value))}
-                                            placeholder={amount.toFixed(2)}
-                                            className="h-12 text-lg font-bold text-center bg-white border-slate-200 rounded-xl"
-                                        />
-                                        {cashGiven > amount && (
-                                            <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                                        <Label className="text-sm font-semibold text-slate-700">Valor recebido do cliente</Label>
+                                        <div className="relative">
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-slate-400">R$</span>
+                                            <Input
+                                                type="text"
+                                                inputMode="decimal"
+                                                value={cashGivenInput}
+                                                onChange={(e) => {
+                                                    let val = e.target.value.replace(/[^\d,]/g, '')
+                                                    const parts = val.split(',')
+                                                    if (parts.length > 1) {
+                                                        val = parts[0] + ',' + parts[1].slice(0, 2)
+                                                    }
+                                                    setCashGivenInput(val)
+                                                }}
+                                                onBlur={() => {
+                                                    const num = parseCurrency(cashGivenInput)
+                                                    if (num > 0) {
+                                                        setCashGivenInput(num.toFixed(2).replace('.', ','))
+                                                    }
+                                                }}
+                                                placeholder={amount > 0 ? amount.toFixed(2).replace('.', ',') : "0,00"}
+                                                className="h-14 text-xl font-bold text-center bg-white border-2 border-slate-200 rounded-xl pl-12 focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                                            />
+                                        </div>
+                                        {cashGiven > amount && amount > 0 && (
+                                            <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl animate-in fade-in slide-in-from-top-2">
                                                 <Banknote className="h-5 w-5 text-amber-600 shrink-0" />
                                                 <span className="text-sm font-bold text-amber-800">
-                                                    Troco: R$ {(cashGiven - amount).toFixed(2)}
+                                                    Troco: {formatCurrency(cashGiven - amount)}
                                                 </span>
                                             </div>
                                         )}
@@ -390,16 +510,30 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
                                 )}
                             </div>
 
-                            {/* Add Payment Button */}
+                            {/* Add/Update Payment Button */}
                             <Button
                                 type="button"
                                 onClick={handleAddEntry}
                                 variant="outline"
-                                className="w-full rounded-xl border-dashed border-2 border-purple-300 text-purple-600 hover:bg-purple-50 hover:border-purple-400 h-11"
+                                className={cn(
+                                    "w-full rounded-xl border-2 h-12 font-semibold transition-all",
+                                    editingEntryId 
+                                        ? "border-purple-400 bg-purple-50 text-purple-700 hover:bg-purple-100 hover:border-purple-500"
+                                        : "border-dashed border-purple-300 text-purple-600 hover:bg-purple-50 hover:border-purple-400"
+                                )}
                                 disabled={amount <= 0}
                             >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Adicionar Pagamento — R$ {amount.toFixed(2)}
+                                {editingEntryId ? (
+                                    <>
+                                        <Check className="h-4 w-4 mr-2" />
+                                        Salvar Alteração — {formatCurrency(amount)}
+                                    </>
+                                ) : (
+                                    <>
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Adicionar Pagamento — {formatCurrency(amount)}
+                                    </>
+                                )}
                             </Button>
                         </>
                     )}
@@ -418,7 +552,7 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
                                 <div className="flex items-center justify-center gap-2 mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
                                     <Banknote className="h-5 w-5 text-amber-600" />
                                     <span className="text-base font-bold text-amber-800">
-                                        Troco total: R$ {totalChange.toFixed(2)}
+                                        Troco total: {formatCurrency(totalChange)}
                                     </span>
                                 </div>
                             )}
@@ -438,10 +572,10 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
                         </Button>
                         <Button
                             onClick={handleFinalize}
-                            disabled={!isFullyPaid}
+                            disabled={!isFullyPaid || editingEntryId !== null}
                             className={cn(
                                 "rounded-xl shadow-lg px-8 transition-all",
-                                isFullyPaid
+                                isFullyPaid && !editingEntryId
                                     ? "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-green-500/20"
                                     : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
                             )}

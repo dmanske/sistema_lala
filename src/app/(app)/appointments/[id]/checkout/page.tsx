@@ -90,8 +90,8 @@ export default function AppointmentCheckoutPage() {
                     toast.success("Atendimento finalizado com sucesso!", {
                         duration: 3000,
                     })
-                    // Redirecionar após 5 segundos
-                    setTimeout(() => router.push('/agenda'), 5000)
+                    // Fechar animação após 3 segundos, mas permanecer no passo 3
+                    setTimeout(() => setShowCelebration(false), 3000)
                 }}
             />
 
@@ -116,9 +116,12 @@ export default function AppointmentCheckoutPage() {
                         </div>
 
                         <div className="pt-4">
-                            <div className="text-sm text-gray-500">
-                                Redirecionando para a agenda em alguns segundos...
-                            </div>
+                            <Button 
+                                onClick={() => router.push('/agenda')}
+                                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                            >
+                                Voltar para Agenda
+                            </Button>
                         </div>
                     </div>
                 </div>
