@@ -103,8 +103,8 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
 - [x] 3. Checkpoint - Verify grouping and navigation
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Phase 3: Transaction Details and Context
-  - [ ] 4.1 Create CashMovementDetailsDialog component
+- [x] 4. Phase 3: Transaction Details and Context
+  - [x] 4.1 Create CashMovementDetailsDialog component
     - Create `src/components/cash/CashMovementDetailsDialog.tsx` as client component
     - Use shadcn/ui Dialog component
     - Display complete transaction information (date/time, method, amount, customer/supplier)
@@ -113,13 +113,13 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Add clickable link to original sale/purchase using Next.js Link
     - _Requirements: AC3.1, AC3.2, AC3.4_
 
-  - [ ] 4.2 Add "Ver Detalhes" button to movement rows
+  - [x] 4.2 Add "Ver Detalhes" button to movement rows
     - Update CashList row rendering to include details button
     - Add onClick handler to open details dialog
     - Pass selected movement to dialog
     - _Requirements: AC3.1_
 
-  - [ ] 4.3 Enhance movement descriptions with customer/supplier names
+  - [x] 4.3 Enhance movement descriptions with customer/supplier names
     - Create utility function to enrich descriptions
     - Fetch customer/supplier name based on sourceId and sourceType
     - Update description format to include name (e.g., "Venda - João Silva")
@@ -140,8 +140,8 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Test handling of missing data
     - _Requirements: AC3.1, AC3.2, AC3.4_
 
-- [ ] 5. Phase 4: Advanced Filters
-  - [ ] 5.1 Create CashFilters component
+- [x] 5. Phase 4: Advanced Filters
+  - [x] 5.1 Create CashFilters component
     - Create `src/components/cash/CashFilters.tsx` as client component
     - Implement filter state management (type, method, source, searchText, bankAccountId)
     - Create UI with dropdown/button groups for each filter dimension
@@ -151,7 +151,7 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Add "Limpar Filtros" button
     - _Requirements: AC4.1, AC4.2, AC4.3, AC4.4, AC4.6, bank-accounts integration_
 
-  - [ ] 5.2 Implement filtering logic
+  - [x] 5.2 Implement filtering logic
     - Create `src/lib/cash/filterMovements.ts`
     - Implement type filter (ALL, IN, OUT)
     - Implement method filter (ALL, CASH, PIX, CARD, TRANSFER, WALLET)
@@ -180,7 +180,7 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Verify combined filters work correctly
     - Verify count matches filtered results
 
-  - [ ] 5.4 Integrate filters with CashList
+  - [x] 5.4 Integrate filters with CashList
     - Update cash page to include CashFilters component
     - Pass movements to filters
     - Update CashList to display filtered movements
@@ -194,7 +194,7 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Test result counter updates
     - _Requirements: AC4.1, AC4.2, AC4.3, AC4.4, AC4.6_
 
-- [ ] 6. Checkpoint - Verify filtering functionality
+- [x] 6. Checkpoint - Verify filtering functionality
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 7. Phase 5: Export Functionality

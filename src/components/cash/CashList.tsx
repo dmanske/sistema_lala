@@ -3,6 +3,7 @@
 import { CashMovement } from '@/core/domain/CashMovement'
 import { GroupedMovement, groupMovements } from '@/lib/cash/groupMovements'
 import { CashMovementGroup } from './CashMovementGroup'
+import { CashMovementDetailsDialog } from './CashMovementDetailsDialog'
 import {
     Table,
     TableBody,
@@ -11,6 +12,7 @@ import {
     TableHeader,
     TableRow
 } from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/utils"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -19,7 +21,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { SupabaseBankAccountRepository } from '@/infrastructure/repositories/supabase/SupabaseBankAccountRepository'
 import { createClient } from '@/lib/supabase/client'
 
-import { ArrowUpCircle, ArrowDownCircle, ShoppingBag, RotateCcw, Truck, Settings } from 'lucide-react'
+import { ArrowUpCircle, ArrowDownCircle, ShoppingBag, RotateCcw, Truck, Settings, Eye } from 'lucide-react'
 
 const SOURCE_ICONS: Record<string, React.ReactNode> = {
     SALE: <ShoppingBag className="h-3.5 w-3.5 text-emerald-500" />,
@@ -43,9 +45,16 @@ export function CashList({ movements }: CashListProps) {
     const [accountNames, setAccountNames] = useState<Record<string, string>>({})
     const [customerNames, setCustomerNames] = useState<Record<string, string>>({})
     const [supplierNames, setSupplierNames] = useState<Record<string, string>>({})
+    const [selectedMovement, setSelectedMovement] = useState<CashMovement | null>(null)
+    const [detailsOpen, setDetailsOpen] = useState(false)
 
     // Group movements
     const groupedMovements = useMemo(() => groupMovements(movements), [movements])
+
+    const handleViewDetails = (movement: CashMovement) => {
+        setSelectedMovement(movement)
+        setDetailsOpen(true)
+    }
 
     useEffect(() => {
         async function loadAccountNames() {
@@ -129,6 +138,7 @@ export function CashList({ movements }: CashListProps) {
                                 group={item}
                                 customerName={item.sourceType === 'SALE' ? customerNames[item.sourceId] : undefined}
                                 supplierName={item.sourceType === 'PURCHASE' ? supplierNames[item.sourceId] : undefined}
+                                onViewDetails={handleViewDetails}
                             />
                         )
                     } else {
@@ -178,6 +188,17 @@ export function CashList({ movements }: CashListProps) {
                                                     </div>
                                                 </div>
                                             </TableCell>
+                                            <TableCell className="w-[100px]">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleViewDetails(movement)}
+                                                    className="h-8"
+                                                >
+                                                    <Eye className="h-4 w-4 mr-1" />
+                                                    Detalhes
+                                                </Button>
+                                            </TableCell>
                                         </TableRow>
                                     </TableBody>
                                 </Table>
@@ -186,6 +207,12 @@ export function CashList({ movements }: CashListProps) {
                     }
                 })
             )}
+
+            <CashMovementDetailsDialog
+                open={detailsOpen}
+                onOpenChange={setDetailsOpen}
+                movement={selectedMovement}
+            />
         </div>
     )
 }

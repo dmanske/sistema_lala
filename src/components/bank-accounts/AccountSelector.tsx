@@ -8,14 +8,21 @@ import { BankAccountWithBalance } from '@/core/domain/BankAccount'
 
 interface AccountSelectorProps {
     value?: string
-    onValueChange: (value: string) => void
+    onChange?: (value: string) => void
+    onValueChange?: (value: string) => void
     placeholder?: string
+    allowAll?: boolean
 }
 
-export function AccountSelector({ value, onValueChange, placeholder = 'Selecione uma conta' }: AccountSelectorProps) {
+export function AccountSelector({ value, onChange, onValueChange, placeholder = 'Selecione uma conta', allowAll = false }: AccountSelectorProps) {
     const [accounts, setAccounts] = useState<BankAccountWithBalance[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+
+    const handleValueChange = (newValue: string) => {
+        if (onChange) onChange(newValue)
+        if (onValueChange) onValueChange(newValue)
+    }
 
     useEffect(() => {
         loadAccounts()
@@ -51,11 +58,14 @@ export function AccountSelector({ value, onValueChange, placeholder = 'Selecione
     }
 
     return (
-        <Select value={value} onValueChange={onValueChange}>
+        <Select value={value} onValueChange={handleValueChange}>
             <SelectTrigger>
                 <SelectValue placeholder={placeholder} />
             </SelectTrigger>
             <SelectContent>
+                {allowAll && (
+                    <SelectItem value="__ALL__">Todas as contas</SelectItem>
+                )}
                 {accounts.map((account) => (
                     <SelectItem key={account.id} value={account.id}>
                         {account.name} - {formatCurrency(account.currentBalance)}

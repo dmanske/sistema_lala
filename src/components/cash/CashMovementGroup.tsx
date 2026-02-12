@@ -1,16 +1,19 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, ShoppingCart, Package } from 'lucide-react'
+import { ChevronDown, ChevronRight, ShoppingCart, Package, Eye } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { MovementGroup } from '@/lib/cash/groupMovements'
+import { CashMovement } from '@/core/domain/CashMovement'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 interface CashMovementGroupProps {
     group: MovementGroup
     customerName?: string
     supplierName?: string
+    onViewDetails: (movement: CashMovement) => void
 }
 
 const formatCurrency = (value: number): string => {
@@ -28,7 +31,7 @@ const getMethodLabel = (method: string): string => {
     return labels[method] || method
 }
 
-export function CashMovementGroup({ group, customerName, supplierName }: CashMovementGroupProps) {
+export function CashMovementGroup({ group, customerName, supplierName, onViewDetails }: CashMovementGroupProps) {
     const [expanded, setExpanded] = useState(false)
 
     const isSale = group.sourceType === 'SALE'
@@ -106,6 +109,20 @@ export function CashMovementGroup({ group, customerName, supplierName }: CashMov
 
                             <div className="font-semibold text-slate-900 min-w-[100px] text-right">
                                 {formatCurrency(movement.amount)}
+                            </div>
+
+                            <div className="ml-2">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        onViewDetails(movement)
+                                    }}
+                                    className="h-7 px-2"
+                                >
+                                    <Eye className="h-3 w-3" />
+                                </Button>
                             </div>
                         </div>
                     ))}
