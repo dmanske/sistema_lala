@@ -1,6 +1,6 @@
 # 📋 INVENTÁRIO COMPLETO DO SISTEMA LALA
 **Data:** 12/02/2026
-**Status:** CONSOLIDADO V2.4 (12/02/2026) - INLINE CLIENT CREATION + MELHORIAS CHECKOUT + AGENDA + PAGAMENTOS
+**Status:** CONSOLIDADO V2.4 (12/02/2026) - SISTEMA FINANCEIRO COMPLETO EM DESENVOLVIMENTO
 
 ---
 
@@ -1099,3 +1099,236 @@ Todas as 27 referências diretas a `new LocalStorage*Repository()` foram substit
   - `refund_sale`
 
 ---
+
+
+---
+
+## 🆕 ATUALIZAÇÕES RECENTES (V2.4) - SISTEMA FINANCEIRO COMPLETO
+
+### 📊 SISTEMA DE CONTAS BANCÁRIAS (NOVO) 🚧 EM DESENVOLVIMENTO
+
+**Status:** Especificação completa, implementação iniciando  
+**Localização:** `/contas`, `/contas/[id]`  
+**Spec:** `.kiro/specs/bank-accounts/`
+
+#### Funcionalidades:
+- ✅ **Especificação Completa:**
+  - Requirements.md com 14 requisitos detalhados
+  - Design.md com arquitetura completa e 25 propriedades de corretude
+  - Tasks.md com 18 tarefas principais (3-4 dias de implementação)
+
+- 🚧 **Gestão de Contas Bancárias:**
+  - CRUD de contas (criar, editar, desativar)
+  - Tipos de conta: Banco, Cartão de Crédito, Carteira Digital
+  - Saldo inicial e saldo atual calculado
+  - Ativação/desativação (soft delete)
+  - Lista de contas com saldos em tempo real
+
+- 🚧 **Integração com Movimentações:**
+  - Toda movimentação de caixa vinculada a uma conta bancária
+  - Campo `bank_account_id` adicionado à tabela `cash_movements`
+  - Validação: conta deve existir e estar ativa
+  - Migração de dados existentes para conta padrão "Caixa Geral"
+
+- 🚧 **Seleção de Conta em Pagamentos:**
+  - Checkout: Selecionar conta de destino para cada método de pagamento
+  - Compras: Selecionar conta de origem para pagamentos
+  - Recarga de crédito: Selecionar conta de destino
+  - Movimentos manuais: Selecionar conta
+
+- 🚧 **Extrato por Conta:**
+  - Página de detalhes da conta (`/contas/[id]`)
+  - Lista todas as movimentações da conta
+  - Resumo: Saldo Inicial, Total Entradas, Total Saídas, Saldo Atual
+  - Filtro por período
+  - Link para transação original (venda, compra, etc)
+
+- 🚧 **Componentes Novos:**
+  - `AccountSelector` - Dropdown para selecionar conta
+  - `BankAccountsList` - Lista de contas com saldos
+  - `BankAccountDialog` - Formulário criar/editar conta
+  - `AccountStatementView` - Extrato da conta
+
+#### Banco de Dados:
+```sql
+-- Nova tabela
+CREATE TABLE bank_accounts (
+  id UUID PRIMARY KEY,
+  tenant_id UUID NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  type VARCHAR(20) NOT NULL, -- BANK, CARD, WALLET
+  initial_balance DECIMAL(10,2) DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+);
+
+-- Alteração em tabela existente
+ALTER TABLE cash_movements 
+ADD COLUMN bank_account_id UUID REFERENCES bank_accounts(id);
+```
+
+#### Funções RPC Atualizadas:
+- `pay_sale` - Agora requer `bank_account_id`
+- `create_purchase_with_movements` - Agora requer `bank_account_id`
+- `add_client_credit` - Agora requer `bank_account_id`
+
+---
+
+### 💰 MELHORIAS NA PÁGINA DE CAIXA (NOVO) 🚧 EM DESENVOLVIMENTO
+
+**Status:** Especificação completa, implementação após bank-accounts  
+**Localização:** `/cash`  
+**Spec:** `.kiro/specs/cash-improvements/`
+
+#### Funcionalidades:
+- ✅ **Especificação Completa:**
+  - Requirements.md com 7 user stories
+  - Design.md com arquitetura e 11 propriedades de corretude
+  - Tasks.md com 10 tarefas principais (6 dias de implementação)
+  - **ATUALIZADO** para incluir integração com contas bancárias
+
+- 🚧 **Navegação Temporal Melhorada:**
+  - Controles de mês/ano com botões "< Anterior" e "Próximo >"
+  - Exibição clara do período selecionado (ex: "Janeiro 2026")
+  - Filtros rápidos: Hoje, Ontem, 7 Dias, 30 Dias, Mês Atual, Ano Atual
+  - Seletor de data customizado com calendário (react-day-picker)
+  - Feedback visual do filtro ativo
+
+- 🚧 **Agrupamento de Pagamentos:**
+  - Vendas com múltiplos pagamentos aparecem como grupo expansível
+  - Linha principal mostra: Cliente, Total, Ícone de expansão
+  - Ao expandir: cada método de pagamento com valor e conta
+  - Troco exibido quando aplicável
+  - Visual diferenciado (borda, cor de fundo)
+  - Compras também agrupadas
+
+- 🚧 **Detalhes e Contexto:**
+  - Botão "Ver Detalhes" em cada movimentação
+  - Modal mostra: Cliente/Fornecedor, Data/Hora, Métodos, Itens, Notas, Conta
+  - Link clicável para venda/compra original
+  - Descrições enriquecidas com nome do cliente/fornecedor
+
+- 🚧 **Filtros Avançados:**
+  - Filtro por tipo: Todas, Entradas, Saídas
+  - Filtro por método: Todos, PIX, Cartão, Dinheiro, Transferência
+  - Filtro por origem: Todas, Venda, Compra, Estorno, Manual
+  - **Filtro por conta bancária** (integração com bank-accounts)
+  - Busca por texto (cliente, fornecedor, descrição)
+  - Filtros combinados com lógica AND
+  - Contador de resultados
+
+- 🚧 **Exportação:**
+  - Botão "Exportar" no topo da página
+  - Opções: PDF e Excel/CSV
+  - PDF formatado com logo, período, resumo e lista
+  - **Resumo por conta bancária** no PDF
+  - Excel/CSV com todas as colunas incluindo conta
+  - Exportação respeita filtros ativos
+
+- 🚧 **Resumos e Análises:**
+  - Card "Resumo por Método" com totais por PIX, Cartão, etc
+  - **Card "Resumo por Conta"** com totais por banco/cartão (NOVO)
+  - Gráficos de pizza/barras (recharts)
+  - Link para extrato da conta
+  - Resumos respeitam filtros ativos
+
+- 🚧 **Coluna de Conta:**
+  - Todas as movimentações mostram nome da conta bancária
+  - Integração visual em toda a interface
+  - Agrupamento considera conta
+
+#### Componentes Novos:
+- `DateNavigator` - Navegação temporal melhorada
+- `CashFilters` - Barra de filtros avançados
+- `CashMovementGroup` - Grupo expansível de pagamentos
+- `CashMovementDetailsDialog` - Modal de detalhes
+- `PaymentMethodSummary` - Resumo por método
+- `AccountSummary` - Resumo por conta bancária (NOVO)
+- `ExportButton` - Exportação PDF/CSV
+
+#### Dependências Novas:
+```json
+{
+  "jspdf": "^2.5.1",
+  "jspdf-autotable": "^3.8.2",
+  "papaparse": "^5.4.1",
+  "recharts": "^2.10.3"
+}
+```
+
+---
+
+### 📋 ROADMAP DE IMPLEMENTAÇÃO
+
+**Documento Consolidado:** `.kiro/specs/IMPLEMENTATION_ROADMAP.md`
+
+#### Fase 1: Sistema de Contas Bancárias (Dias 1-4)
+- Dia 1: Database e Domain Layer (8 tasks)
+- Dia 2: Repository e Use Cases (9 tasks)
+- Dia 3: Integração Cash Movements e RPC (6 tasks)
+- Dia 4: UI Components e Integração (11 tasks)
+- **Total:** 34 tasks principais
+
+#### Fase 2: Melhorias do Caixa (Dias 5-10)
+- Dia 5: Enhanced Date Navigation (4 tasks)
+- Dia 6: Payment Grouping (4 tasks)
+- Dia 7: Transaction Details (3 tasks)
+- Dia 8: Advanced Filters (3 tasks)
+- Dia 9: Export Functionality (5 tasks)
+- Dia 10: Summaries (6 tasks)
+- Final: Integration and Polish (3 tasks)
+- **Total:** 28 tasks principais
+
+#### Documentação Final:
+- Atualizar PRD (docs/PRD_LALA_TESTSPRITE.md)
+- Atualizar Inventário (INVENTARIO_COMPLETO.md)
+
+**Total Geral:** 64 tasks principais  
+**Estimativa:** 9-10 dias de desenvolvimento
+
+---
+
+### 🎯 COMO USAR O ROADMAP
+
+O documento `.kiro/specs/IMPLEMENTATION_ROADMAP.md` contém:
+- Ordem exata de execução de todas as tasks
+- Descrição detalhada de cada task
+- Critérios de validação
+- Checkpoints para garantir qualidade
+- Comandos para executar tasks
+
+**Para iniciar:**
+```
+"Executar Task 1.1"
+"Executar todas as tasks do Dia 1"
+"Executar todas as tasks do roadmap"
+```
+
+---
+
+### 🔗 INTEGRAÇÃO COMPLETA
+
+O sistema financeiro ficará completamente integrado:
+
+```
+CONTAS BANCÁRIAS
+    ↓
+CASH MOVEMENTS (com bank_account_id)
+    ↓
+┌─────────┬──────────┬──────────┬──────────┐
+│ VENDAS  │ COMPRAS  │ CRÉDITO  │ MANUAL   │
+└─────────┴──────────┴──────────┴──────────┘
+    ↓         ↓          ↓          ↓
+CLIENTES  FORNECEDORES  CLIENTES  DESPESAS
+```
+
+**Rastreabilidade Total:**
+- Cada centavo tem origem (venda/compra) e destino (conta)
+- Saldo de cada conta em tempo real
+- Reconciliação bancária facilitada
+- Relatórios gerenciais completos
+- Auditoria completa de movimentações
+
+---
+

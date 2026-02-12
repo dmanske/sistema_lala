@@ -1,8 +1,8 @@
 # Product Requirements Document (PRD) - Lala System
 
-**Version:** 2.1
+**Version:** 2.2
 **Date:** 2026-02-12
-**Status:** Production Ready - Enhanced Checkout & Payment Experience
+**Status:** In Development - Financial System Overhaul
 
 ## 1. Product Overview
 Lala System is a production-ready SaaS management platform for beauty salons, designed to streamline operations including scheduling, client management, inventory control, and financial transactions. Built with Next.js 15, TypeScript, and Supabase backend.
@@ -95,14 +95,23 @@ Lala System is a production-ready SaaS management platform for beauty salons, de
 - **Acceptance Criteria 5:** Low stock alerts when currentStock ≤ minStock.
 - **Acceptance Criteria 6:** Stock automatically reduced on sale payment, restored on refund.
 
-### 3.6. Cash Management
-**User Story:** As a User, I want complete financial tracking with automatic ledger entries.
-- **Acceptance Criteria 1:** Cash ledger tracks all IN/OUT movements with method, amount, source, and date.
+### 3.6. Cash Management & Bank Accounts
+**User Story:** As a User, I want complete financial tracking with bank account integration and automatic ledger entries.
+- **Acceptance Criteria 1:** Cash ledger tracks all IN/OUT movements with method, amount, source, bank account, and date.
 - **Acceptance Criteria 2:** Automatic entries created from: Sales (IN), Purchases (OUT), Refunds (OUT), Manual Credit (IN).
 - **Acceptance Criteria 3:** Payment methods tracked: CASH, PIX, CARD, TRANSFER, WALLET.
 - **Acceptance Criteria 4:** Fiado and Credit payments excluded from cash ledger (internal balance only).
 - **Acceptance Criteria 5:** Date filtering and period summaries (total in, total out, balance).
 - **Acceptance Criteria 6:** Manual transaction entry for adjustments and external movements.
+- **Acceptance Criteria 7:** User can register bank accounts (banks, cards, digital wallets) to track where money is stored.
+- **Acceptance Criteria 8:** Every cash movement is linked to a specific bank account.
+- **Acceptance Criteria 9:** User can view account statement showing all movements and balance for each account.
+- **Acceptance Criteria 10:** Cash page shows account information in all movements and allows filtering by account.
+- **Acceptance Criteria 11:** Enhanced navigation with month/year controls and custom date range picker.
+- **Acceptance Criteria 12:** Payment grouping shows multiple payments from same sale as expandable group.
+- **Acceptance Criteria 13:** Advanced filters by type, method, source, account, and text search.
+- **Acceptance Criteria 14:** Export functionality to PDF and Excel/CSV with account breakdown.
+- **Acceptance Criteria 15:** Summary cards show totals by payment method and by bank account.
 
 ### 3.7. Credit System
 **User Story:** As a User, I want to manage client credit balances for prepayment and debt tracking.
@@ -140,7 +149,11 @@ Lala System is a production-ready SaaS management platform for beauty salons, de
 - **Cash Change:** Automatic calculation when cash given > amount due, displayed in payment summary.
 - **Credit Payment:** Deducts from client's positive credit balance.
 - **Fiado (Debt):** Creates negative client balance, excluded from cash ledger, marked with red indicator.
-- **Cash Ledger:** Automatic entries for PIX, Card, Cash, Transfer with descriptive labels including customer/supplier name and change amount.
+- **Cash Ledger:** Automatic entries for PIX, Card, Cash, Transfer with descriptive labels including customer/supplier name, change amount, and bank account.
+- **Bank Accounts:** Every cash movement is linked to a bank account (bank, card, or digital wallet).
+- **Account Selection:** User selects destination/source account for each payment method.
+- **Account Balances:** Real-time balance calculation from initial balance + movements.
+- **Account Statements:** Complete movement history per account with balance tracking.
 - **Refunds:** Reverse stock movements, create negative cash entries, allow re-payment.
 - **Duplicate Prevention:** System blocks payment processing on already-paid sales.
 
@@ -184,12 +197,12 @@ Lala System is a production-ready SaaS management platform for beauty salons, de
   - `src/lib/` - Utilities and Supabase clients
 
 ### 5.3. Database
-- **Tables:** 17 tables (tenants, profiles, clients, professionals, services, products, product_movements, suppliers, purchases, purchase_items, appointments, sales, sale_items, sale_payments, cash_movements, credit_movements, appointment_series)
+- **Tables:** 18 tables (tenants, profiles, clients, professionals, services, products, product_movements, suppliers, purchases, purchase_items, appointments, sales, sale_items, sale_payments, cash_movements, credit_movements, appointment_series, bank_accounts)
 - **Security:** Row Level Security (RLS) policies on ALL tables
-- **Stored Procedures:** pay_sale, refund_sale, create_purchase (atomic operations)
+- **Stored Procedures:** pay_sale, refund_sale, create_purchase, add_client_credit, create_purchase_with_movements (atomic operations)
 - **Triggers:** updated_at auto-update on all tables
 - **ID Format:** UUID (v4) for all entities
-- **Indexes:** Optimized for tenant_id filtering and common queries
+- **Indexes:** Optimized for tenant_id filtering, bank_account_id joins, and common queries
 
 ### 5.4. Authentication & Authorization
 - **Method:** Supabase Auth (email/password)
@@ -291,7 +304,30 @@ Lala System is a production-ready SaaS management platform for beauty salons, de
 - Period summaries (total in, out, balance)
 - Payment method tracking
 
-### 7.9. Credit System ✅
+### 7.9. Bank Accounts System 🚧 (In Development)
+- Bank account registration (banks, cards, wallets)
+- Account types: Bank, Card, Digital Wallet
+- Initial balance tracking
+- Account activation/deactivation
+- Account statement with movement history
+- Real-time balance calculation
+- Integration with all payment flows
+- Account selection in checkout/purchases/credit
+- Migration of existing data to default account
+
+### 7.10. Enhanced Cash Page 🚧 (In Development)
+- Enhanced date navigation (month/year controls)
+- Custom date range picker with calendar
+- Payment grouping (multiple payments from same sale)
+- Transaction details modal with links
+- Advanced filters (type, method, source, account, text search)
+- Export to PDF with account breakdown
+- Export to Excel/CSV
+- Summary by payment method
+- Summary by bank account
+- Account column in movement list
+
+### 7.11. Credit System ✅
 - Add credit manually
 - Credit movement history
 - Automatic balance calculation
@@ -299,14 +335,14 @@ Lala System is a production-ready SaaS management platform for beauty salons, de
 - Origin tracking (CASH, PIX, CARD, WALLET)
 - Debt (Fiado) tracking
 
-### 7.10. Dashboard ✅
+### 7.12. Dashboard ✅
 - Revenue statistics (total, average, profit)
 - Critical stock alerts
 - Top services (revenue, frequency)
 - Product revenue/profit
 - Period filtering
 
-### 7.11. Multi-Tenant Infrastructure ✅
+### 7.13. Multi-Tenant Infrastructure ✅
 - Tenant creation on signup
 - RLS policies on all tables
 - Repository factory pattern
@@ -364,7 +400,56 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 
 ## 11. Changelog
 
-### Version 2.2 (2026-02-12) - Appointment Client Creation Flow
+### Version 2.2 (2026-02-12) - Financial System Overhaul 🚧 IN DEVELOPMENT
+
+**Bank Accounts System (NEW):**
+- Complete bank account management (CRUD operations)
+- Account types: Bank (Banco), Card (Cartão), Digital Wallet (Carteira)
+- Initial balance tracking with real-time balance calculation
+- Account activation/deactivation (soft delete)
+- Account statement view with complete movement history
+- Integration with all payment flows (sales, purchases, credit, manual)
+- Account selection required for every cash movement
+- Migration strategy for existing data (default "Caixa Geral" account)
+- New page: `/contas` (account list) and `/contas/[id]` (account statement)
+
+**Enhanced Cash Page (NEW):**
+- Improved date navigation with month/year controls and arrows
+- Custom date range picker with calendar interface
+- Quick filters: Hoje, Ontem, 7 Dias, 30 Dias, Mês Atual, Ano Atual
+- Payment grouping: Multiple payments from same sale shown as expandable group
+- Transaction details modal with complete information and links
+- Advanced filters: type (IN/OUT), method, source, account, text search
+- Filter combination with AND logic and result counter
+- Export to PDF with account breakdown and summary
+- Export to Excel/CSV with all columns including account
+- Summary card by payment method (bar/pie chart)
+- Summary card by bank account with balances
+- Account column in all movement displays
+
+**Database Changes:**
+- New table: `bank_accounts` (id, tenant_id, name, type, initial_balance, is_active)
+- Updated table: `cash_movements` (added bank_account_id foreign key)
+- Updated RPC functions: `pay_sale`, `create_purchase_with_movements`, `add_client_credit` (now require bank_account_id)
+- Migration scripts for existing data
+
+**Technical Implementation:**
+- New domain models: BankAccount, BankAccountWithBalance, AccountStatement
+- New use cases: CreateBankAccount, UpdateBankAccount, DeactivateBankAccount, ListBankAccounts, GetAccountStatement
+- New repository: BankAccountRepository with Supabase implementation
+- New components: AccountSelector, BankAccountsList, BankAccountDialog, AccountStatementView
+- Updated components: PaymentDialog, PurchaseForm, RegisterCreditDialog, NewTransactionDialog, CashList
+- New utilities: groupMovements, filterMovements, aggregateByMethod, aggregateByAccount, exportToPDF, exportToCSV
+- New dependencies: jspdf, jspdf-autotable, papaparse, recharts
+
+**User Experience:**
+- Seamless account selection in all payment flows
+- Visual account information throughout the system
+- Comprehensive filtering and search capabilities
+- Professional export functionality for reporting
+- Clear financial overview with multiple summary views
+
+### Version 2.1 (2026-02-12) - Enhanced Checkout & Payment Experience
 
 **Appointment Form Improvements:**
 - Added inline client creation modal during appointment scheduling
@@ -386,8 +471,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 - On save, client is automatically selected in appointment
 - Toast confirmation of successful creation and selection
 - No page navigation or context loss
-
-### Version 2.1 (2026-02-12) - Enhanced Checkout & Payment Experience
 
 **Checkout Improvements:**
 - Added 3-step progress indicator (Items → Payment → Completed)

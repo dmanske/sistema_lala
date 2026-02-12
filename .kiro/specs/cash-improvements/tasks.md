@@ -4,6 +4,8 @@
 
 This implementation plan breaks down the Cash Page improvements into 6 phases following the timeline from requirements. Each phase builds incrementally on previous work, with testing integrated throughout. The plan follows the existing Next.js 14 App Router architecture with server/client component patterns and the repository/use case structure.
 
+**IMPORTANT**: This spec assumes the Bank Accounts System (bank-accounts) has been fully implemented first. All cash movements will have an associated bank account, and this implementation will integrate account information throughout.
+
 ## Tasks
 
 - [ ] 1. Phase 1: Enhanced Date Navigation
@@ -86,8 +88,10 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Update `src/components/cash/CashList.tsx` to accept grouped data
     - Render CashMovementGroup for grouped items
     - Render regular rows for single movements
+    - Add "Conta" column showing bank account name
+    - Include account info in movement display
     - Maintain existing table structure and styling
-    - _Requirements: AC2.1, AC2.6_
+    - _Requirements: AC2.1, AC2.6, AC4.1 (account integration)_
 
   - [ ]* 2.7 Write unit tests for CashMovementGroup
     - Test expand/collapse toggle
@@ -139,22 +143,24 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
 - [ ] 5. Phase 4: Advanced Filters
   - [ ] 5.1 Create CashFilters component
     - Create `src/components/cash/CashFilters.tsx` as client component
-    - Implement filter state management (type, method, source, searchText)
+    - Implement filter state management (type, method, source, searchText, bankAccountId)
     - Create UI with dropdown/button groups for each filter dimension
+    - Add AccountSelector dropdown for filtering by account (from bank-accounts system)
     - Add text search input with debounce (300ms)
     - Display result counter showing filtered count
     - Add "Limpar Filtros" button
-    - _Requirements: AC4.1, AC4.2, AC4.3, AC4.4, AC4.6_
+    - _Requirements: AC4.1, AC4.2, AC4.3, AC4.4, AC4.6, bank-accounts integration_
 
   - [ ] 5.2 Implement filtering logic
     - Create `src/lib/cash/filterMovements.ts`
     - Implement type filter (ALL, IN, OUT)
     - Implement method filter (ALL, CASH, PIX, CARD, TRANSFER, WALLET)
     - Implement source filter (ALL, SALE, REFUND, PURCHASE, MANUAL)
+    - Implement account filter (ALL, or specific account ID)
     - Implement text search (case-insensitive, searches description)
     - Combine filters with AND logic
     - Use useMemo for performance optimization
-    - _Requirements: AC4.1, AC4.2, AC4.3, AC4.4, AC4.5_
+    - _Requirements: AC4.1, AC4.2, AC4.3, AC4.4, AC4.5, bank-accounts integration_
 
   - [ ]* 5.3 Write property tests for filtering
     - **Property 4: Type Filter Correctness**
@@ -212,18 +218,19 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Include company logo (if available)
     - Add period header (e.g., "Período: 01/01/2026 - 31/01/2026")
     - Add summary section (total in, total out, balance)
-    - Add movement list table with all columns
+    - Add summary by account (breakdown per bank account)
+    - Add movement list table with all columns including account
     - Format currency values correctly (R$ 1.234,56)
-    - _Requirements: AC6.3, AC6.4_
+    - _Requirements: AC6.3, AC6.4, bank-accounts integration_
 
   - [ ] 7.4 Implement CSV export
     - Create `src/lib/cash/exportToCSV.ts`
     - Use papaparse to generate CSV
-    - Include all columns: date, time, description, method, source, type, amount
+    - Include all columns: date, time, description, method, source, type, amount, account
     - Use semicolon as delimiter (Brazilian standard)
     - Format dates as DD/MM/YYYY
     - Format amounts with comma as decimal separator
-    - _Requirements: AC6.3, AC6.5_
+    - _Requirements: AC6.3, AC6.5, bank-accounts integration_
 
   - [ ]* 7.5 Write property test for export data consistency
     - **Property 10: Export Data Consistency**
@@ -247,7 +254,7 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Pass filtered movements, summary, and period as props
     - _Requirements: AC6.1_
 
-- [ ] 8. Phase 6: Payment Method Summary
+- [ ] 8. Phase 6: Payment Method Summary and Account Summary
   - [ ] 8.1 Install chart library
     - Add recharts to package.json
     - Run npm install
@@ -261,34 +268,56 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Respect filtered movements (receives filtered data as prop)
     - _Requirements: AC7.1, AC7.2, AC7.3, AC7.4_
 
-  - [ ] 8.3 Implement aggregation logic
+  - [ ] 8.3 Create AccountSummary component
+    - Create `src/components/cash/AccountSummary.tsx` as client component
+    - Create card component with glassmorphism styling
+    - Display list of bank accounts with totals (IN, OUT, balance)
+    - Add simple bar chart showing balance per account
+    - Respect filtered movements (receives filtered data as prop)
+    - Link to account statement page (/contas/[id])
+    - _Requirements: bank-accounts integration, AC7.4_
+
+  - [ ] 8.4 Implement aggregation logic
     - Create `src/lib/cash/aggregateByMethod.ts`
     - Group movements by payment method
     - Calculate total for each method (sum of IN movements)
     - Return sorted by total (highest first)
     - _Requirements: AC7.2_
 
-  - [ ]* 8.4 Write property test for aggregation
+  - [ ] 8.5 Implement account aggregation logic
+    - Create `src/lib/cash/aggregateByAccount.ts`
+    - Group movements by bank account
+    - Calculate total IN, total OUT, and balance for each account
+    - Return sorted by balance (highest first)
+    - _Requirements: bank-accounts integration_
+
+  - [ ]* 8.6 Write property test for aggregation
     - **Property 11: Payment Method Aggregation Correctness**
     - **Validates: Requirements AC7.2, AC7.4**
-    - Generate random movements with various methods
+    - **Property 12: Account Aggregation Correctness**
+    - **Validates: bank-accounts integration**
+    - Generate random movements with various methods and accounts
     - Verify sum per method is correct
+    - Verify sum per account is correct
     - Verify total across methods equals overall total
+    - Verify total across accounts equals overall total
     - Verify aggregation respects filters
 
-  - [ ]* 8.5 Write unit tests for PaymentMethodSummary
-    - Test aggregation calculation
+  - [ ]* 8.7 Write unit tests for summary components
+    - Test method aggregation calculation
+    - Test account aggregation calculation
     - Test chart rendering
     - Test empty state (no movements)
-    - Test single method
+    - Test single method/account
     - _Requirements: AC7.1, AC7.2, AC7.3_
 
-  - [ ] 8.6 Add PaymentMethodSummary to cash page
+  - [ ] 8.8 Add summary components to cash page
     - Update `src/app/(app)/cash/page.tsx`
     - Add PaymentMethodSummary card below CashSummaryCards
-    - Pass filtered movements as prop
+    - Add AccountSummary card below PaymentMethodSummary
+    - Pass filtered movements as prop to both
     - Ensure responsive layout (grid)
-    - _Requirements: AC7.1, AC7.4_
+    - _Requirements: AC7.1, AC7.4, bank-accounts integration_
 
 - [ ] 9. Final Integration and Polish
   - [ ] 9.1 Update cash page with all components
@@ -325,15 +354,17 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
 
 ## Notes
 
+- **PREREQUISITE**: The Bank Accounts System (bank-accounts spec) MUST be fully implemented before starting these tasks
 - Tasks marked with `*` are optional and can be skipped for faster MVP
 - Each task references specific requirements for traceability
 - Checkpoints ensure incremental validation
 - Property tests validate universal correctness properties using fast-check
 - Unit tests validate specific examples and edge cases
 - All new components follow existing patterns (glassmorphism, repository pattern)
-- No database changes required - all functionality in frontend
+- No additional database changes required (bank_account_id already added by bank-accounts spec)
 - Export libraries are lazy loaded to minimize initial bundle size
 - Filtering and grouping use useMemo for performance optimization
+- Account information is integrated throughout: filters, display, grouping, export, and summaries
 
 ## Testing Configuration
 
