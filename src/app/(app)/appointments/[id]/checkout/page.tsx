@@ -38,6 +38,11 @@ export default function AppointmentCheckoutPage() {
                     createdBy: 'system'
                 })
                 setSaleId(sale.id)
+                
+                // Se a venda já está paga, ir direto para o passo 3
+                if (sale.status === 'paid') {
+                    setCheckoutStep('completed')
+                }
             } catch (error) {
                 toast.error("Erro ao iniciar caixa")
                 console.error(error)

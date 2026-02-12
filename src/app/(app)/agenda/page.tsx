@@ -12,7 +12,8 @@ import {
     Search,
     Filter,
     ShoppingCart,
-    Eye
+    Eye,
+    CheckCircle2
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks, addMonths, subMonths, startOfMonth, endOfMonth, getDay } from "date-fns";
@@ -577,6 +578,16 @@ export default function AgendaPage() {
             >
                 {/* Accent Bar Left (Visual indicator) */}
                 <div className={cn("absolute left-0 top-0 bottom-0", isCompactMode ? "w-[2px]" : "w-[3px]", style.accent)} />
+
+                {/* Paid Indicator - Discrete checkmark in top-right corner */}
+                {paidAppointments.has(apt.id) && apt.status !== "BLOCKED" && (
+                    <div className="absolute top-1 right-1 z-10">
+                        <CheckCircle2 className={cn(
+                            "text-emerald-600 drop-shadow-sm",
+                            isCompactMode ? "h-3 w-3" : "h-3.5 w-3.5"
+                        )} />
+                    </div>
+                )}
 
                 <div className={cn("flex flex-col h-full justify-center", isCompactMode ? "pl-0.5 gap-0" : "pl-1 gap-0.5")}>
                     {apt.status === "BLOCKED" ? (
@@ -1261,7 +1272,7 @@ export default function AgendaPage() {
                                                                         <PopoverTrigger asChild>
                                                                             <div
                                                                                 className={cn(
-                                                                                    "text-[10px] px-2 py-1.5 rounded-lg truncate cursor-pointer transition-all border flex items-center gap-1.5",
+                                                                                    "text-[10px] px-2 py-1.5 rounded-lg truncate cursor-pointer transition-all border flex items-center gap-1.5 relative",
                                                                                     style.bg,
                                                                                     style.text,
                                                                                     style.border,
@@ -1271,6 +1282,9 @@ export default function AgendaPage() {
                                                                                 <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", style.accent)} />
                                                                                 <span className="font-bold opacity-75">{apt.startTime}</span>
                                                                                 <span className="truncate flex-1">{getServiceNames(apt.services).split(',')[0]}</span>
+                                                                                {paidAppointments.has(apt.id) && apt.status !== "BLOCKED" && (
+                                                                                    <CheckCircle2 className="h-2.5 w-2.5 text-emerald-600 shrink-0" />
+                                                                                )}
                                                                             </div>
                                                                         </PopoverTrigger>
                                                                         <PopoverContent className="w-80 p-0 rounded-2xl shadow-xl z-50 border-slate-100 bg-white/80 backdrop-blur-xl" align="start">
