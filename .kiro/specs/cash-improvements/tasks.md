@@ -8,22 +8,22 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
 
 ## Tasks
 
-- [ ] 1. Phase 1: Enhanced Date Navigation
-  - [ ] 1.1 Create DateNavigator component replacing DateFilter
+- [x] 1. Phase 1: Enhanced Date Navigation
+  - [x] 1.1 Create DateNavigator component replacing DateFilter
     - Create `src/components/cash/DateNavigator.tsx` as client component
     - Implement month/year display with clear formatting (e.g., "Janeiro 2026")
     - Add Previous/Next month navigation buttons with icons
     - Use `useRouter` and `useSearchParams` for URL manipulation
     - _Requirements: AC1.1, AC1.2_
 
-  - [ ] 1.2 Implement quick filter buttons with visual feedback
+  - [x] 1.2 Implement quick filter buttons with visual feedback
     - Add filter buttons: Hoje, Ontem, 7 Dias, 30 Dias, Mês Atual, Ano Atual
     - Implement active filter highlighting (different background/border)
     - Calculate date ranges using date-fns functions
     - Update URL params on filter selection
     - _Requirements: AC1.4, AC1.5_
 
-  - [ ] 1.3 Integrate date range picker with calendar
+  - [x] 1.3 Integrate date range picker with calendar
     - Add "Selecionar Período" button that opens calendar dialog
     - Use shadcn/ui Calendar component (react-day-picker)
     - Implement date range selection (start and end dates)
@@ -38,14 +38,14 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Test active filter visual feedback
     - _Requirements: AC1.1, AC1.2, AC1.4, AC1.5_
 
-  - [ ] 1.5 Update cash page to use DateNavigator
+  - [x] 1.5 Update cash page to use DateNavigator
     - Replace DateFilter import with DateNavigator in `src/app/(app)/cash/page.tsx`
     - Pass current start/end dates as props
     - Verify URL params flow correctly
     - _Requirements: AC1.1, AC1.2_
 
-- [ ] 2. Phase 2: Payment Grouping
-  - [ ] 2.1 Create grouping utility function
+- [x] 2. Phase 2: Payment Grouping
+  - [x] 2.1 Create grouping utility function
     - Create `src/lib/cash/groupMovements.ts`
     - Implement algorithm to group movements by sourceId
     - Only group SALE and PURCHASE types with multiple payments
@@ -61,7 +61,7 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Verify single movements remain ungrouped
     - Verify all movements are preserved (no loss)
 
-  - [ ] 2.3 Create CashMovementGroup component
+  - [x] 2.3 Create CashMovementGroup component
     - Create `src/components/cash/CashMovementGroup.tsx` as client component
     - Implement expandable group header showing customer/supplier, total, expand icon
     - Implement collapsed/expanded states
@@ -70,7 +70,7 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Apply visual distinction (border, background color)
     - _Requirements: AC2.1, AC2.2, AC2.3, AC2.4, AC2.5_
 
-  - [ ] 2.4 Fetch customer/supplier names for groups
+  - [x] 2.4 Fetch customer/supplier names for groups
     - Add helper function to fetch customer name by sale ID
     - Add helper function to fetch supplier name by purchase ID
     - Handle missing data gracefully ("Cliente não encontrado")
@@ -84,7 +84,7 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Verify change is displayed when > 0
     - Verify change is not displayed when 0 or undefined
 
-  - [ ] 2.6 Refactor CashList to handle grouped movements
+  - [x] 2.6 Refactor CashList to handle grouped movements
     - Update `src/components/cash/CashList.tsx` to accept grouped data
     - Render CashMovementGroup for grouped items
     - Render regular rows for single movements
@@ -100,7 +100,7 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Test change display logic
     - _Requirements: AC2.1, AC2.2, AC2.3, AC2.4_
 
-- [ ] 3. Checkpoint - Verify grouping and navigation
+- [x] 3. Checkpoint - Verify grouping and navigation
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 4. Phase 3: Transaction Details and Context
