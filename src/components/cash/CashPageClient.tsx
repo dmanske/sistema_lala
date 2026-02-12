@@ -7,6 +7,8 @@ import { CashList } from './CashList'
 import { CashSummaryCards } from './CashSummaryCards'
 import { CashHeader } from './CashHeader'
 import { ExportButton } from './ExportButton'
+import { PaymentMethodSummary } from './PaymentMethodSummary'
+import { AccountSummary } from './AccountSummary'
 import { filterMovements } from '@/lib/cash/filterMovements'
 import { createClient } from '@/lib/supabase/client'
 
@@ -117,6 +119,13 @@ export function CashPageClient({ movements, summary, period }: CashPageClientPro
                 totalCount={movements.length}
             />
             <CashSummaryCards summary={filteredSummary} />
+            
+            {/* Summary Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <PaymentMethodSummary movements={filteredMovements} />
+                <AccountSummary movements={filteredMovements} accountNames={accountNames} />
+            </div>
+
             <CashList movements={filteredMovements} />
         </div>
     )

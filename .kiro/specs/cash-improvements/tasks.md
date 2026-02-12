@@ -254,13 +254,13 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Pass filtered movements, summary, and period as props
     - _Requirements: AC6.1_
 
-- [ ] 8. Phase 6: Payment Method Summary and Account Summary
-  - [ ] 8.1 Install chart library
+- [x] 8. Phase 6: Payment Method Summary and Account Summary
+  - [x] 8.1 Install chart library
     - Add recharts to package.json
     - Run npm install
     - _Requirements: AC7.3_
 
-  - [ ] 8.2 Create PaymentMethodSummary component
+  - [x] 8.2 Create PaymentMethodSummary component
     - Create `src/components/cash/PaymentMethodSummary.tsx` as client component
     - Create card component with glassmorphism styling
     - Display list of payment methods with totals
@@ -268,7 +268,7 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Respect filtered movements (receives filtered data as prop)
     - _Requirements: AC7.1, AC7.2, AC7.3, AC7.4_
 
-  - [ ] 8.3 Create AccountSummary component
+  - [x] 8.3 Create AccountSummary component
     - Create `src/components/cash/AccountSummary.tsx` as client component
     - Create card component with glassmorphism styling
     - Display list of bank accounts with totals (IN, OUT, balance)
@@ -277,14 +277,14 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Link to account statement page (/contas/[id])
     - _Requirements: bank-accounts integration, AC7.4_
 
-  - [ ] 8.4 Implement aggregation logic
+  - [x] 8.4 Implement aggregation logic
     - Create `src/lib/cash/aggregateByMethod.ts`
     - Group movements by payment method
     - Calculate total for each method (sum of IN movements)
     - Return sorted by total (highest first)
     - _Requirements: AC7.2_
 
-  - [ ] 8.5 Implement account aggregation logic
+  - [x] 8.5 Implement account aggregation logic
     - Create `src/lib/cash/aggregateByAccount.ts`
     - Group movements by bank account
     - Calculate total IN, total OUT, and balance for each account
@@ -311,7 +311,7 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Test single method/account
     - _Requirements: AC7.1, AC7.2, AC7.3_
 
-  - [ ] 8.8 Add summary components to cash page
+  - [x] 8.8 Add summary components to cash page
     - Update `src/app/(app)/cash/page.tsx`
     - Add PaymentMethodSummary card below CashSummaryCards
     - Add AccountSummary card below PaymentMethodSummary
@@ -319,8 +319,8 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Ensure responsive layout (grid)
     - _Requirements: AC7.1, AC7.4, bank-accounts integration_
 
-- [ ] 9. Final Integration and Polish
-  - [ ] 9.1 Update cash page with all components
+- [x] 9. Final Integration and Polish
+  - [x] 9.1 Update cash page with all components
     - Ensure all new components are properly integrated
     - Verify data flow from server to client components
     - Test URL param handling for date ranges
@@ -349,7 +349,7 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Test grouping with filters
     - _Requirements: All_
 
-- [ ] 10. Final Checkpoint - Complete testing and review
+- [x] 10. Final Checkpoint - Complete testing and review
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
