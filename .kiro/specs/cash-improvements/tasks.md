@@ -197,14 +197,14 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
 - [x] 6. Checkpoint - Verify filtering functionality
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Phase 5: Export Functionality
-  - [ ] 7.1 Install export dependencies
+- [x] 7. Phase 5: Export Functionality
+  - [x] 7.1 Install export dependencies
     - Add jspdf, jspdf-autotable, papaparse to package.json
     - Add @types/papaparse to devDependencies
     - Run npm install
     - _Requirements: AC6.1, AC6.2_
 
-  - [ ] 7.2 Create ExportButton component
+  - [x] 7.2 Create ExportButton component
     - Create `src/components/cash/ExportButton.tsx` as client component
     - Add dropdown menu with PDF and Excel/CSV options
     - Implement lazy loading for export libraries (dynamic imports)
@@ -212,7 +212,7 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Trigger browser download on completion
     - _Requirements: AC6.1, AC6.2_
 
-  - [ ] 7.3 Implement PDF export
+  - [x] 7.3 Implement PDF export
     - Create `src/lib/cash/exportToPDF.ts`
     - Use jspdf and jspdf-autotable
     - Include company logo (if available)
@@ -223,7 +223,7 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Format currency values correctly (R$ 1.234,56)
     - _Requirements: AC6.3, AC6.4, bank-accounts integration_
 
-  - [ ] 7.4 Implement CSV export
+  - [x] 7.4 Implement CSV export
     - Create `src/lib/cash/exportToCSV.ts`
     - Use papaparse to generate CSV
     - Include all columns: date, time, description, method, source, type, amount, account
@@ -248,7 +248,7 @@ This implementation plan breaks down the Cash Page improvements into 6 phases fo
     - Test large dataset handling
     - _Requirements: AC6.3, AC6.4, AC6.5_
 
-  - [ ] 7.7 Add ExportButton to CashHeader
+  - [x] 7.7 Add ExportButton to CashHeader
     - Update `src/components/cash/CashHeader.tsx`
     - Add ExportButton next to transaction buttons
     - Pass filtered movements, summary, and period as props
