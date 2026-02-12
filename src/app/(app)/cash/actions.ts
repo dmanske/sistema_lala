@@ -4,8 +4,12 @@ import { getCashMovementRepository } from '@/infrastructure/repositories/factory
 import { CreateCashMovement, CreateCashMovementInput } from '@/core/usecases/cash/CreateCashMovement'
 import { revalidatePath } from 'next/cache'
 
+import { createClient } from '@/lib/supabase/server'
+// ...
+
 export async function createCashMovementAction(data: CreateCashMovementInput) {
-    const repo = getCashMovementRepository()
+    const supabase = await createClient()
+    const repo = getCashMovementRepository(supabase)
     const useCase = new CreateCashMovement(repo)
 
     try {

@@ -2,8 +2,14 @@ import { createClient } from '@/lib/supabase/client'
 import { CashMovement } from '@/core/domain/CashMovement'
 import { CashMovementRepository } from '@/core/repositories/CashMovementRepository'
 
+import { SupabaseClient } from '@supabase/supabase-js'
+
 export class SupabaseCashMovementRepository implements CashMovementRepository {
-    private supabase = createClient()
+    private supabase: SupabaseClient
+
+    constructor(client?: SupabaseClient) {
+        this.supabase = client || createClient()
+    }
 
     private async getTenantId(): Promise<string> {
         const { data: { user } } = await this.supabase.auth.getUser()

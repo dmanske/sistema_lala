@@ -19,18 +19,7 @@ export class CreditService {
             createdAt: new Date().toISOString(),
         };
 
-        // 1. Save movement
-        await this.creditRepo.create(movement);
-
-        // 2. Update Client Balance
-        const client = await this.clientRepo.getById(clientId);
-        if (client) {
-            await this.clientRepo.update(clientId, {
-                creditBalance: (client.creditBalance || 0) + input.amount
-            });
-        }
-
-        return movement;
+        return this.creditRepo.create(movement);
     }
 
     async getHistory(clientId: string): Promise<CreditMovement[]> {

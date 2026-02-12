@@ -11,9 +11,13 @@ interface CashPageProps {
     searchParams: Promise<{ start?: string; end?: string }>
 }
 
+import { createClient } from '@/lib/supabase/server'
+// ...
+
 export default async function CashPage({ searchParams }: CashPageProps) {
     const params = await searchParams
-    const repo = getCashMovementRepository()
+    const supabase = await createClient()
+    const repo = getCashMovementRepository(supabase)
     const summaryUseCase = new GetCashSummary(repo)
     const listUseCase = new ListCashMovements(repo)
 

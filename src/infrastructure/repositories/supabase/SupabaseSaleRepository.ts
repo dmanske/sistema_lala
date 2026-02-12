@@ -230,7 +230,8 @@ export class SupabaseSaleRepository implements SaleRepository {
             p_payments: payments,
             p_stock_items: stockItems || [],
             p_credit_debit: creditDebit || null,
-            p_change_amount: change || 0
+            p_change_amount: change || 0,
+            p_is_physical_mode: false // Default to false as per new signature
         });
 
         if (error) {

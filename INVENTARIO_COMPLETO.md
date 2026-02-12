@@ -1,6 +1,6 @@
 # 📋 INVENTÁRIO COMPLETO DO SISTEMA LALA
-**Data:** 11/02/2026
-**Status:** CONSOLIDADO V1.9 (11/02/2026) - SUPABASE PROD ESTÁVEL
+**Data:** 12/02/2026
+**Status:** CONSOLIDADO V2.0 (12/02/2026) - SUPABASE PROD ESTÁVEL
 
 ---
 
@@ -553,12 +553,19 @@ SalePayment {
 - ✅ Dashboard com totais e saldo do período
 - ✅ Filtro por data
 - ✅ Lançamentos manuais (Nova Entrada / Nova Saída)
-- ✅ **Integração Automática:**
-  - Vendas pagas (`pay_sale`) -> Geram Entrada (CASH, PIX, CARD, TRANSFER, WALLET)
-  - Estornos (`refund_sale`) -> Geram Saída
-- ✅ **Decisão de Negócio:**
-  - `CREDIT` e `FIADO` **NÃO** entram no Caixa.
-  - Apenas métodos com fluxo financeiro real são registrados.
+- ✅ **Integração Automática (Vendas):**
+  - Vendas pagas (`pay_sale`) -> Geram Entrada (CASH, PIX, CARD, TRANSFER, WALLET) automaticamente.
+- ✅ **Integração Automática (Compras):**
+  - Novas Compras com opção "Pago" marcada -> Geram Saída automaticamente.
+- ✅ **Integração Automática (Estornos):**
+  - Estornos (`refund_sale`) -> Geram Saída (Reembolso).
+- ✅ **Integração Automática (Crédito):**
+  - "Adicionar Crédito" ao cliente atualiza o saldo dele e **gera entrada no Caixa** automaticamente (exceto se origem for WALLET).
+
+#### Decisões de Negócio:
+- `CREDIT` (Uso de saldo) e `FIADO` **NÃO** entram no Caixa (apenas baixam estoque/geram venda).
+- Apenas métodos com fluxo financeiro real (Dinheiro, Pix, Cartão) são registrados no Ledger.
+- Recargas de crédito agora lançam entrada no caixa corretamente (via RPC `add_client_credit`).
 
 #### Campos de Movimentação:
 - id, type (IN/OUT), amount, method, source_type, description, occurred_at.

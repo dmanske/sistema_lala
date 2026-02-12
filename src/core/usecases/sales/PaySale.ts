@@ -19,7 +19,7 @@ export class PaySale {
         const sale = await this.saleRepo.findById(input.saleId);
         if (!sale) throw new Error("Sale not found");
 
-        if (sale.status === 'paid' || sale.status === 'refunded') {
+        if (sale.status === 'paid') {
             throw new Error("Sale already paid or refunded");
         }
 

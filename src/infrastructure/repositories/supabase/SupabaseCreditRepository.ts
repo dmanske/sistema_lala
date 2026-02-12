@@ -23,47 +23,28 @@ export class SupabaseCreditRepository implements CreditRepository {
     }
 
     async create(data: CreditMovement): Promise<CreditMovement> {
-        const tenantId = await this.getTenantId();
-
-        const { data: inserted, error } = await this.supabase
-            .from('credit_movements')
-            .insert({
-                id: data.id || undefined,
-                tenant_id: tenantId,
-                client_id: data.clientId,
-                type: data.type,
-                amount: data.amount,
-                origin: data.origin,
-                note: data.note || null,
-            })
-            .select()
-            .single();
+        // Use RPC to ensure atomicity and Cash Ledger integration
+        // Note: data.id is ignored as RPC/DB generates UUIDs
+        const { data: insertedId, error } = await this.supabase.rpc('add_client_credit', {
+            p_client_id: data.clientId,
+            p_amount: data.amount,
+            p_origin: data.origin,
+            p_note: data.note || null,
+        });
 
         if (error) throw new Error(`Failed to create credit movement: ${error.message}`);
 
-        // Update client credit_balance
-        const delta = data.type === 'CREDIT' ? data.amount : -data.amount;
-        // Try RPC first (atomic)
-        const { error: updateError } = await this.supabase.rpc('update_client_credit', {
-            p_client_id: data.clientId,
-            p_delta: delta,
-        });
+        // Fetch the created movement to return full object
+        const { data: inserted, error: fetchError } = await this.supabase
+            .from('credit_movements')
+            .select('*')
+            .eq('id', insertedId)
+            .single();
 
-        // Fallback: manual update if RPC doesn't exist yet or fails for other reasons
-        if (updateError) {
-            // Check current balance
-            const { data: client } = await this.supabase
-                .from('clients')
-                .select('credit_balance')
-                .eq('id', data.clientId)
-                .single();
-
-            if (client) {
-                await this.supabase
-                    .from('clients')
-                    .update({ credit_balance: Number(client.credit_balance) + delta })
-                    .eq('id', data.clientId);
-            }
+        if (fetchError || !inserted) {
+            // In rare case fetch fails but insert succeeded, return constructed object
+            // but prefer fetching for consistency (created_at, etc)
+            return { ...data, id: insertedId as string };
         }
 
         return this.mapFromDb(inserted);

@@ -63,7 +63,7 @@ export class SupabaseClientRepository implements ClientRepository {
             .insert({
                 tenant_id: tenantId,
                 name: input.name,
-                birth_date: input.birthDate,
+                birth_date: input.birthDate || null,
                 phone: input.phone || null,
                 whatsapp: input.whatsapp || null,
                 city: input.city,
@@ -82,7 +82,7 @@ export class SupabaseClientRepository implements ClientRepository {
         // RLS ensures updates are only on user's tenant
         const updateData: Record<string, unknown> = {};
         if (client.name !== undefined) updateData.name = client.name;
-        if (client.birthDate !== undefined) updateData.birth_date = client.birthDate;
+        if (client.birthDate !== undefined) updateData.birth_date = client.birthDate || null;
         if (client.phone !== undefined) updateData.phone = client.phone || null;
         if (client.whatsapp !== undefined) updateData.whatsapp = client.whatsapp || null;
         if (client.city !== undefined) updateData.city = client.city;
@@ -118,7 +118,7 @@ export class SupabaseClientRepository implements ClientRepository {
         return {
             id: row.id,
             name: row.name,
-            birthDate: row.birth_date,
+            birthDate: row.birth_date || undefined,
             phone: row.phone || undefined,
             whatsapp: row.whatsapp || undefined,
             city: row.city,

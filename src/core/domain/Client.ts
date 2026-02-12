@@ -6,7 +6,7 @@ export type ClientStatus = z.infer<typeof ClientStatusSchema>;
 export const ClientSchema = z.object({
   id: z.string(),
   name: z.string().min(1, 'Name is required'),
-  birthDate: z.string().min(1, 'Birth date is required'), // ISO format YYYY-MM-DD
+  birthDate: z.string().optional(), // ISO format YYYY-MM-DD
   phone: z.string().optional(),
   whatsapp: z.string().optional(),
   city: z.string().min(1, 'City is required'), // Required in form, hidden in list

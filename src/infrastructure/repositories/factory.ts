@@ -163,7 +163,13 @@ export function getStockMovementRepository(): CoreStockMovementRepository | Loca
     return stockMovementRepo;
 }
 
-export function getCashMovementRepository(): CashMovementRepository {
+import { SupabaseClient } from '@supabase/supabase-js';
+
+export function getCashMovementRepository(client?: SupabaseClient): CashMovementRepository {
+    if (client) {
+        return new SupabaseCashMovementRepository(client);
+    }
+
     if (!cashMovementRepo) {
         if (useSupabase()) {
             cashMovementRepo = new SupabaseCashMovementRepository();

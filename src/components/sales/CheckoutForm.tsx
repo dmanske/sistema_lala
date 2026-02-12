@@ -246,7 +246,10 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
 
     const isPaid = sale.status === 'paid'
     const isRefunded = sale.status === 'refunded'
-    const totalPaid = sale.payments?.reduce((acc: number, p: SalePayment) => acc + p.amount, 0) || 0
+    // If refunded, we treat it as unpaid (ignoring previous payments for the new payment cycle)
+    // This allows the user to pay again.
+    // Note: This is an assumption that a full re-payment is needed.
+    const totalPaid = isRefunded ? 0 : (sale.payments?.reduce((acc: number, p: SalePayment) => acc + p.amount, 0) || 0)
     const totalRemaining = Math.max(0, (sale.total ?? 0) - totalPaid)
 
     return (
@@ -346,7 +349,7 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
                     totalPaid={totalPaid}
                     onPay={() => setPaymentOpen(true)}
                     loading={paymentConfirming}
-                    paid={isPaid || isRefunded}
+                    paid={isPaid}
                 />
 
                 {isPaid && !isRefunded && (
