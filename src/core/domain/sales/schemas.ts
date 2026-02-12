@@ -18,7 +18,7 @@ export const saleItemSchema = z.object({
 export const salePaymentSchema = z.object({
     id: z.string().uuid(),
     saleId: z.string().uuid(),
-    method: z.enum(['pix', 'card', 'cash', 'transfer', 'credit', 'fiado']),
+    method: z.enum(['pix', 'card', 'cash', 'transfer', 'credit', 'fiado', 'wallet']),
     amount: z.number().min(0),
     paidAt: z.string().datetime(),
     change: z.number().optional(),
@@ -33,6 +33,7 @@ export const saleSchema = z.object({
     subtotal: z.number().min(0),
     discount: z.number().min(0),
     total: z.number().min(0),
+    notes: z.string().max(500).optional(), // Observações do atendimento
     createdAt: z.string().datetime(),
     createdBy: z.string(),
     items: z.array(saleItemSchema).optional(),

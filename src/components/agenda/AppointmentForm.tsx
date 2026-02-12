@@ -12,7 +12,8 @@ import {
     ChevronsUpDown,
     X,
     Loader2,
-    AlertCircle
+    AlertCircle,
+    Plus
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";

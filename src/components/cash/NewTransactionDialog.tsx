@@ -35,7 +35,7 @@ import { toast } from "sonner"
 import { Plus, Minus } from "lucide-react"
 
 const schema = z.object({
-    amount: z.coerce.number().min(0.01, "O valor deve ser positivo"),
+    amount: z.number().min(0.01, "O valor deve ser positivo"),
     method: z.enum(["CASH", "PIX", "CARD", "TRANSFER", "WALLET"]),
     description: z.string().optional(),
 })

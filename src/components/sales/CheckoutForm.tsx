@@ -3,18 +3,25 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { Sale, SaleItem, SalePayment, PaymentMethod } from "@/core/domain/sales/types"
-import { getSaleRepository, getProductRepository, getAppointmentRepository, getCreditRepository, getClientRepository } from "@/infrastructure/repositories/factory"
+import { getSaleRepository, getProductRepository, getAppointmentRepository, getCreditRepository, getClientRepository, getProfessionalRepository } from "@/infrastructure/repositories/factory"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Trash2, Plus, ShoppingBag } from "lucide-react"
 import { AddProductDialog } from "./AddProductDialog"
 import { PaymentDialog } from "./PaymentDialog"
 import { SaleSummaryCard } from "./SaleSummaryCard"
+import { CheckoutHeader } from "./CheckoutHeader"
+import { AppointmentInfoCard } from "./AppointmentInfoCard"
+import { ServiceTimeline } from "./ServiceTimeline"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { useProducts } from "@/hooks/useProducts"
 import { Product } from "@/core/domain/Product"
+import { Client } from "@/core/domain/Client"
+import { Appointment } from "@/core/domain/Appointment"
+import { Professional } from "@/core/domain/Professional"
 import { cn } from "@/lib/utils"
 
 import { UpdateSale } from "@/core/usecases/sales/UpdateSale"
@@ -39,6 +46,7 @@ const productRepo = getProductRepository()
 const apptRepo = getAppointmentRepository()
 const creditRepo = getCreditRepository()
 const clientRepo = getClientRepository()
+const professionalRepo = getProfessionalRepository()
 
 const updateSaleUseCase = new UpdateSale(saleRepo)
 const paySaleUseCase = new PaySale(saleRepo, productRepo, apptRepo)
@@ -48,9 +56,10 @@ const refundSaleUseCase = new RefundSale(saleRepo, productRepo)
 interface CheckoutFormProps {
     saleId: string
     onSuccess?: () => void
+    onPaymentStart?: () => void
 }
 
-export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
+export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutFormProps) {
     const [sale, setSale] = useState<Sale | null>(null)
     const [loading, setLoading] = useState(true)
     const [addProductOpen, setAddProductOpen] = useState(false)
@@ -59,6 +68,10 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
     const [refundConfirming, setRefundConfirming] = useState(false)
     const [creditBalance, setCreditBalance] = useState(0)
     const [customerName, setCustomerName] = useState<string | undefined>(undefined)
+    const [client, setClient] = useState<Client | null>(null)
+    const [appointment, setAppointment] = useState<Appointment | null>(null)
+    const [professional, setProfessional] = useState<Professional | null>(null)
+    const [notes, setNotes] = useState<string>("")
 
     // ... (fetchSale logic remains same)
     const fetchSale = useCallback(async () => {
@@ -66,16 +79,35 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
             const result = await getSaleUseCase.execute(saleId)
             if (result) {
                 setSale(result)
-                // Load customer credit balance
+                // Load notes if they exist
+                if (result.notes) {
+                    setNotes(result.notes)
+                }
+                // Load customer credit balance and data
                 if (result.customerId) {
                     const movements = await creditRepo.getByClientId(result.customerId)
                     const balance = movements.reduce((acc, m) => {
                         return m.type === 'CREDIT' ? acc + m.amount : acc - m.amount
                     }, 0)
                     setCreditBalance(Math.max(0, balance))
-                    // Load customer name
-                    const client = await clientRepo.getById(result.customerId)
-                    if (client) setCustomerName(client.name)
+                    // Load customer data
+                    const clientData = await clientRepo.getById(result.customerId)
+                    if (clientData) {
+                        setCustomerName(clientData.name)
+                        setClient(clientData)
+                    }
+                }
+                // Load appointment data
+                if (result.appointmentId) {
+                    const apptData = await apptRepo.getById(result.appointmentId)
+                    if (apptData) {
+                        setAppointment(apptData)
+                        // Load professional data
+                        const profData = await professionalRepo.getById(apptData.professionalId)
+                        if (profData) {
+                            setProfessional(profData)
+                        }
+                    }
                 }
             } else {
                 toast.error("Venda não encontrada")
@@ -199,17 +231,35 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
         handleUpdateItems(newItems)
     }
 
+    const handleNotesChange = async (newNotes: string) => {
+        if (!sale) return
+        // Limit to 500 characters
+        const limitedNotes = newNotes.slice(0, 500)
+        setNotes(limitedNotes)
+        
+        // Auto-save notes (debounced in real implementation)
+        try {
+            await updateSaleUseCase.execute(saleId, sale.items || [], limitedNotes)
+        } catch (error) {
+            console.error("Error saving notes:", error)
+        }
+    }
+
     // ... (handlePayment logic remains)
     const handlePayment = async (payments: { method: PaymentMethod; amount: number; change?: number }[]) => {
         if (!sale) return
         setPaymentConfirming(true)
         try {
+            console.log('Starting payment process...', { saleId: sale.id, payments })
+            
             await paySaleUseCase.execute({
                 saleId: sale.id,
                 payments: payments,
                 createdBy: 'current-user', // Should ideally come from auth context
             })
 
+            console.log('Payment successful, fetching updated sale...')
+            
             // Update local state after successful payment
             await fetchSale()
 
@@ -218,6 +268,7 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
 
             if (onSuccess) onSuccess()
         } catch (error: any) {
+            console.error('Payment error:', error)
             toast.error(error.message || "Erro ao registrar pagamento")
         } finally {
             setPaymentConfirming(false)
@@ -253,7 +304,25 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
     const totalRemaining = Math.max(0, (sale.total ?? 0) - totalPaid)
 
     return (
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="space-y-6">
+            {/* Client Header */}
+            {client && <CheckoutHeader client={client} />}
+
+            {/* Appointment Info Card */}
+            {appointment && professional && (
+                <AppointmentInfoCard appointment={appointment} professional={professional} />
+            )}
+
+            {/* Service Timeline */}
+            {appointment && professional && sale.items && (
+                <ServiceTimeline 
+                    services={sale.items.filter(item => item.itemType === 'service')}
+                    startTime={appointment.startTime}
+                    professionalColor={professional.color}
+                />
+            )}
+
+            <div className="grid gap-6 md:grid-cols-3">
             <div className="md:col-span-2 space-y-6">
                 {/* ... (Table code remains mostly same, except for isRefunded check maybe?) */}
                 <div className="flex items-center justify-between">
@@ -274,20 +343,51 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
                             <TableRow>
                                 <TableHead>Item</TableHead>
                                 <TableHead className="w-[100px]">Tipo</TableHead>
+                                <TableHead className="w-[120px]">Profissional</TableHead>
+                                <TableHead className="w-[80px] text-center">Duração</TableHead>
                                 <TableHead className="w-[100px] text-center">Qtd</TableHead>
+                                <TableHead className="w-[100px] text-center">Estoque</TableHead>
                                 <TableHead className="text-right w-[120px]">Unitário</TableHead>
                                 <TableHead className="text-right">Total</TableHead>
                                 {!isPaid && !isRefunded && <TableHead className="w-[50px]"></TableHead>}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {sale.items?.map((item: SaleItem) => (
+                            {sale.items?.map((item: SaleItem) => {
+                                const product = item.itemType === 'product' && item.productId 
+                                    ? products.find(p => p.id === item.productId)
+                                    : null
+                                const stockAfterSale = product ? product.currentStock - item.qty : null
+                                
+                                return (
                                 <TableRow key={item.id} className={isRefunded ? "opacity-50" : ""}>
                                     <TableCell className="font-medium">{item.name}</TableCell>
                                     <TableCell>
                                         <Badge variant={item.itemType === 'service' ? 'secondary' : 'outline'}>
                                             {item.itemType === 'service' ? 'Serviço' : 'Produto'}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        {item.itemType === 'service' && professional ? (
+                                            <div className="flex items-center gap-2">
+                                                <div 
+                                                    className="w-2 h-2 rounded-full"
+                                                    style={{ backgroundColor: professional.color }}
+                                                />
+                                                <span className="text-xs">{professional.name}</span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs text-gray-400">-</span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        {item.itemType === 'service' ? (
+                                            <Badge variant="outline" className="text-xs">
+                                                Serviço
+                                            </Badge>
+                                        ) : (
+                                            <span className="text-xs text-gray-400">-</span>
+                                        )}
                                     </TableCell>
                                     <TableCell className="text-center">
                                         {isPaid || isRefunded ? (
@@ -300,6 +400,27 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
                                                 value={item.qty ?? 1}
                                                 onChange={(e) => updateItemQty(item.id, Number(e.target.value))}
                                             />
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        {item.itemType === 'product' && product ? (
+                                            <div className="flex flex-col items-center gap-1">
+                                                <span className={cn(
+                                                    "text-sm font-medium",
+                                                    product.currentStock === 0 ? "text-red-600" :
+                                                    product.currentStock <= (product.minStock || 0) ? "text-yellow-600" :
+                                                    "text-gray-600"
+                                                )}>
+                                                    {product.currentStock}
+                                                </span>
+                                                {!isPaid && !isRefunded && stockAfterSale !== null && (
+                                                    <span className="text-xs text-gray-500">
+                                                        → {stockAfterSale}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs text-gray-400">-</span>
                                         )}
                                     </TableCell>
                                     <TableCell className="text-right w-[120px]">
@@ -328,7 +449,7 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
                                         </TableCell>
                                     )}
                                 </TableRow>
-                            ))}
+                            )})}
                             {(!sale.items || sale.items.length === 0) && (
                                 <TableRow>
                                     <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
@@ -339,6 +460,38 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
                         </TableBody>
                     </Table>
                 </div>
+
+                {/* Observações do Atendimento */}
+                {!isRefunded && (
+                    <div className="space-y-2">
+                        <label htmlFor="notes" className="text-sm font-medium text-gray-700">
+                            Observações do Atendimento
+                        </label>
+                        {isPaid && notes ? (
+                            <div className="p-4 rounded-lg border bg-gray-50 text-gray-700 min-h-24">
+                                {notes}
+                            </div>
+                        ) : (
+                            <>
+                                <Textarea
+                                    id="notes"
+                                    placeholder="Ex: Cliente solicitou corte mais curto, Alergia a produto X, Preferências especiais..."
+                                    value={notes}
+                                    onChange={(e) => handleNotesChange(e.target.value)}
+                                    disabled={isPaid}
+                                    maxLength={500}
+                                    className="min-h-24"
+                                />
+                                <div className="flex justify-between text-xs text-gray-500">
+                                    <span>Opcional - Máximo 500 caracteres</span>
+                                    <span className={notes.length >= 500 ? "text-red-600 font-medium" : ""}>
+                                        {notes.length}/500
+                                    </span>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
             </div>
 
             <div className="space-y-4">
@@ -347,7 +500,11 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
                     discount={sale.discount}
                     total={sale.total}
                     totalPaid={totalPaid}
-                    onPay={() => setPaymentOpen(true)}
+                    items={sale.items}
+                    onPay={() => {
+                        setPaymentOpen(true)
+                        if (onPaymentStart) onPaymentStart()
+                    }}
                     loading={paymentConfirming}
                     paid={isPaid}
                 />
@@ -376,6 +533,7 @@ export function CheckoutForm({ saleId, onSuccess }: CheckoutFormProps) {
                         </AlertDialogContent>
                     </AlertDialog>
                 )}
+            </div>
             </div>
 
             <AddProductDialog

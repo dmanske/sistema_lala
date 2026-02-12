@@ -36,6 +36,7 @@ export class SupabaseSaleRepository implements SaleRepository {
                 subtotal: sale.subtotal,
                 discount: sale.discount,
                 total: sale.total,
+                notes: sale.notes || null,
                 created_by: sale.createdBy,
             })
             .select()
@@ -159,6 +160,7 @@ export class SupabaseSaleRepository implements SaleRepository {
         if (sale.subtotal !== undefined) updateData.subtotal = sale.subtotal;
         if (sale.discount !== undefined) updateData.discount = sale.discount;
         if (sale.total !== undefined) updateData.total = sale.total;
+        if (sale.notes !== undefined) updateData.notes = sale.notes;
 
         const { error } = await this.supabase
             .from('sales')
@@ -262,6 +264,7 @@ export class SupabaseSaleRepository implements SaleRepository {
             subtotal: Number(row.subtotal) || 0,
             discount: Number(row.discount) || 0,
             total: Number(row.total) || 0,
+            notes: row.notes || undefined,
             createdAt: row.created_at,
             createdBy: row.created_by,
             items: items || undefined,
@@ -303,6 +306,7 @@ export class SupabaseSaleRepository implements SaleRepository {
             subtotal: Number(row.subtotal) || 0,
             discount: Number(row.discount) || 0,
             total: Number(row.total) || 0,
+            notes: row.notes || undefined,
             createdAt: row.created_at,
             createdBy: row.created_by,
             items: items.length > 0 ? items : undefined,

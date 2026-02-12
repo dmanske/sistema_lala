@@ -135,6 +135,12 @@ export function ClientHistoryTab({ clientId }: ClientHistoryTabProps) {
                                                     )) || <span>Não informado</span>}
                                                 </div>
                                             </div>
+
+                                            {sale.notes && (
+                                                <div className="mt-2 p-2 bg-blue-50 border border-blue-100 rounded text-xs text-blue-800">
+                                                    <span className="font-semibold">Obs:</span> {sale.notes}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 

@@ -5,7 +5,7 @@ import { SaleRepository } from "@/core/repositories/SaleRepository";
 export class UpdateSale {
     constructor(private saleRepo: SaleRepository) { }
 
-    async execute(saleId: string, items: SaleItem[]): Promise<Sale> {
+    async execute(saleId: string, items: SaleItem[], notes?: string): Promise<Sale> {
         const sale = await this.saleRepo.findById(saleId);
         if (!sale) throw new Error("Sale not found");
 
@@ -21,7 +21,8 @@ export class UpdateSale {
             ...sale,
             items,
             subtotal,
-            total
+            total,
+            ...(notes !== undefined && { notes })
         };
 
         return this.saleRepo.update(saleId, updatedSale);
