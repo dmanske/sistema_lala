@@ -20,6 +20,7 @@ import {
     MoreVertical,
     ChevronLeft,
     ChevronRight,
+    History,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -48,8 +49,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import { Client } from "@/core/domain/Client";
+import { Appointment } from "@/core/domain/Appointment";
 import { ClientService } from "@/core/services/ClientService";
-import { getClientRepository } from "@/infrastructure/repositories/factory";
+import { getClientRepository, getAppointmentRepository } from "@/infrastructure/repositories/factory";
 import { formatName } from "@/core/formatters/name";
 import { formatPhone } from "@/core/formatters/phone";
 import { formatDate } from "@/core/formatters/date";
@@ -60,12 +62,15 @@ export default function ClientsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("ALL");
-    const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+    const [viewMode, setViewMode] = useState<"table" | "grid">("grid");
     const [currentPage, setCurrentPage] = useState(1);
-    const ITEMS_PER_PAGE = 10;
+    const [clientStats, setClientStats] = useState<Record<string, { lastVisit?: Date, nextAppointment?: Date }>>({});
+    const ITEMS_PER_PAGE = 30;
 
     const repo = getClientRepository();
     const service = new ClientService(repo);
+    // Add repo for fetching stats
+    const appointmentRepo = getAppointmentRepository();
 
     useEffect(() => {
         const fetchClients = async () => {
@@ -101,6 +106,47 @@ export default function ClientsPage() {
         (currentPage - 1) * ITEMS_PER_PAGE,
         currentPage * ITEMS_PER_PAGE
     );
+
+    // Fetch stats for paginated clients
+    useEffect(() => {
+        const fetchStats = async () => {
+            const stats: Record<string, { lastVisit?: Date, nextAppointment?: Date }> = {};
+
+            await Promise.all(paginatedClients.map(async (client) => {
+                try {
+                    const appointments = await appointmentRepo.getAll({ clientId: client.id });
+
+                    // Filter and sort
+                    const now = new Date();
+                    now.setHours(0, 0, 0, 0);
+
+                    // Last Visit: Status DONE, Date < Now (or just DONE generally, assuming past)
+                    // Actually usually 'DONE' implies past. But let's check date too.
+                    const pastAppointments = appointments
+                        .filter((a: Appointment) => a.status === 'DONE' && new Date(a.date + 'T' + a.startTime) < new Date())
+                        .sort((a: Appointment, b: Appointment) => new Date(b.date + 'T' + b.startTime).getTime() - new Date(a.date + 'T' + a.startTime).getTime());
+
+                    // Next Appointment: Status NOT canceled/blocked/done, Date >= Now
+                    const futureAppointments = appointments
+                        .filter((a: Appointment) => ['PENDING', 'CONFIRMED'].includes(a.status) && new Date(a.date + 'T' + a.startTime) >= now)
+                        .sort((a: Appointment, b: Appointment) => new Date(a.date + 'T' + a.startTime).getTime() - new Date(b.date + 'T' + b.startTime).getTime());
+
+                    stats[client.id] = {
+                        lastVisit: pastAppointments[0] ? new Date(pastAppointments[0].date + 'T' + pastAppointments[0].startTime) : undefined,
+                        nextAppointment: futureAppointments[0] ? new Date(futureAppointments[0].date + 'T' + futureAppointments[0].startTime) : undefined
+                    };
+                } catch (e) {
+                    console.error(`Failed to fetch stats for client ${client.id}`, e);
+                }
+            }));
+
+            setClientStats(prev => ({ ...prev, ...stats }));
+        };
+
+        if (paginatedClients.length > 0) {
+            fetchStats();
+        }
+    }, [paginatedClients.map(c => c.id).join(',')]); // Depend on IDs to avoid loops if objects change ref
 
     const getStatusBadge = (status: string) => {
         switch (status) {
@@ -201,8 +247,8 @@ export default function ClientsPage() {
                                 <TableHead className="font-heading font-semibold text-primary/80">Nome</TableHead>
                                 <TableHead className="font-heading font-semibold text-primary/80">Telefone / WhatsApp</TableHead>
                                 <TableHead className="font-heading font-semibold text-primary/80">Última Visita</TableHead>
-                                <TableHead className="font-heading font-semibold text-primary/80">Próx. Agendamento</TableHead>
-                                <TableHead className="font-heading font-semibold text-primary/80">Status</TableHead>
+                                <TableHead className="font-heading font-semibold text-primary/80 text-center">Próx. Agendamento</TableHead>
+                                <TableHead className="font-heading font-semibold text-primary/80 text-right">Saldo</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -223,30 +269,57 @@ export default function ClientsPage() {
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                paginatedClients.map((client) => (
-                                    <TableRow
-                                        key={client.id}
-                                        className="cursor-pointer group hover:bg-white/40 border-white/10 transition-colors relative"
-                                        onClick={() => router.push(`/clients/${client.id}`)}
-                                    >
-                                        <TableCell className="font-medium">
-                                            {formatName(client.name)}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex flex-col">
-                                                <span>{client.phone ? formatPhone(client.phone) : "-"}</span>
-                                                {client.whatsapp && <span className="text-xs text-muted-foreground">{formatPhone(client.whatsapp)}</span>}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <span className="text-muted-foreground text-sm">{formatDate(null)}</span>
-                                        </TableCell>
-                                        <TableCell>
-                                            <span className="text-muted-foreground text-sm">{formatDate(null)}</span>
-                                        </TableCell>
-                                        <TableCell>{getStatusBadge(client.status)}</TableCell>
-                                    </TableRow>
-                                ))
+                                paginatedClients.map((client) => {
+                                    const stats = clientStats[client.id] || {};
+                                    return (
+                                        <TableRow
+                                            key={client.id}
+                                            className="cursor-pointer group hover:bg-white/40 border-white/10 transition-colors relative"
+                                            onClick={() => router.push(`/clients/${client.id}`)}
+                                        >
+                                            <TableCell className="font-medium">
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar className="h-8 w-8 border border-white/20">
+                                                        <AvatarImage src={client.photoUrl} alt={client.name} />
+                                                        <AvatarFallback className="text-xs bg-primary/10 text-primary font-bold">
+                                                            {getInitials(client.name)}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <span>{formatName(client.name)}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col">
+                                                    {(client.phone || client.whatsapp) ? (
+                                                        <>
+                                                            {client.phone && <span>{formatPhone(client.phone)}</span>}
+                                                            {client.whatsapp && client.whatsapp !== client.phone && <span className="text-xs text-muted-foreground">{formatPhone(client.whatsapp)}</span>}
+                                                        </>
+                                                    ) : <span className="text-muted-foreground">-</span>}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className="text-muted-foreground text-sm">
+                                                    {stats.lastVisit ? format(stats.lastVisit, 'dd/MM/yyyy') : '-'}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <span className="text-muted-foreground text-sm">
+                                                    {stats.nextAppointment ? (
+                                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                                            {format(stats.nextAppointment, 'dd/MM HH:mm')}
+                                                        </Badge>
+                                                    ) : '-'}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <span className={`font-bold ${client.creditBalance < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(client.creditBalance)}
+                                                </span>
+                                            </TableCell>
+                                        </TableRow>
+                                    )
+                                })
                             )}
                         </TableBody>
                     </Table>
@@ -254,12 +327,12 @@ export default function ClientsPage() {
             </div>
 
             <div className={cn(
-                "grid grid-cols-1 md:grid-cols-2 gap-y-8 gap-x-6 pb-20",
-                viewMode === "grid" ? "block" : "md:hidden"
+                "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20 px-4",
+                viewMode === "grid" ? "grid" : "hidden"
             )}>
                 {isLoading ? (
                     Array.from({ length: 4 }).map((_, i) => (
-                        <Card key={i} className="border-white/20 bg-white/40 backdrop-blur-xl h-[120px]">
+                        <Card key={i} className="border border-slate-200 bg-white/40 backdrop-blur-xl h-[120px]">
                             <CardContent className="flex h-full items-center gap-4 p-6">
                                 <Skeleton className="h-16 w-16 rounded-full flex-shrink-0" />
                                 <div className="space-y-2 flex-1">
@@ -274,77 +347,89 @@ export default function ClientsPage() {
                         Nenhum cliente encontrado.
                     </div>
                 ) : (
-                    paginatedClients.map((client) => (
-                        <Link href={`/clients/${client.id}`} key={client.id} className="block group">
-                            <Card className="border-none bg-white/60 hover:bg-white/90 backdrop-blur-xl shadow-lg shadow-purple-500/5 hover:shadow-purple-500/15 transition-all duration-300 rounded-2xl overflow-hidden group">
-                                <CardContent className="p-0 flex flex-col sm:flex-row items-stretch">
-                                    <div className="p-5 flex flex-row items-center gap-5 flex-1">
-                                        {/* Avatar */}
-                                        <div className="relative flex-shrink-0">
-                                            <Avatar className="h-20 w-20 border-2 border-white shadow-md transition-transform group-hover:scale-105 duration-300">
-                                                <AvatarImage src={client.photoUrl} alt={client.name} />
-                                                <AvatarFallback className="text-xl bg-primary/10 text-primary font-bold">
-                                                    {getInitials(client.name)}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <div className={cn(
-                                                "absolute bottom-0 right-0 h-5 w-5 rounded-full border-4 border-white shadow-sm",
-                                                client.status === 'ACTIVE' ? 'bg-green-500' :
-                                                    client.status === 'ATTENTION' ? 'bg-orange-500' : 'bg-gray-300'
-                                            )} />
-                                        </div>
+                    paginatedClients.map((client) => {
+                        const stats = clientStats[client.id] || {};
+                        return (
+                            <Link href={`/clients/${client.id}`} key={client.id} className="block group">
+                                <Card className="border border-slate-200 bg-white/60 hover:bg-white/90 backdrop-blur-xl shadow-lg shadow-purple-500/5 hover:shadow-purple-500/15 transition-all duration-300 rounded-3xl overflow-hidden group h-full flex flex-col">
+                                    <CardContent className="p-6 flex flex-col gap-5 flex-1">
+                                        {/* Top Section: Avatar, Name and Large Balance */}
+                                        <div className="flex flex-col gap-4">
+                                            <div className="flex items-start justify-between">
+                                                <div className="relative">
+                                                    <Avatar className="h-16 w-16 border-2 border-white shadow-md">
+                                                        <AvatarImage src={client.photoUrl} alt={client.name} />
+                                                        <AvatarFallback className="bg-primary/10 text-primary font-bold text-xl">
+                                                            {getInitials(client.name)}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <div className={cn(
+                                                        "absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-white",
+                                                        client.status === 'ACTIVE' ? 'bg-green-500' :
+                                                            client.status === 'ATTENTION' ? 'bg-orange-500' : 'bg-gray-300'
+                                                    )} />
+                                                </div>
 
-                                        {/* Details */}
-                                        <div className="flex-1 min-w-0 space-y-1">
-                                            <h3 className="text-lg font-bold text-slate-800 truncate font-heading group-hover:text-primary transition-colors">
-                                                {formatName(client.name)}
-                                            </h3>
+                                                <div className="flex flex-col items-end">
+                                                    <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Saldo em Conta</span>
+                                                    <span className={cn("text-2xl font-black", client.creditBalance < 0 ? "text-red-500" : "text-emerald-600")}>
+                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(client.creditBalance)}
+                                                    </span>
+                                                </div>
+                                            </div>
 
-                                            <div className="space-y-0.5">
-                                                {(client.phone || client.whatsapp) && (
-                                                    <div className="flex items-center gap-2 text-slate-600">
-                                                        {client.whatsapp ? (
-                                                            <MessageCircle className="h-3.5 w-3.5 text-green-500/70" />
-                                                        ) : (
-                                                            <Phone className="h-3.5 w-3.5 text-primary/70" />
-                                                        )}
-                                                        <span className="text-sm font-medium">
-                                                            {formatPhone(client.whatsapp || client.phone || '')}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-slate-500">
-                                                    <div className="flex items-center gap-1.5 min-w-0">
-                                                        <MapPin className="h-3.5 w-3.5 text-blue-500/70" />
-                                                        <span className="text-xs truncate">{client.city}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5 whitespace-nowrap">
-                                                        <Calendar className="h-3.5 w-3.5 text-orange-500/70" />
-                                                        <span className="text-xs">Nasc: {formatDate(client.birthDate)}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5 whitespace-nowrap">
-                                                        <Clock className="h-3.5 w-3.5 text-slate-400" />
-                                                        <span className="text-xs">Cad: {format(new Date(client.createdAt), 'dd/MM/yy', { locale: ptBR })}</span>
-                                                    </div>
+                                            <div className="space-y-1">
+                                                <h3 className="font-bold text-slate-800 truncate font-heading group-hover:text-primary transition-colors text-xl">
+                                                    {formatName(client.name)}
+                                                </h3>
+                                                <div className="flex items-center gap-1.5 text-base text-slate-600">
+                                                    {client.whatsapp ? <MessageCircle className="h-4 w-4 text-green-600" /> : <Phone className="h-4 w-4" />}
+                                                    <span className="font-medium tracking-tight">
+                                                        {formatPhone(client.whatsapp || client.phone || 'Sem contato')}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {/* Right Section: Balance & Action */}
-                                    <div className="px-6 py-4 sm:pl-0 flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 flex-shrink-0 border-t sm:border-t-0 sm:border-l border-white/20 bg-white/20 sm:bg-transparent">
-                                        <div className="text-left sm:text-right">
-                                            <p className="text-[9px] uppercase tracking-tighter text-slate-400 font-bold mb-0.5">Saldo</p>
-                                            <p className="text-lg font-bold text-primary leading-none">
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(client.creditBalance)}
-                                            </p>
+                                        {/* Integrated Info Block: All details together */}
+                                        <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 flex flex-col gap-3">
+                                            <div className="grid grid-cols-2 gap-y-3 gap-x-2">
+                                                <div className="flex items-center gap-2 text-slate-600 col-span-2">
+                                                    <MapPin className="h-4 w-4 text-blue-500" />
+                                                    <span className="text-sm font-medium">{client.city || 'Cidade não inf.'}</span>
+                                                </div>
+
+                                                <div className="flex items-center gap-2 text-slate-600">
+                                                    <Calendar className="h-4 w-4 text-orange-500" />
+                                                    <span className="text-sm font-medium">{client.birthDate ? formatDate(client.birthDate) : 'Nasc. não inf.'}</span>
+                                                </div>
+
+                                                <div className="flex items-center gap-2 text-slate-600">
+                                                    <Clock className="h-4 w-4 text-slate-400" />
+                                                    <span className="text-xs">Cad: {format(new Date(client.createdAt), 'dd/MM/yy', { locale: ptBR })}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-3 border-t border-slate-200/50 grid grid-cols-2 gap-2">
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="text-[10px] uppercase text-slate-400 font-bold">Última Visita</span>
+                                                    <span className="font-semibold text-slate-700 text-sm">
+                                                        {stats.lastVisit ? format(stats.lastVisit, 'dd/MM/yy') : '-'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex flex-col gap-0.5 border-l border-slate-200 pl-3">
+                                                    <span className="text-[10px] uppercase text-slate-400 font-bold">Próximo</span>
+                                                    <span className={cn("font-semibold text-sm", stats.nextAppointment ? "text-blue-600" : "text-slate-500")}>
+                                                        {stats.nextAppointment ? format(stats.nextAppointment, 'dd/MM HH:mm') : '-'}
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </Link>
-                    ))
+                                    </CardContent>
+                                </Card>
+                            </Link>
+                        );
+                    })
                 )}
             </div>
 

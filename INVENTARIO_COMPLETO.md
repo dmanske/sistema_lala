@@ -1,6 +1,6 @@
 # 📋 INVENTÁRIO COMPLETO DO SISTEMA LALA
 **Data:** 12/02/2026
-**Status:** CONSOLIDADO V2.1 (12/02/2026) - SUPABASE PROD ESTÁVEL (FIX CAIXA/REEMBOLSO)
+**Status:** CONSOLIDADO V2.2 (12/02/2026) - MELHORIAS VISUAIS NO CLIENTE + FIX SALDO FIADO
 
 ---
 
@@ -91,9 +91,10 @@ Sistema de gestão para salão de beleza desenvolvido em **Next.js 15** com **Ty
 **Localização:** `/clients`
 
 #### O que está implementado:
-- ✅ Listagem de clientes (grid e tabela)
+- ✅ Listagem de clientes (grid padrão e tabela)
 - ✅ Busca por nome/telefone
 - ✅ Filtro por status (ACTIVE, INACTIVE, ATTENTION)
+- ✅ Colunas extras: Última Visita e Próximo Agendamento (Calculados)
 - ✅ Paginação (10 itens por página)
 - ✅ Criação de novo cliente
 - ✅ Edição de cliente
@@ -103,7 +104,7 @@ Sistema de gestão para salão de beleza desenvolvido em **Next.js 15** com **Ty
   - **Histórico:** Lista de agendamentos passados com status e valores
   - **Crédito:** Movimentações de crédito (adicionar/debitar)
   - **Produtos:** Produtos consumidos pelo cliente
-- ✅ Saldo de crédito visível
+- ✅ Saldo de crédito visível com **destaque vermelho para Fiado/Dívida**
 - ✅ Ação rápida de agendamento direto do perfil
 - ✅ Campo destacado de "Observações Gerais"
 - ✅ Aba "Histórico" (antiga Agenda) com detalhes financeiros
@@ -567,8 +568,9 @@ SalePayment {
 - Apenas métodos com fluxo financeiro real (Dinheiro, Pix, Cartão) são registrados no Ledger.
 - Recargas de crédito agora lançam entrada no caixa corretamente (via RPC `add_client_credit`).
 - **Fiado/Crédito:** Pagamentos do tipo `FIADO` e `CREDIT` (saldo em carteira) **NÃO** geram movimentação no Livro Caixa (cash_movements), pois não há entrada financeira real no momento.
-  - `FIADO`: Gera dívida no saldo do cliente (valor negativo) e aparece no histórico do cliente.
+  - `FIADO`: Gera dívida no saldo do cliente (valor negativo) e aparece no histórico do cliente. **Agora exibido em vermelho no perfil.**
   - `CREDIT`: Deduz do saldo existente do cliente.
+  - **Reembolso:** Agora permite refazer o pagamento de uma venda estornada.
 
 #### Campos de Movimentação:
 - id, type (IN/OUT), amount, method, source_type, description, occurred_at.
@@ -975,8 +977,8 @@ Todas as 27 referências diretas a `new LocalStorage*Repository()` foram substit
 
 ---
 
-**Versão Final:** V2.1
+**Versão Final:** V2.2
 **Data:** 12/02/2026
-**Status:** OFICIAL E AUDITADO — FIX CRÍTICO DE AMBIENTE + CAIXA + REEMBOLSO APLICADOS
+**Status:** OFICIAL E AUDITADO — FIX CRÍTICO DE AMBIENTE + CAIXA + MELHORIAS CLIENTE
 
 
