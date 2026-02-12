@@ -1,6 +1,6 @@
 # 📋 INVENTÁRIO COMPLETO DO SISTEMA LALA
 **Data:** 12/02/2026
-**Status:** CONSOLIDADO V2.0 (12/02/2026) - SUPABASE PROD ESTÁVEL
+**Status:** CONSOLIDADO V2.1 (12/02/2026) - SUPABASE PROD ESTÁVEL (FIX CAIXA/REEMBOLSO)
 
 ---
 
@@ -566,6 +566,9 @@ SalePayment {
 - `CREDIT` (Uso de saldo) e `FIADO` **NÃO** entram no Caixa (apenas baixam estoque/geram venda).
 - Apenas métodos com fluxo financeiro real (Dinheiro, Pix, Cartão) são registrados no Ledger.
 - Recargas de crédito agora lançam entrada no caixa corretamente (via RPC `add_client_credit`).
+- **Fiado/Crédito:** Pagamentos do tipo `FIADO` e `CREDIT` (saldo em carteira) **NÃO** geram movimentação no Livro Caixa (cash_movements), pois não há entrada financeira real no momento.
+  - `FIADO`: Gera dívida no saldo do cliente (valor negativo) e aparece no histórico do cliente.
+  - `CREDIT`: Deduz do saldo existente do cliente.
 
 #### Campos de Movimentação:
 - id, type (IN/OUT), amount, method, source_type, description, occurred_at.
@@ -914,8 +917,8 @@ src/app/
 | Multi-tenant (tenant_id) | ✅ | Todas tabelas com `tenant_id` + tenant `default` |
 | RLS habilitada | ✅ | Todas 17 tabelas com policies permissivas |
 | RPC create_purchase | ✅ | Função atômica compra + itens + movimentações |
-| RPC pay_sale | ✅ | Função atômica pagamento + estoque + crédito |
-| RPC refund_sale | ✅ | Função atômica estorno reverso |
+| RPC pay_sale | ✅ | Função atômica + Reembolso permitido + Correção Case Sensitive |
+| RPC refund_sale | ✅ | Função atômica estorno reverso + Correção Case Sensitive |
 | Storage client-photos | ✅ | `supabase/migrations/002_storage_setup.sql` |
 | Helper de storage | ✅ | `src/lib/supabase/storage.ts` |
 | Repo: Client | ✅ | `supabase/SupabaseClientRepository.ts` |
@@ -931,7 +934,7 @@ src/app/
 | Repository Factory | ✅ | `src/infrastructure/repositories/factory.ts` |
 | Feature Flag | ✅ | `NEXT_PUBLIC_USE_SUPABASE` em `.env.local` |
 | Trigger updated_at | ✅ | Auto-update em 10 tabelas |
-| Compilação sem erros | ✅ | `npx tsc --noEmit` — 0 erros |
+| Fix Server-Side Auth (Cash) | ✅ | Refactor Repository + Actions para usar cliente SSR correto |
 
 ### Migração Factory — ENTREGUE:
 Todas as 27 referências diretas a `new LocalStorage*Repository()` foram substituídas por chamadas ao Repository Factory (`factory.ts`). Zero instanciações diretas fora de `factory.ts`.
@@ -972,8 +975,8 @@ Todas as 27 referências diretas a `new LocalStorage*Repository()` foram substit
 
 ---
 
-**Versão Final:** V1.9
-**Data:** 11/02/2026
-**Status:** OFICIAL E AUDITADO — FIX CRÍTICO DE AMBIENTE APLICADO
+**Versão Final:** V2.1
+**Data:** 12/02/2026
+**Status:** OFICIAL E AUDITADO — FIX CRÍTICO DE AMBIENTE + CAIXA + REEMBOLSO APLICADOS
 
 

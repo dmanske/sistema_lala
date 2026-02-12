@@ -80,7 +80,7 @@ export default function ClientProfilePage() {
                 const balance = movements.reduce((acc, m) => {
                     return m.type === 'CREDIT' ? acc + m.amount : acc - m.amount;
                 }, 0);
-                setComputedCreditBalance(Math.max(0, balance));
+                setComputedCreditBalance(balance);
             } catch (error) {
                 console.error(error);
                 router.push("/clients");
@@ -186,7 +186,7 @@ export default function ClientProfilePage() {
                         <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-end gap-3 w-full sm:w-auto pt-4 sm:pt-0">
                             <div className="text-left sm:text-right">
                                 <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold block mb-1">Saldo</span>
-                                <span className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-800">
+                                <span className={`text-2xl sm:text-3xl font-bold ${computedCreditBalance < 0 ? 'text-red-500' : 'text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-800'}`}>
                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(computedCreditBalance)}
                                 </span>
                             </div>

@@ -21,6 +21,20 @@ interface ClientCreditTabProps {
     creditBalance: number;
 }
 
+
+const ORIGIN_LABELS: Record<string, string> = {
+    WALLET: 'Carteira / Fiado',
+    CASH: 'Dinheiro',
+    PIX: 'Pix',
+    CARD: 'Cartão',
+    TRANSFER: 'Transferência',
+    CREDIT: 'Crédito',
+};
+
+// Helper function to safely get label
+const getOriginLabel = (origin: string) => ORIGIN_LABELS[origin] || origin;
+
+
 export function ClientCreditTab({ clientId, creditBalance }: ClientCreditTabProps) {
     const [movements, setMovements] = useState<CreditMovement[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -59,7 +73,7 @@ export function ClientCreditTab({ clientId, creditBalance }: ClientCreditTabProp
                                 <CreditCard className="h-8 w-8" />
                             </div>
                             <div>
-                                <span className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-800">
+                                <span className={`text-4xl font-bold ${creditBalance < 0 ? 'text-red-500' : 'bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-800'}`}>
                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(creditBalance)}
                                 </span>
                                 <p className="text-sm text-muted-foreground mt-1">
@@ -124,7 +138,7 @@ export function ClientCreditTab({ clientId, creditBalance }: ClientCreditTabProp
                                                     </Badge>
                                                 )}
                                             </TableCell>
-                                            <TableCell className="text-sm">{movement.origin}</TableCell>
+                                            <TableCell className="text-sm">{getOriginLabel(movement.origin)}</TableCell>
                                             <TableCell className={movement.type === 'CREDIT' ? 'text-green-600 font-bold' : ''}>
                                                 {movement.type === 'CREDIT' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(movement.amount)}
                                             </TableCell>
