@@ -10,6 +10,7 @@ import { toast } from "sonner"
 import { PaymentMethod } from "@/core/domain/sales/types"
 import { CreditCard, Banknote, QrCode, ArrowRightLeft, Wallet, Check, Plus, X, CheckCircle2, HandCoins, AlertTriangle, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { AccountSelector } from "@/components/bank-accounts/AccountSelector"
 
 // Formatar valor para exibição em R$
 const formatCurrency = (value: number): string => {
@@ -27,6 +28,7 @@ interface PaymentEntry {
     method: PaymentMethod
     amount: number
     cashGiven?: number // Only for cash: how much the customer handed over
+    bankAccountId?: string // Bank account for this payment
 }
 
 const PAYMENT_OPTIONS: { value: PaymentMethod; label: string; icon: React.ReactNode; color: string }[] = [
@@ -53,7 +55,7 @@ interface PaymentDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     totalRemaining: number
-    onConfirm: (payments: { method: PaymentMethod; amount: number; change?: number }[]) => void
+    onConfirm: (payments: { method: PaymentMethod; amount: number; change?: number; bankAccountId: string }[]) => void
     creditBalance?: number
     customerName?: string
     hasCustomer?: boolean
@@ -63,6 +65,7 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
     const [method, setMethod] = useState<PaymentMethod>('pix')
     const [amountInput, setAmountInput] = useState('') // String para formatação
     const [cashGivenInput, setCashGivenInput] = useState('') // String para formatação
+    const [bankAccountId, setBankAccountId] = useState<string>('')
     const [entries, setEntries] = useState<PaymentEntry[]>([])
     const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
 
@@ -86,6 +89,7 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
             setMethod('pix')
             setAmountInput(totalRemaining.toFixed(2).replace('.', ','))
             setCashGivenInput('')
+            setBankAccountId('')
             setEditingEntryId(null)
         }
     }, [open, totalRemaining])
@@ -121,12 +125,18 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
             toast.error("Fiado requer um cliente vinculado à venda")
             return
         }
+        // Validate bank account for monetary methods
+        if (['pix', 'card', 'cash', 'transfer'].includes(method) && !bankAccountId) {
+            toast.error("Selecione uma conta bancária")
+            return
+        }
 
         const entry: PaymentEntry = {
             id: editingEntryId || crypto.randomUUID(),
             method,
             amount: Math.round(amount * 100) / 100,
             cashGiven: method === 'cash' && cashGiven > amount ? cashGiven : undefined,
+            bankAccountId: bankAccountId || undefined,
         }
         
         if (editingEntryId) {
@@ -142,12 +152,14 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
         setMethod('pix')
         setCashGivenInput('')
         setAmountInput('')
+        setBankAccountId('')
     }
 
     const handleEditEntry = (entry: PaymentEntry) => {
         setEditingEntryId(entry.id)
         setMethod(entry.method)
         setAmountInput(entry.amount.toFixed(2).replace('.', ','))
+        setBankAccountId(entry.bankAccountId || '')
         if (entry.cashGiven) {
             setCashGivenInput(entry.cashGiven.toFixed(2).replace('.', ','))
         }
@@ -158,6 +170,7 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
         setMethod('pix')
         setAmountInput(remaining.toFixed(2).replace('.', ','))
         setCashGivenInput('')
+        setBankAccountId('')
     }
 
     const handleRemoveEntry = (id: string) => {
@@ -179,7 +192,8 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
         onConfirm(entries.map(e => ({
             method: e.method,
             amount: e.amount,
-            change: e.cashGiven && e.cashGiven > e.amount ? e.cashGiven - e.amount : undefined
+            change: e.cashGiven && e.cashGiven > e.amount ? e.cashGiven - e.amount : undefined,
+            bankAccountId: e.bankAccountId || ''
         })))
         onOpenChange(false)
     }
@@ -495,6 +509,23 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
                                                 </span>
                                             </div>
                                         )}
+                                    </div>
+                                )}
+
+                                {/* Bank Account Selector - for monetary methods */}
+                                {['pix', 'card', 'cash', 'transfer'].includes(method) && (
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-semibold text-slate-700">
+                                            Conta de Destino *
+                                        </Label>
+                                        <AccountSelector
+                                            value={bankAccountId}
+                                            onValueChange={setBankAccountId}
+                                            placeholder="Selecione a conta"
+                                        />
+                                        <p className="text-xs text-slate-500">
+                                            Selecione onde o dinheiro será depositado
+                                        </p>
                                     </div>
                                 )}
 

@@ -38,6 +38,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CreditService } from "@/core/services/CreditService";
 import { getCreditRepository, getClientRepository } from "@/infrastructure/repositories/factory";
 import { CreateCreditMovementSchema, CreditOriginSchema } from "@/core/domain/Credit";
+import { AccountSelector } from "@/components/bank-accounts/AccountSelector";
 
 interface RegisterCreditDialogProps {
     clientId: string;
@@ -53,6 +54,7 @@ const FormSchema = z.object({
 export function RegisterCreditDialog({ clientId, onSuccess }: RegisterCreditDialogProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [bankAccountId, setBankAccountId] = useState<string>("");
 
     const form = useForm<z.infer<typeof FormSchema>>({
         resolver: zodResolver(FormSchema) as any,
@@ -66,6 +68,13 @@ export function RegisterCreditDialog({ clientId, onSuccess }: RegisterCreditDial
     const onSubmit = async (data: z.infer<typeof FormSchema>) => {
         setIsSubmitting(true);
         try {
+            // Validate bank account for monetary methods
+            if (['CASH', 'PIX', 'CARD'].includes(data.origin) && !bankAccountId) {
+                toast.error("Selecione uma conta bancária");
+                setIsSubmitting(false);
+                return;
+            }
+
             const creditRepo = getCreditRepository();
             const clientRepo = getClientRepository();
             const service = new CreditService(creditRepo, clientRepo);
@@ -75,11 +84,13 @@ export function RegisterCreditDialog({ clientId, onSuccess }: RegisterCreditDial
                 origin: data.origin,
                 note: data.note,
                 clientId: clientId,
+                bankAccountId: bankAccountId || undefined,
             });
 
             toast.success("Crédito registrado com sucesso!");
             setIsOpen(false);
             form.reset();
+            setBankAccountId("");
             onSuccess?.();
             window.location.reload(); // Quick refresh to update balance in parent
         } catch (error) {
@@ -151,6 +162,20 @@ export function RegisterCreditDialog({ clientId, onSuccess }: RegisterCreditDial
                                 </FormItem>
                             )}
                         />
+
+                        {['CASH', 'PIX', 'CARD'].includes(form.watch('origin')) && (
+                            <FormItem>
+                                <FormLabel className="text-sm font-semibold text-slate-700">Conta de Destino *</FormLabel>
+                                <AccountSelector
+                                    value={bankAccountId}
+                                    onValueChange={setBankAccountId}
+                                    placeholder="Selecione a conta"
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Selecione onde o dinheiro será depositado
+                                </p>
+                            </FormItem>
+                        )}
 
                         <FormField
                             control={form.control}

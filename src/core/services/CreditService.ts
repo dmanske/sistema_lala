@@ -9,7 +9,7 @@ export class CreditService {
     ) { }
 
     async addCredit(clientId: string, input: CreateCreditMovementInput): Promise<CreditMovement> {
-        const movement: CreditMovement = {
+        const movement: CreditMovement & { bankAccountId?: string } = {
             id: crypto.randomUUID(),
             clientId,
             type: 'CREDIT',
@@ -17,6 +17,7 @@ export class CreditService {
             origin: input.origin,
             note: input.note,
             createdAt: new Date().toISOString(),
+            bankAccountId: input.bankAccountId,
         };
 
         return this.creditRepo.create(movement);

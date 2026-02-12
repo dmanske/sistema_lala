@@ -13,7 +13,7 @@ export class PaySale {
 
     async execute(input: {
         saleId: string,
-        payments: { method: PaymentMethod, amount: number, change?: number }[],
+        payments: { method: PaymentMethod, amount: number, change?: number, bankAccountId: string }[],
         createdBy: string
     }): Promise<void> {
         const sale = await this.saleRepo.findById(input.saleId);

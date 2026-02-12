@@ -33,6 +33,7 @@ import {
 import { createCashMovementAction } from "@/app/(app)/cash/actions"
 import { toast } from "sonner"
 import { Plus, Minus } from "lucide-react"
+import { AccountSelector } from "@/components/bank-accounts/AccountSelector"
 
 const schema = z.object({
     amount: z.number().min(0.01, "O valor deve ser positivo"),
@@ -48,6 +49,7 @@ interface NewTransactionDialogProps {
 
 export function NewTransactionDialog({ type }: NewTransactionDialogProps) {
     const [open, setOpen] = useState(false)
+    const [bankAccountId, setBankAccountId] = useState<string>("")
     const form = useForm<FormValues>({
         resolver: zodResolver(schema),
         defaultValues: {
@@ -58,15 +60,22 @@ export function NewTransactionDialog({ type }: NewTransactionDialogProps) {
     })
 
     async function onSubmit(values: FormValues) {
+        if (!bankAccountId) {
+            toast.error("Selecione uma conta bancária")
+            return
+        }
+
         const result = await createCashMovementAction({
             ...values,
             type,
+            bankAccountId,
         })
 
         if (result.success) {
             toast.success(type === 'IN' ? "Entrada registrada" : "Saída registrada")
             setOpen(false)
             form.reset()
+            setBankAccountId("")
         } else {
             toast.error(result.error || "Erro ao salvar")
         }
@@ -138,6 +147,17 @@ export function NewTransactionDialog({ type }: NewTransactionDialogProps) {
                                 </FormItem>
                             )}
                         />
+                        <FormItem>
+                            <FormLabel>Conta Bancária *</FormLabel>
+                            <AccountSelector
+                                value={bankAccountId}
+                                onValueChange={setBankAccountId}
+                                placeholder="Selecione a conta"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                {type === 'IN' ? 'Onde o dinheiro será depositado' : 'De onde o dinheiro será retirado'}
+                            </p>
+                        </FormItem>
                         <FormField
                             control={form.control}
                             name="description"

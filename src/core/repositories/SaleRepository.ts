@@ -9,6 +9,6 @@ export interface SaleRepository {
     findAll(tenantId?: string): Promise<Sale[]>;
     update(id: string, sale: Partial<Sale>): Promise<Sale>;
     delete(id: string): Promise<void>;
-    pay(saleId: string, payments: { method: PaymentMethod, amount: number }[], stockItems?: { productId: string, qty: number }[], creditDebit?: { clientId: string, amount: number }, change?: number): Promise<void>;
+    pay(saleId: string, payments: { method: PaymentMethod, amount: number, bankAccountId?: string }[], stockItems?: { productId: string, qty: number }[], creditDebit?: { clientId: string, amount: number }, change?: number): Promise<void>;
     refund(saleId: string): Promise<void>;
 }

@@ -1,0 +1,30 @@
+
+> sistema_lala@0.1.0 build
+> next build
+
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /Users/danielmanske/package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * /Users/danielmanske/Documents/GitHub/sistema_lala/package-lock.json
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 2.4s
+  Running TypeScript ...
+Failed to compile.
+
+./src/app/(app)/cash/actions.ts:20:13
+Type error: Object literal may only specify known properties, and 'bankAccountId' does not exist in type 'CreateCashMovementInput'.
+
+[0m [90m 18 |[39m             amount[33m:[39m [33mNumber[39m(data[33m.[39mamount)[33m,[39m
+ [90m 19 |[39m             method[33m:[39m data[33m.[39mmethod[33m,[39m
+[31m[1m>[22m[39m[90m 20 |[39m             bankAccountId[33m:[39m data[33m.[39mbankAccountId[33m,[39m
+ [90m    |[39m             [31m[1m^[22m[39m
+ [90m 21 |[39m             description[33m:[39m data[33m.[39mdescription[33m,[39m
+ [90m 22 |[39m             occurredAt[33m:[39m data[33m.[39moccurredAt [33m?[39m [36mnew[39m [33mDate[39m(data[33m.[39moccurredAt) [33m:[39m [36mnew[39m [33mDate[39m()[33m,[39m
+ [90m 23 |[39m             createdBy[33m:[39m data[33m.[39mcreatedBy [90m// Ensure auth context if needed or handle in repo[39m[0m
+Next.js build worker exited with code: 1 and signal: null

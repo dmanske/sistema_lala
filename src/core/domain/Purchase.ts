@@ -44,6 +44,7 @@ export const CreatePurchaseSchema = PurchaseSchema.omit({
     createdAt: true,
 }).extend({
     items: z.array(CreatePurchaseItemSchema).min(1, "Adicione pelo menos um item"),
+    bankAccountId: z.string().optional(),
 });
 
 export type CreatePurchaseInput = z.infer<typeof CreatePurchaseSchema>;

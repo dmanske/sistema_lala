@@ -246,7 +246,7 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
     }
 
     // ... (handlePayment logic remains)
-    const handlePayment = async (payments: { method: PaymentMethod; amount: number; change?: number }[]) => {
+    const handlePayment = async (payments: { method: PaymentMethod; amount: number; change?: number; bankAccountId: string }[]) => {
         if (!sale) return
         setPaymentConfirming(true)
         try {

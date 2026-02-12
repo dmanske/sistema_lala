@@ -22,7 +22,7 @@ export class SupabaseCreditRepository implements CreditRepository {
         return profile.tenant_id;
     }
 
-    async create(data: CreditMovement): Promise<CreditMovement> {
+    async create(data: CreditMovement & { bankAccountId?: string }): Promise<CreditMovement> {
         // Use RPC to ensure atomicity and Cash Ledger integration
         // Note: data.id is ignored as RPC/DB generates UUIDs
         const { data: insertedId, error } = await this.supabase.rpc('add_client_credit', {
@@ -30,6 +30,7 @@ export class SupabaseCreditRepository implements CreditRepository {
             p_amount: data.amount,
             p_origin: data.origin,
             p_note: data.note || null,
+            p_bank_account_id: data.bankAccountId || null,
         });
 
         if (error) throw new Error(`Failed to create credit movement: ${error.message}`);

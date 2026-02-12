@@ -7,9 +7,11 @@ export interface CashMovementRepository {
         endDate?: Date
         type?: 'IN' | 'OUT'
         method?: string
+        bankAccountId?: string
     }): Promise<CashMovement[]>
     getSummary(filters?: {
         startDate?: Date
         endDate?: Date
+        bankAccountId?: string
     }): Promise<{ totalIn: number; totalOut: number; balance: number }>
 }

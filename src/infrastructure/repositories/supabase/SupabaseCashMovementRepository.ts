@@ -31,10 +31,26 @@ export class SupabaseCashMovementRepository implements CashMovementRepository {
     async create(movement: Omit<CashMovement, 'id' | 'createdAt' | 'tenantId'>): Promise<CashMovement> {
         const tenantId = await this.getTenantId()
 
+        // Validate bank account exists and is active
+        const { data: account, error: accountError } = await this.supabase
+            .from('bank_accounts')
+            .select('id, is_active')
+            .eq('id', movement.bankAccountId)
+            .single()
+
+        if (accountError || !account) {
+            throw new Error('Bank account not found')
+        }
+
+        if (!account.is_active) {
+            throw new Error('Cannot create movement for inactive bank account')
+        }
+
         const { data, error } = await this.supabase
             .from('cash_movements')
             .insert({
                 tenant_id: tenantId,
+                bank_account_id: movement.bankAccountId,
                 type: movement.type,
                 amount: movement.amount,
                 method: movement.method,
@@ -56,6 +72,7 @@ export class SupabaseCashMovementRepository implements CashMovementRepository {
         endDate?: Date
         type?: 'IN' | 'OUT'
         method?: string
+        bankAccountId?: string
     }): Promise<CashMovement[]> {
         let query = this.supabase
             .from('cash_movements')
@@ -74,13 +91,16 @@ export class SupabaseCashMovementRepository implements CashMovementRepository {
         if (filters?.method) {
             query = query.eq('method', filters.method)
         }
+        if (filters?.bankAccountId) {
+            query = query.eq('bank_account_id', filters.bankAccountId)
+        }
 
         const { data, error } = await query
         if (error) throw new Error(`Failed to list cash movements: ${error.message}`)
         return (data || []).map(this.mapFromDb)
     }
 
-    async getSummary(filters?: { startDate?: Date; endDate?: Date }): Promise<{ totalIn: number; totalOut: number; balance: number }> {
+    async getSummary(filters?: { startDate?: Date; endDate?: Date; bankAccountId?: string }): Promise<{ totalIn: number; totalOut: number; balance: number }> {
         let query = this.supabase
             .from('cash_movements')
             .select('type, amount, occurred_at')
@@ -90,6 +110,9 @@ export class SupabaseCashMovementRepository implements CashMovementRepository {
         }
         if (filters?.endDate) {
             query = query.lte('occurred_at', filters.endDate.toISOString())
+        }
+        if (filters?.bankAccountId) {
+            query = query.eq('bank_account_id', filters.bankAccountId)
         }
 
         const { data, error } = await query
@@ -120,6 +143,7 @@ export class SupabaseCashMovementRepository implements CashMovementRepository {
         return {
             id: row.id,
             tenantId: row.tenant_id,
+            bankAccountId: row.bank_account_id,
             type: row.type,
             amount: Number(row.amount),
             method: row.method,

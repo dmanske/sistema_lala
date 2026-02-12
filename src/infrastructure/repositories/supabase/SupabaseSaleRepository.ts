@@ -222,7 +222,7 @@ export class SupabaseSaleRepository implements SaleRepository {
 
     async pay(
         saleId: string,
-        payments: { method: PaymentMethod, amount: number }[],
+        payments: { method: PaymentMethod, amount: number, bankAccountId?: string }[],
         stockItems?: { productId: string, qty: number }[],
         creditDebit?: { clientId: string, amount: number },
         change?: number

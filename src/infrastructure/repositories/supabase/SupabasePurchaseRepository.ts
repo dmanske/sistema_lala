@@ -85,6 +85,7 @@ export class SupabasePurchaseRepository implements PurchaseRepository {
             p_payment_method: input.paymentMethod || null,
             p_paid_amount: input.paidAmount || 0,
             p_paid_at: input.paidAt || null,
+            p_bank_account_id: input.bankAccountId || null,
         });
 
         if (error) throw new Error(`Failed to create purchase: ${error.message}`);

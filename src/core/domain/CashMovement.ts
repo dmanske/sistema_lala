@@ -1,6 +1,7 @@
 export interface CashMovement {
     id: string
     tenantId: string
+    bankAccountId: string
     type: 'IN' | 'OUT'
     amount: number
     method: 'CASH' | 'PIX' | 'CARD' | 'TRANSFER' | 'WALLET'

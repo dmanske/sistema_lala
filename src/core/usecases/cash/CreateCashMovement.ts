@@ -5,6 +5,7 @@ export interface CreateCashMovementInput {
     type: 'IN' | 'OUT'
     amount: number
     method: 'CASH' | 'PIX' | 'CARD' | 'TRANSFER' | 'WALLET'
+    bankAccountId: string
     description?: string
     occurredAt?: Date
     createdBy?: string
@@ -20,6 +21,7 @@ export class CreateCashMovement {
             type: input.type,
             amount: input.amount,
             method: input.method,
+            bankAccountId: input.bankAccountId,
             sourceType: 'MANUAL',
             description: input.description,
             occurredAt: input.occurredAt || new Date(),

@@ -22,6 +22,8 @@ export const CreateCreditMovementSchema = CreditMovementSchema.omit({
     id: true,
     createdAt: true,
     type: true // infered by action usually, but we can keep it flexible or fixed
+}).extend({
+    bankAccountId: z.string().optional(),
 });
 
 export type CreateCreditMovementInput = z.infer<typeof CreateCreditMovementSchema>;

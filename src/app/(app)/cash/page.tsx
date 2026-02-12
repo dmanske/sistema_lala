@@ -4,7 +4,7 @@ import { ListCashMovements } from '@/core/usecases/cash/ListCashMovements'
 import { CashSummaryCards } from '@/components/cash/CashSummaryCards'
 import { CashList } from '@/components/cash/CashList'
 import { CashHeader } from '@/components/cash/CashHeader'
-import { DateFilter } from '@/components/cash/DateFilter'
+import { DateNavigator } from '@/components/cash/DateNavigator'
 import { startOfMonth, endOfMonth, parseISO } from 'date-fns'
 
 interface CashPageProps {
@@ -30,7 +30,7 @@ export default async function CashPage({ searchParams }: CashPageProps) {
     return (
         <div className="container mx-auto p-6 space-y-6">
             <CashHeader />
-            <DateFilter />
+            <DateNavigator startDate={start} endDate={end} />
             <CashSummaryCards summary={summary} />
             <CashList movements={list} />
         </div>

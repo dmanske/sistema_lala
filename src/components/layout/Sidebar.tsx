@@ -20,7 +20,8 @@ import {
     LogOut,
     Sparkles,
     Plus,
-    Truck
+    Truck,
+    Building2
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -56,7 +57,6 @@ export function Sidebar({ className }: SidebarProps) {
             items: [
                 { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard", active: true },
                 { name: "Agenda", icon: Calendar, href: "/agenda", active: true },
-                { name: "Caixa", icon: Wallet, href: "/cash", active: true },
             ],
         },
         {
@@ -77,7 +77,8 @@ export function Sidebar({ className }: SidebarProps) {
         {
             label: "Financeiro",
             items: [
-                { name: "Financeiro", icon: Banknote, href: "/finance", active: false },
+                { name: "Caixa", icon: Wallet, href: "/cash", active: true },
+                { name: "Contas", icon: Building2, href: "/contas", active: true },
                 { name: "Compras", icon: ShoppingBag, href: "/purchases", active: true },
                 { name: "Comissões", icon: Percent, href: "/commissions", active: false },
             ],

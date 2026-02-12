@@ -17,6 +17,7 @@ export async function createCashMovementAction(data: CreateCashMovementInput) {
             type: data.type,
             amount: Number(data.amount),
             method: data.method,
+            bankAccountId: data.bankAccountId,
             description: data.description,
             occurredAt: data.occurredAt ? new Date(data.occurredAt) : new Date(),
             createdBy: data.createdBy // Ensure auth context if needed or handle in repo

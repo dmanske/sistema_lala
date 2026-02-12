@@ -13,6 +13,8 @@ import { formatCurrency } from "@/lib/utils"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { Badge } from "@/components/ui/badge"
+import { useEffect, useState } from 'react'
+import { SupabaseBankAccountRepository } from '@/infrastructure/repositories/supabase/SupabaseBankAccountRepository'
 
 import { ArrowUpCircle, ArrowDownCircle, ShoppingBag, RotateCcw, Truck, Settings } from 'lucide-react'
 
@@ -35,6 +37,21 @@ interface CashListProps {
 }
 
 export function CashList({ movements }: CashListProps) {
+    const [accountNames, setAccountNames] = useState<Record<string, string>>({})
+
+    useEffect(() => {
+        async function loadAccountNames() {
+            const repo = new SupabaseBankAccountRepository()
+            const accounts = await repo.list()
+            const names: Record<string, string> = {}
+            accounts.forEach(account => {
+                names[account.id] = account.name
+            })
+            setAccountNames(names)
+        }
+        loadAccountNames()
+    }, [])
+
     return (
         <div className="rounded-xl border border-white/20 bg-white/40 backdrop-blur-sm overflow-hidden shadow-sm">
             <Table>
@@ -44,13 +61,14 @@ export function CashList({ movements }: CashListProps) {
                         <TableHead className="font-semibold">Descrição</TableHead>
                         <TableHead className="font-semibold">Método</TableHead>
                         <TableHead className="font-semibold">Origem</TableHead>
+                        <TableHead className="font-semibold">Conta</TableHead>
                         <TableHead className="text-right font-semibold">Valor</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {movements.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                            <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                                 Nenhuma movimentação no período.
                             </TableCell>
                         </TableRow>
@@ -82,6 +100,11 @@ export function CashList({ movements }: CashListProps) {
                                             {SOURCE_LABELS[movement.sourceType] || movement.sourceType}
                                         </span>
                                     </div>
+                                </TableCell>
+                                <TableCell>
+                                    <span className="text-xs text-slate-600">
+                                        {accountNames[movement.bankAccountId] || 'Carregando...'}
+                                    </span>
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex flex-col items-end">

@@ -35,6 +35,7 @@ import { getPurchaseRepository, getSupplierRepository, getProductRepository } fr
 import { Supplier } from "@/core/domain/Supplier";
 import { Product } from "@/core/domain/Product";
 import { PurchaseItemRow } from "./PurchaseItemRow";
+import { AccountSelector } from "@/components/bank-accounts/AccountSelector";
 
 const FormSchema = CreatePurchaseSchema;
 
@@ -44,6 +45,7 @@ export function PurchaseForm() {
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoadingData, setIsLoadingData] = useState(true);
     const [isPaid, setIsPaid] = useState(false);
+    const [bankAccountId, setBankAccountId] = useState<string>("");
 
     const form = useForm<z.infer<typeof FormSchema>>({
         resolver: zodResolver(FormSchema),
@@ -101,11 +103,18 @@ export function PurchaseForm() {
 
     async function onSubmit(data: z.infer<typeof FormSchema>) {
         try {
+            // Validate bank account if payment is being made
+            if (isPaid && !bankAccountId) {
+                toast.error("Selecione uma conta bancária para o pagamento");
+                return;
+            }
+
             const input = {
                 ...data,
                 paymentMethod: isPaid ? data.paymentMethod : undefined,
                 paidAmount: isPaid ? data.paidAmount : undefined,
                 paidAt: isPaid ? new Date().toISOString() : undefined,
+                bankAccountId: isPaid ? bankAccountId : undefined,
             };
             await createUseCase.execute(input);
             toast.success("Compra registrada com sucesso!");
@@ -263,6 +272,19 @@ export function PurchaseForm() {
                                     </FormItem>
                                 )}
                             />
+                            <div className="md:col-span-2">
+                                <FormItem>
+                                    <FormLabel className="text-xs">Conta de Origem *</FormLabel>
+                                    <AccountSelector
+                                        value={bankAccountId}
+                                        onValueChange={setBankAccountId}
+                                        placeholder="Selecione a conta"
+                                    />
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Selecione de onde o dinheiro será retirado
+                                    </p>
+                                </FormItem>
+                            </div>
                         </div>
                     )}
                 </div>
