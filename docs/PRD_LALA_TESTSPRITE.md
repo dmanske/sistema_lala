@@ -1,8 +1,8 @@
 # Product Requirements Document (PRD) - Lala System
 
-**Version:** 2.3.2
-**Date:** 2026-02-12
-**Status:** In Development - Account Statement Improvements Complete (Phase 1), Client Photo Upload Complete, Financial System In Progress, Checkout Payment Fix Applied
+**Version:** 2.4.0
+**Date:** 2026-02-13
+**Status:** In Development - Client Analytics Complete, Account Statement Improvements Complete, Client Photo Upload Complete, Financial System In Progress
 
 ## 1. Product Overview
 Lala System is a production-ready SaaS management platform for beauty salons, designed to streamline operations including scheduling, client management, inventory control, and financial transactions. Built with Next.js 15, TypeScript, and Supabase backend.
@@ -30,10 +30,10 @@ Lala System is a production-ready SaaS management platform for beauty salons, de
 ## 3. User Stories & Acceptance Criteria
 
 ### 3.1. Client Management
-**User Story:** As a User, I want to register and manage clients with complete history tracking and photo upload.
+**User Story:** As a User, I want to register and manage clients with complete history tracking, photo upload, and comprehensive analytics.
 - **Acceptance Criteria 1:** User can create/edit clients with Name, Birth Date, Phone, WhatsApp, City, Notes, and Photo.
 - **Acceptance Criteria 2:** System requires "Name" and "City" as mandatory fields.
-- **Acceptance Criteria 3:** Client profile displays 4 tabs: Overview (summary), History (appointments), Credit (balance movements), Products (purchase history).
+- **Acceptance Criteria 3:** Client profile displays 4 tabs: Overview (summary with statistics and charts), History (appointments), Credit (balance movements), Products (purchase history).
 - **Acceptance Criteria 4:** Upon saving, client is created with "ACTIVE" status and zero credit balance.
 - **Acceptance Criteria 5:** Client photos are uploaded to Supabase Storage in user-isolated folders with validation.
 - **Acceptance Criteria 6:** Photo upload validates file type (JPG, PNG, WEBP) and size (max 2MB) on both client and server.
@@ -43,6 +43,26 @@ Lala System is a production-ready SaaS management platform for beauty salons, de
 - **Acceptance Criteria 10:** System displays visual debt indicators (red badge) when client has negative balance (Fiado).
 - **Acceptance Criteria 11:** Search and filter by status (ACTIVE, INACTIVE, ATTENTION).
 - **Acceptance Criteria 12:** The created client is ONLY visible to the current Tenant.
+- **Acceptance Criteria 13:** Overview tab displays 8 metric cards:
+    - Total Gasto (Lifetime Value)
+    - Total de Visitas (completed appointments)
+    - Ticket Médio (average per visit)
+    - Frequência Média (days between visits)
+    - Gasto em Produtos (total spent on products)
+    - Cancelamentos (no-shows and cancellations)
+    - Cliente Desde (days as customer)
+    - Última Visita (days since last visit)
+- **Acceptance Criteria 14:** Overview tab displays special card for next appointment when exists.
+- **Acceptance Criteria 15:** System shows 3 types of alerts:
+    - Cliente Inativo (30+ days without visit) - Warning
+    - Aniversário Próximo (within 7 days) or Today - Info
+    - Saldo de Crédito Negativo - Error
+- **Acceptance Criteria 16:** Overview tab displays 3 interactive charts (Recharts):
+    - Evolução de Gastos (line chart, last 6 months)
+    - Top 5 Serviços Mais Consumidos (horizontal bar chart)
+    - Top 5 Produtos Mais Comprados (horizontal bar chart)
+- **Acceptance Criteria 17:** Charts display formatted currency tooltips and truncate long names (20 chars).
+- **Acceptance Criteria 18:** Overview tab shows last 5 services performed with dates and values.
 
 ### 3.2. Appointment Scheduling
 **User Story:** As a User, I want to schedule services with flexible calendar views and drag & drop support.

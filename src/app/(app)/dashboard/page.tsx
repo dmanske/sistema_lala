@@ -28,6 +28,7 @@ import { Service } from "@/core/domain/Service";
 import { Client } from "@/core/domain/Client";
 import { CashMovement } from "@/core/domain/CashMovement";
 import { Professional } from "@/core/domain/Professional";
+import { BirthdayCard } from "@/components/dashboard/BirthdayCard";
 
 // Helper Components
 const StatCard = ({ title, value, subtext, icon: Icon, trend, color = "blue" }: any) => {
@@ -414,8 +415,13 @@ export default function DashboardPage() {
                 {/* VISÃO GERAL TAB */}
                 <TabsContent value="overview" className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                        {/* Birthday Card */}
+                        <div className="col-span-3">
+                            <BirthdayCard />
+                        </div>
+
                         {/* Cash Flow Card */}
-                        <Card className="col-span-3 border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                        <Card className="col-span-4 border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-lg">
                                     <div className="p-2 bg-emerald-50 rounded-lg">
@@ -454,7 +460,7 @@ export default function DashboardPage() {
                         </Card>
 
                         {/* Top Professionals Card */}
-                        <Card className="col-span-4 border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                        <Card className="col-span-3 border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-lg">
                                     <div className="p-2 bg-purple-50 rounded-lg">

@@ -80,7 +80,9 @@ export default function ClientsPage() {
                     search: search || undefined,
                     status: statusFilter === "ALL" ? undefined : statusFilter
                 });
-                setClients(data);
+                // Ordenar alfabeticamente por nome
+                const sortedData = data.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+                setClients(sortedData);
             } catch (error) {
                 console.error("Failed to fetch clients", error);
             } finally {
@@ -244,7 +246,12 @@ export default function ClientsPage() {
                     <Table>
                         <TableHeader>
                             <TableRow className="hover:bg-transparent border-white/10">
-                                <TableHead className="font-heading font-semibold text-primary/80">Nome</TableHead>
+                                <TableHead className="font-heading font-semibold text-primary/80">
+                                    <div className="flex items-center gap-1">
+                                        Nome
+                                        <span className="text-xs text-muted-foreground">(A-Z)</span>
+                                    </div>
+                                </TableHead>
                                 <TableHead className="font-heading font-semibold text-primary/80">Telefone / WhatsApp</TableHead>
                                 <TableHead className="font-heading font-semibold text-primary/80">Última Visita</TableHead>
                                 <TableHead className="font-heading font-semibold text-primary/80 text-center">Próx. Agendamento</TableHead>
@@ -327,16 +334,16 @@ export default function ClientsPage() {
             </div>
 
             <div className={cn(
-                "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20 px-4",
+                "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-20 px-4",
                 viewMode === "grid" ? "grid" : "hidden"
             )}>
                 {isLoading ? (
                     Array.from({ length: 4 }).map((_, i) => (
-                        <Card key={i} className="border border-slate-200 bg-white/40 backdrop-blur-xl h-[120px]">
-                            <CardContent className="flex h-full items-center gap-4 p-6">
-                                <Skeleton className="h-16 w-16 rounded-full flex-shrink-0" />
+                        <Card key={i} className="border border-slate-200 bg-white/40 backdrop-blur-xl h-[100px]">
+                            <CardContent className="flex h-full items-center gap-3 p-4">
+                                <Skeleton className="h-12 w-12 rounded-full flex-shrink-0" />
                                 <div className="space-y-2 flex-1">
-                                    <Skeleton className="h-5 w-3/4" />
+                                    <Skeleton className="h-4 w-3/4" />
                                     <Skeleton className="h-3 w-1/2" />
                                 </div>
                             </CardContent>
@@ -351,75 +358,63 @@ export default function ClientsPage() {
                         const stats = clientStats[client.id] || {};
                         return (
                             <Link href={`/clients/${client.id}`} key={client.id} className="block group">
-                                <Card className="border border-slate-200 bg-white/60 hover:bg-white/90 backdrop-blur-xl shadow-lg shadow-purple-500/5 hover:shadow-purple-500/15 transition-all duration-300 rounded-3xl overflow-hidden group h-full flex flex-col">
-                                    <CardContent className="p-6 flex flex-col gap-5 flex-1">
-                                        {/* Top Section: Avatar, Name and Large Balance */}
-                                        <div className="flex flex-col gap-4">
-                                            <div className="flex items-start justify-between">
-                                                <div className="relative">
-                                                    <Avatar className="h-16 w-16 border-2 border-white shadow-md">
+                                <Card className="border border-slate-200 bg-white/60 hover:bg-white/90 backdrop-blur-xl shadow-lg shadow-purple-500/5 hover:shadow-purple-500/15 transition-all duration-300 rounded-2xl overflow-hidden group h-full flex flex-col">
+                                    <CardContent className="p-4 flex flex-col gap-3 flex-1">
+                                        {/* Top Section: Avatar, Name and Balance */}
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                <div className="relative flex-shrink-0">
+                                                    <Avatar className="h-12 w-12 border-2 border-white shadow-md">
                                                         <AvatarImage src={client.photoUrl} alt={client.name} />
-                                                        <AvatarFallback className="bg-primary/10 text-primary font-bold text-xl">
+                                                        <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
                                                             {getInitials(client.name)}
                                                         </AvatarFallback>
                                                     </Avatar>
                                                     <div className={cn(
-                                                        "absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-white",
+                                                        "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white",
                                                         client.status === 'ACTIVE' ? 'bg-green-500' :
                                                             client.status === 'ATTENTION' ? 'bg-orange-500' : 'bg-gray-300'
                                                     )} />
                                                 </div>
 
-                                                <div className="flex flex-col items-end">
-                                                    <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Saldo em Conta</span>
-                                                    <span className={cn("text-2xl font-black", client.creditBalance < 0 ? "text-red-500" : "text-emerald-600")}>
-                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(client.creditBalance)}
-                                                    </span>
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="font-bold text-slate-800 truncate font-heading group-hover:text-primary transition-colors text-base">
+                                                        {formatName(client.name)}
+                                                    </h3>
+                                                    <div className="flex items-center gap-1.5 text-sm text-slate-600">
+                                                        {client.whatsapp ? <MessageCircle className="h-3.5 w-3.5 text-green-600 flex-shrink-0" /> : <Phone className="h-3.5 w-3.5 flex-shrink-0" />}
+                                                        <span className="font-medium tracking-tight truncate">
+                                                            {formatPhone(client.whatsapp || client.phone || 'Sem contato')}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-1">
-                                                <h3 className="font-bold text-slate-800 truncate font-heading group-hover:text-primary transition-colors text-xl">
-                                                    {formatName(client.name)}
-                                                </h3>
-                                                <div className="flex items-center gap-1.5 text-base text-slate-600">
-                                                    {client.whatsapp ? <MessageCircle className="h-4 w-4 text-green-600" /> : <Phone className="h-4 w-4" />}
-                                                    <span className="font-medium tracking-tight">
-                                                        {formatPhone(client.whatsapp || client.phone || 'Sem contato')}
-                                                    </span>
-                                                </div>
+                                            <div className="flex flex-col items-end flex-shrink-0">
+                                                <span className="text-[9px] uppercase text-muted-foreground font-bold tracking-wider">Saldo</span>
+                                                <span className={cn("text-lg font-black leading-tight", client.creditBalance < 0 ? "text-red-500" : "text-emerald-600")}>
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(client.creditBalance)}
+                                                </span>
                                             </div>
                                         </div>
 
-                                        {/* Integrated Info Block: All details together */}
-                                        <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 flex flex-col gap-3">
-                                            <div className="grid grid-cols-2 gap-y-3 gap-x-2">
-                                                <div className="flex items-center gap-2 text-slate-600 col-span-2">
-                                                    <MapPin className="h-4 w-4 text-blue-500" />
-                                                    <span className="text-sm font-medium">{client.city || 'Cidade não inf.'}</span>
-                                                </div>
-
-                                                <div className="flex items-center gap-2 text-slate-600">
-                                                    <Calendar className="h-4 w-4 text-orange-500" />
-                                                    <span className="text-sm font-medium">{client.birthDate ? formatDate(client.birthDate) : 'Nasc. não inf.'}</span>
-                                                </div>
-
-                                                <div className="flex items-center gap-2 text-slate-600">
-                                                    <Clock className="h-4 w-4 text-slate-400" />
-                                                    <span className="text-xs">Cad: {format(new Date(client.createdAt), 'dd/MM/yy', { locale: ptBR })}</span>
-                                                </div>
+                                        {/* Info Block */}
+                                        <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 flex flex-col gap-2">
+                                            <div className="flex items-center gap-2 text-slate-600">
+                                                <MapPin className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+                                                <span className="text-xs font-medium truncate">{client.city || 'Cidade não inf.'}</span>
                                             </div>
 
-                                            <div className="pt-3 border-t border-slate-200/50 grid grid-cols-2 gap-2">
+                                            <div className="pt-2 border-t border-slate-200/50 grid grid-cols-2 gap-2">
                                                 <div className="flex flex-col gap-0.5">
-                                                    <span className="text-[10px] uppercase text-slate-400 font-bold">Última Visita</span>
-                                                    <span className="font-semibold text-slate-700 text-sm">
+                                                    <span className="text-[9px] uppercase text-slate-400 font-bold">Última</span>
+                                                    <span className="font-semibold text-slate-700 text-xs">
                                                         {stats.lastVisit ? format(stats.lastVisit, 'dd/MM/yy') : '-'}
                                                     </span>
                                                 </div>
-                                                <div className="flex flex-col gap-0.5 border-l border-slate-200 pl-3">
-                                                    <span className="text-[10px] uppercase text-slate-400 font-bold">Próximo</span>
-                                                    <span className={cn("font-semibold text-sm", stats.nextAppointment ? "text-blue-600" : "text-slate-500")}>
+                                                <div className="flex flex-col gap-0.5 border-l border-slate-200 pl-2">
+                                                    <span className="text-[9px] uppercase text-slate-400 font-bold">Próximo</span>
+                                                    <span className={cn("font-semibold text-xs truncate", stats.nextAppointment ? "text-blue-600" : "text-slate-500")}>
                                                         {stats.nextAppointment ? format(stats.nextAppointment, 'dd/MM HH:mm') : '-'}
                                                     </span>
                                                 </div>

@@ -207,33 +207,37 @@ export default function PurchasesPage() {
                 </div>
             </div>
 
-            <div className="rounded-2xl border border-white/20 bg-card/40 backdrop-blur-xl shadow-lg shadow-purple-500/5 overflow-hidden">
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
-                            <TableRow className="hover:bg-transparent border-white/10">
-                                <TableHead className="font-heading font-semibold text-primary/80">Data</TableHead>
-                                <TableHead className="font-heading font-semibold text-primary/80">Fornecedor</TableHead>
-                                <TableHead className="font-heading font-semibold text-primary/80 text-center">Itens</TableHead>
-                                <TableHead className="font-heading font-semibold text-primary/80 text-right">Total</TableHead>
-                                <TableHead className="font-heading font-semibold text-primary/80 w-[50px]"></TableHead>
+                            <TableRow className="hover:bg-transparent border-slate-100 bg-slate-50/50">
+                                <TableHead className="font-heading font-semibold text-slate-700">Data</TableHead>
+                                <TableHead className="font-heading font-semibold text-slate-700">Fornecedor</TableHead>
+                                <TableHead className="font-heading font-semibold text-slate-700 text-center">Itens</TableHead>
+                                <TableHead className="font-heading font-semibold text-slate-700 text-right">Total</TableHead>
+                                <TableHead className="font-heading font-semibold text-slate-700 w-[50px]"></TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {isLoading ? (
                                 Array.from({ length: 5 }).map((_, i) => (
-                                    <TableRow key={i} className="border-white/10">
-                                        <TableCell><div className="h-4 w-24 bg-primary/10 rounded animate-pulse" /></TableCell>
-                                        <TableCell><div className="h-4 w-32 bg-primary/10 rounded animate-pulse" /></TableCell>
-                                        <TableCell><div className="h-4 w-12 bg-primary/10 rounded animate-pulse mx-auto" /></TableCell>
-                                        <TableCell><div className="h-4 w-20 bg-primary/10 rounded animate-pulse ml-auto" /></TableCell>
+                                    <TableRow key={i} className="border-slate-100">
+                                        <TableCell><div className="h-4 w-24 bg-slate-100 rounded animate-pulse" /></TableCell>
+                                        <TableCell><div className="h-4 w-32 bg-slate-100 rounded animate-pulse" /></TableCell>
+                                        <TableCell><div className="h-4 w-12 bg-slate-100 rounded animate-pulse mx-auto" /></TableCell>
+                                        <TableCell><div className="h-4 w-20 bg-slate-100 rounded animate-pulse ml-auto" /></TableCell>
                                         <TableCell></TableCell>
                                     </TableRow>
                                 ))
                             ) : filteredPurchases.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground border-white/10">
-                                        Nenhuma compra encontrada.
+                                    <TableCell colSpan={5} className="h-32 text-center border-slate-100">
+                                        <div className="flex flex-col items-center justify-center text-muted-foreground">
+                                            <ShoppingBag className="h-10 w-10 text-slate-300 mb-2" />
+                                            <p className="font-medium text-slate-600">Nenhuma compra encontrada</p>
+                                            <p className="text-xs text-slate-500 mt-1">Registre sua primeira entrada de estoque</p>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ) : (
@@ -242,16 +246,19 @@ export default function PurchasesPage() {
                                     return (
                                         <TableRow
                                             key={purchase.id}
-                                            className="cursor-pointer group hover:bg-white/40 border-white/10 transition-colors"
+                                            className="cursor-pointer group hover:bg-slate-50 border-slate-100 transition-colors"
                                             onClick={() => router.push(`/purchases/${purchase.id}`)}
                                         >
                                             <TableCell className="font-medium text-slate-700">
-                                                {format(new Date(purchase.date), 'dd/MM/yyyy')}
+                                                <div className="flex items-center gap-2">
+                                                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                                                    {format(new Date(purchase.date), 'dd/MM/yyyy')}
+                                                </div>
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
-                                                    <Avatar className="h-6 w-6 border border-white/50">
-                                                        <AvatarFallback className="text-[10px] bg-orange-100 text-orange-600">
+                                                    <Avatar className="h-7 w-7 border border-slate-200">
+                                                        <AvatarFallback className="text-[10px] bg-orange-50 text-orange-600 font-semibold">
                                                             {getInitials(supplierName)}
                                                         </AvatarFallback>
                                                     </Avatar>
@@ -259,26 +266,28 @@ export default function PurchasesPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-center">
-                                                <Badge variant="secondary" className="bg-white/50">{purchase.items ? purchase.items.reduce((s, i) => s + i.quantity, 0) : 0}</Badge>
+                                                <Badge variant="secondary" className="bg-slate-100 text-slate-700 font-semibold">
+                                                    {purchase.items ? purchase.items.reduce((s, i) => s + i.quantity, 0) : 0}
+                                                </Badge>
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex flex-col items-end gap-1">
-                                                    <span className="font-bold text-slate-700">
+                                                    <span className="font-bold text-slate-900">
                                                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(purchase.total)}
                                                     </span>
                                                     {purchase.paymentStatus === 'PENDING' && (
-                                                        <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 text-xs">Pendente</Badge>
+                                                        <Badge variant="secondary" className="bg-yellow-50 text-yellow-700 text-xs border border-yellow-200">Pendente</Badge>
                                                     )}
                                                     {purchase.paymentStatus === 'PARTIAL' && (
-                                                        <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs">Parcial</Badge>
+                                                        <Badge variant="secondary" className="bg-blue-50 text-blue-700 text-xs border border-blue-200">Parcial</Badge>
                                                     )}
                                                     {purchase.paymentStatus === 'PAID' && (
-                                                        <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">Pago</Badge>
+                                                        <Badge variant="secondary" className="bg-green-50 text-green-700 text-xs border border-green-200">Pago</Badge>
                                                     )}
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-primary transition-colors" />
+                                                <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
                                             </TableCell>
                                         </TableRow>
                                     );

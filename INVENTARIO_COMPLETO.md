@@ -1,6 +1,6 @@
 # 📋 INVENTÁRIO COMPLETO DO SISTEMA LALA
-**Data:** 12/02/2026
-**Status:** CONSOLIDADO V2.5.2 (12/02/2026) - EXTRATO DE CONTA MELHORADO + UPLOAD DE FOTO DO CLIENTE + SISTEMA FINANCEIRO EM DESENVOLVIMENTO + CORREÇÃO CRÍTICA DE CHECKOUT
+**Data:** 13/02/2026
+**Status:** CONSOLIDADO V2.6.0 (13/02/2026) - ESTATÍSTICAS E GRÁFICOS DE CLIENTES IMPLEMENTADOS + EXTRATO DE CONTA MELHORADO + UPLOAD DE FOTO DO CLIENTE + SISTEMA FINANCEIRO EM DESENVOLVIMENTO
 
 ---
 
@@ -109,9 +109,10 @@ Os seguintes módulos foram removidos da estrutura do sistema:
 - ✅ **Contexto:** `AuthProvider` global expondo User, Profile, Role e TenantId
 - ✅ **RLS:** Policies de segurança ativas no banco de dados
 
-### 1. **CLIENTES** ✅ Completo
-**Status:** Implementado e funcional  
-**Localização:** `/clients`
+### 1. **CLIENTES** ✅ Completo + Estatísticas Avançadas
+**Status:** Implementado e funcional com análise completa  
+**Localização:** `/clients`  
+**Última atualização:** 13/02/2026 - Estatísticas e gráficos implementados
 
 #### O que está implementado:
 - ✅ Listagem de clientes (grid padrão e tabela)
@@ -123,7 +124,26 @@ Os seguintes módulos foram removidos da estrutura do sistema:
 - ✅ Edição de cliente
 - ✅ Exclusão de cliente (com validação de histórico)
 - ✅ Perfil detalhado do cliente com 4 abas:
-  - **Visão Geral:** Resumo, últimos serviços, próximos agendamentos
+  - **Visão Geral:** ⭐ COMPLETO COM ESTATÍSTICAS E GRÁFICOS
+    - 8 cards de métricas principais:
+      - Total Gasto (Lifetime Value)
+      - Total de Visitas
+      - Ticket Médio
+      - Frequência Média (dias entre visitas)
+      - Gasto em Produtos
+      - Cancelamentos
+      - Cliente Desde (dias como cliente)
+      - Última Visita (dias atrás)
+    - Card especial: Próximo Agendamento (quando existe)
+    - Sistema de Alertas (3 tipos):
+      - Cliente Inativo (30+ dias sem visita) - Warning
+      - Aniversário Próximo (7 dias) ou Hoje - Info
+      - Saldo de Crédito Negativo - Error
+    - Gráficos Interativos (Recharts):
+      - Evolução de Gastos (últimos 6 meses) - Linha
+      - Top 5 Serviços Mais Consumidos - Barras
+      - Top 5 Produtos Mais Comprados - Barras
+    - Últimos 5 serviços realizados
   - **Histórico:** Lista de agendamentos passados com status e valores
   - **Crédito:** Movimentações de crédito (adicionar/debitar)
   - **Produtos:** Produtos consumidos pelo cliente
@@ -145,7 +165,7 @@ Os seguintes módulos foram removidos da estrutura do sistema:
 {
   id: string
   name: string (obrigatório)
-  birthDate: string (obrigatório, formato YYYY-MM-DD)
+  birthDate: string (opcional, formato YYYY-MM-DD)
   phone?: string
   whatsapp?: string
   city: string (obrigatório)
@@ -160,8 +180,14 @@ Os seguintes módulos foram removidos da estrutura do sistema:
 
 #### O que NÃO está implementado:
 - ❌ Integração com WhatsApp
-- ❌ Histórico de compras detalhado (apenas agendamentos)
-- ❌ Relatórios de cliente
+- ❌ Card de Aniversariantes no Dashboard
+- ❌ Filtro de aniversariantes na listagem
+- ❌ Exportação de dados
+- ❌ Importação em massa
+- ❌ Tags e categorias
+- ❌ Histórico de comunicações
+- ❌ Sistema de indicações
+- ❌ Fotos antes/depois
 
 ---
 
