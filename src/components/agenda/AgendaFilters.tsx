@@ -68,7 +68,7 @@ export function AgendaFilters({
                     <SelectItem value="PENDING">Pendente</SelectItem>
                     <SelectItem value="CONFIRMED">Confirmado</SelectItem>
                     <SelectItem value="DONE">Finalizado</SelectItem>
-                    <SelectItem value="CANCELED">Cancelado</SelectItem>
+                    <SelectItem value="CANCELED">Apagar</SelectItem>
                 </SelectContent>
             </Select>
         </div>

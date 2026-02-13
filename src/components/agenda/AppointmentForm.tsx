@@ -58,6 +58,16 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -101,6 +111,8 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
     const [activeTab, setActiveTab] = useState("appointment");
     const [endTime, setEndTime] = useState("10:00");
     const [clientDialogOpen, setClientDialogOpen] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [pendingData, setPendingData] = useState<CreateAppointmentInput | null>(null);
 
     const appointmentService = new AppointmentService(getAppointmentRepository());
     const clientRepo = getClientRepository();
@@ -124,7 +136,7 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
 
     // Load Clients
     const [clientsVersion, setClientsVersion] = useState(0);
-    
+
     useEffect(() => {
         const loadClients = async () => {
             try {
@@ -270,6 +282,13 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
     };
 
     const onSubmit: SubmitHandler<CreateAppointmentInput> = async (data) => {
+        // Se status for CANCELED, mostrar confirmação antes de apagar
+        if (data.status === 'CANCELED' && initialData) {
+            setPendingData(data);
+            setIsDeleteDialogOpen(true);
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             // Check for conflicts
@@ -310,6 +329,25 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
             toast.error("Erro ao salvar agendamento");
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    const confirmDelete = async () => {
+        if (!initialData || !pendingData) return;
+
+        setIsSubmitting(true);
+        try {
+            await appointmentService.delete(initialData.id);
+            toast.success("Agendamento apagado com sucesso!");
+            onOpenChange(false);
+            onSuccess?.();
+        } catch (error) {
+            console.error(error);
+            toast.error("Erro ao apagar agendamento");
+        } finally {
+            setIsSubmitting(false);
+            setIsDeleteDialogOpen(false);
+            setPendingData(null);
         }
     };
 
@@ -889,8 +927,8 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
                                                     </SelectItem>
                                                     <SelectItem value="CANCELED">
                                                         <div className="flex items-center gap-2">
-                                                            <div className="h-2.5 w-2.5 rounded-full bg-slate-400" />
-                                                            Cancelado
+                                                            <div className="h-2.5 w-2.5 rounded-full bg-rose-500" />
+                                                            Apagar
                                                         </div>
                                                     </SelectItem>
                                                     <SelectItem value="NO_SHOW">
@@ -1063,6 +1101,28 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
                     toast.success("Cliente cadastrado e selecionado!");
                 }}
             />
+            {/* Modal de Confirmação de Exclusão */}
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent className="rounded-2xl border-none shadow-2xl">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-xl font-bold text-slate-800">Confirmar exclusão?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-slate-600 mt-2">
+                            Esta ação não pode ser desfeita. O agendamento será removido permanentemente.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="mt-6">
+                        <AlertDialogCancel className="rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50">
+                            Cancelar
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={confirmDelete}
+                            className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-200 border-none px-6"
+                        >
+                            Sim, Apagar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </Dialog>
     );
 }

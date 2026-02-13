@@ -121,7 +121,7 @@ export function ClientAppointmentsTab({ clientId }: ClientAppointmentsTabProps) 
             case "PENDING": return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Pendente</Badge>;
             case "CONFIRMED": return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Confirmado</Badge>;
             case "DONE": return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">Finalizado</Badge>;
-            case "CANCELED": return <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200">Cancelado</Badge>;
+            case "CANCELED": return <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200">Apagar</Badge>;
             case "NO_SHOW": return <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">Faltou</Badge>;
             default: return <Badge variant="outline">{status}</Badge>;
         }

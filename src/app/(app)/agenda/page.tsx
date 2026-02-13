@@ -40,6 +40,16 @@ import { formatName } from "@/core/formatters/name";
 import { AppointmentForm } from "@/components/agenda/AppointmentForm";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 
 // Horários disponíveis (5h às 23h)
@@ -175,6 +185,8 @@ export default function AgendaPage() {
     const [selectedSlot, setSelectedSlot] = useState<{ date: string, time: string } | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [paidAppointments, setPaidAppointments] = useState<Set<string>>(new Set());
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [appointmentIdToDelete, setAppointmentIdToDelete] = useState<string | null>(null);
     const router = useRouter();
 
     // ===== DRAG & DROP STATE =====
@@ -239,7 +251,7 @@ export default function AgendaPage() {
             setClients(clientsData);
             setServices(servicesData);
             setProfessionals(professionalsData);
-            
+
             // Verificar quais agendamentos têm vendas pagas
             const paidSet = new Set<string>();
             for (const apt of appointmentsData) {
@@ -288,6 +300,12 @@ export default function AgendaPage() {
     const handleToday = () => setCurrentDate(new Date());
 
     const handleUpdateStatus = async (id: string, status: Appointment["status"]) => {
+        if (status === "CANCELED") {
+            setAppointmentIdToDelete(id);
+            setIsDeleteDialogOpen(true);
+            return;
+        }
+
         try {
             await service.updateStatus(id, status);
             toast.success("Status atualizado!");
@@ -295,6 +313,23 @@ export default function AgendaPage() {
         } catch (error) {
             console.error(error);
             toast.error("Erro ao atualizar status");
+        }
+    };
+
+    const handleDeleteAppointment = async () => {
+        if (!appointmentIdToDelete) return;
+
+        try {
+            await service.delete(appointmentIdToDelete);
+            toast.success("Agendamento apagado com sucesso!");
+            fetchData();
+        } catch (error) {
+            console.error(error);
+            toast.error("Erro ao apagar agendamento");
+        } finally {
+            setIsDeleteDialogOpen(false);
+            setAppointmentIdToDelete(null);
+            setHoveredAppointmentId(null);
         }
     };
 
@@ -508,7 +543,7 @@ export default function AgendaPage() {
             PENDING: "Pendente",
             CONFIRMED: "Confirmado",
             DONE: "Finalizado",
-            CANCELED: "Cancelado",
+            CANCELED: "Apagar",
             NO_SHOW: "Não Compareceu",
             BLOCKED: "Bloqueado",
         };
@@ -773,13 +808,13 @@ export default function AgendaPage() {
                                                 apt.status === "PENDING" && "bg-amber-100 text-amber-700",
                                                 apt.status === "CONFIRMED" && "bg-blue-100 text-blue-700",
                                                 apt.status === "DONE" && "bg-emerald-100 text-emerald-700",
-                                                apt.status === "CANCELED" && "bg-slate-100 text-slate-600",
+                                                apt.status === "CANCELED" && "bg-rose-100 text-rose-600",
                                                 apt.status === "NO_SHOW" && "bg-rose-100 text-rose-700",
                                             )}>
                                                 {apt.status === "PENDING" && "Pendente"}
                                                 {apt.status === "CONFIRMED" && "Confirmado"}
                                                 {apt.status === "DONE" && "Finalizado"}
-                                                {apt.status === "CANCELED" && "Cancelado"}
+                                                {apt.status === "CANCELED" && "Apagar"}
                                                 {apt.status === "NO_SHOW" && "Não Compareceu"}
                                             </div>
                                         </div>
@@ -865,12 +900,10 @@ export default function AgendaPage() {
                                         onClick={() => handleUpdateStatus(apt.id, "CANCELED")}
                                         className={cn(
                                             "px-3 py-1.5 text-xs font-semibold rounded-lg border-2 transition-all",
-                                            apt.status === "CANCELED"
-                                                ? "bg-slate-500 text-white border-slate-500 shadow-sm"
-                                                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                                            "bg-white text-rose-600 border-rose-200 hover:bg-rose-50 hover:border-rose-300"
                                         )}
                                     >
-                                        Cancelado
+                                        Apagar
                                     </button>
                                     <button
                                         onClick={() => handleUpdateStatus(apt.id, "NO_SHOW")}
@@ -1343,6 +1376,27 @@ export default function AgendaPage() {
                     />
                 </div>
 
+                <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                    <AlertDialogContent className="rounded-2xl border-none shadow-2xl">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="text-xl font-bold text-slate-800">Confirmar exclusão?</AlertDialogTitle>
+                            <AlertDialogDescription className="text-slate-600 mt-2">
+                                Esta ação não pode ser desfeita. O agendamento será removido permanentemente da agenda.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter className="mt-6">
+                            <AlertDialogCancel className="rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50">
+                                Cancelar
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={handleDeleteAppointment}
+                                className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-200 border-none px-6"
+                            >
+                                Sim, Apagar
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
 
             {/* Drag Ghost - rendered via Portal at body level to avoid CSS containment issues */}
