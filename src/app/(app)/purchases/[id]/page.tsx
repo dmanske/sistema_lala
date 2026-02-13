@@ -44,6 +44,7 @@ import { Product } from "@/core/domain/Product";
 import { BankAccount } from "@/core/domain/BankAccount";
 import { getPurchaseRepository, getSupplierRepository, getProductRepository, getBankAccountRepository } from "@/infrastructure/repositories/factory";
 import { formatPhone } from "@/core/formatters/phone";
+import { formatDate } from "@/lib/utils/dateFormatters";
 import { RegisterPurchasePaymentDialog } from "@/components/purchases/RegisterPurchasePaymentDialog";
 import { toast } from "sonner";
 
@@ -107,7 +108,7 @@ export default function PurchaseDetailPage() {
 
     const handleDelete = async () => {
         if (!purchase) return;
-        
+
         setIsDeleting(true);
         try {
             await purchaseRepo.delete(purchase.id);
@@ -130,7 +131,7 @@ export default function PurchaseDetailPage() {
 
     const paymentSummary = calculatePaymentSummary(purchase);
     const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-    
+
     const getStatusBadge = (status: string) => {
         const variants = {
             PENDING: { label: 'Pendente', className: 'bg-yellow-100 text-yellow-700 hover:bg-yellow-100' },
@@ -167,7 +168,7 @@ export default function PurchaseDetailPage() {
                         {getStatusBadge(purchase.paymentStatus)}
                     </div>
                     <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-                        <Calendar className="h-4 w-4" /> {format(new Date(purchase.date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                        <Calendar className="h-4 w-4" /> {formatDate(purchase.date)}
                     </p>
                 </div>
                 <div className="flex gap-2">

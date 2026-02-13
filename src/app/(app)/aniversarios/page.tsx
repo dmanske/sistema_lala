@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { getAniversariantesHoje, diasParaProximoAniversario, isAniversarioHoje } from '@/lib/utils/birthdayUtils';
-import { formatBirthDate, calcularIdade, formatPhone } from '@/lib/utils/dateFormatters';
+import { formatBirthDate, calcularIdade, formatPhone, parseLocalDate } from '@/lib/utils/dateFormatters';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -108,7 +108,7 @@ export default function Aniversarios() {
 
     if (mesFilter !== null) {
       filtered = filtered.filter(c =>
-        c.birth_date && new Date(c.birth_date).getMonth() === mesFilter
+        c.birth_date && parseLocalDate(c.birth_date)?.getMonth() === mesFilter
       );
     }
 
@@ -525,7 +525,7 @@ export default function Aniversarios() {
               const currentMonth = new Date().getMonth();
               const isCurrentMonth = currentMonth === i;
               const anivMes = todosClientes.filter(c =>
-                c.birth_date && new Date(c.birth_date).getMonth() === i
+                c.birth_date && parseLocalDate(c.birth_date)?.getMonth() === i
               );
 
               return (
@@ -561,17 +561,25 @@ export default function Aniversarios() {
                         </div>
                       ) : (
                         <>
-                          {anivMes.sort((a, b) => new Date(a.birth_date!).getDate() - new Date(b.birth_date!).getDate()).slice(0, 5).map(c => (
-                            <div key={c.id} className="flex items-center justify-between text-sm group/item">
-                              <div className="flex items-center gap-2 truncate flex-1">
-                                <div className="h-2 w-2 rounded-full bg-pink-400/50 group-hover/item:bg-pink-500" />
-                                <span className="font-medium text-slate-700 truncate">{c.name}</span>
+                          {anivMes.sort((a, b) => {
+                            const dateA = parseLocalDate(a.birth_date);
+                            const dateB = parseLocalDate(b.birth_date);
+                            if (!dateA || !dateB) return 0;
+                            return dateA.getDate() - dateB.getDate();
+                          }).slice(0, 5).map(c => {
+                            const date = parseLocalDate(c.birth_date);
+                            return (
+                              <div key={c.id} className="flex items-center justify-between text-sm group/item">
+                                <div className="flex items-center gap-2 truncate flex-1">
+                                  <div className="h-2 w-2 rounded-full bg-pink-400/50 group-hover/item:bg-pink-500" />
+                                  <span className="font-medium text-slate-700 truncate">{c.name}</span>
+                                </div>
+                                <span className="text-xs font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded leading-none">
+                                  {date ? date.getDate() : '-'}
+                                </span>
                               </div>
-                              <span className="text-xs font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded leading-none">
-                                {new Date(c.birth_date!).getDate()}
-                              </span>
-                            </div>
-                          ))}
+                            );
+                          })}
                           {anivMes.length > 5 && (
                             <button
                               onClick={() => {

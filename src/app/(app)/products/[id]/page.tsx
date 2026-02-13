@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatDate, parseLocalDate } from "@/lib/utils/dateFormatters";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -59,7 +60,11 @@ export default function ProductProfilePage() {
             // Carregar Movimentações
             const moves = await getProductMovements(foundProduct.id);
             // Ordenar por data decrescente
-            setMovements(moves.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+            setMovements(moves.sort((a, b) => {
+                const dateA = parseLocalDate(a.date)?.getTime() || 0;
+                const dateB = parseLocalDate(b.date)?.getTime() || 0;
+                return dateB - dateA;
+            }));
 
             setIsLoading(false);
         };
@@ -245,7 +250,7 @@ export default function ProductProfilePage() {
                                                             )}
                                                         </div>
                                                         <div className="text-xs text-muted-foreground">
-                                                            {format(new Date(move.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                                            {formatDate(move.date) + ' às ' + (parseLocalDate(move.date)?.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) || '')}
                                                         </div>
                                                     </div>
                                                 </div>

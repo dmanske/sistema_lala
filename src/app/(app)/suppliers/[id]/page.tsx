@@ -33,7 +33,7 @@ import { Supplier } from "@/core/domain/Supplier";
 import { Purchase } from "@/core/domain/Purchase";
 import { getSupplierRepository, getPurchaseRepository } from "@/infrastructure/repositories/factory";
 import { getSupplierOverview, SupplierOverview, SupplierAlert } from "@/core/usecases/suppliers/getSupplierOverview";
-import { formatDate } from "@/core/formatters/date";
+import { formatDate, parseLocalDate } from "@/lib/utils/dateFormatters";
 import { formatPhone } from "@/core/formatters/phone";
 
 export default function SupplierProfilePage() {
@@ -81,12 +81,12 @@ export default function SupplierProfilePage() {
 
     // Calcular dias como fornecedor
     const daysSinceRegistration = metrics.supplierSince
-        ? Math.floor((new Date().getTime() - new Date(metrics.supplierSince).getTime()) / (1000 * 60 * 60 * 24))
+        ? Math.floor((new Date().getTime() - (parseLocalDate(metrics.supplierSince)?.getTime() || 0)) / (1000 * 60 * 60 * 24))
         : 0;
 
     // Formatar dados para gráficos
     const purchasesChartData = charts.purchasesByMonth.map(item => ({
-        mes: new Date(item.month + '-01').toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
+        mes: parseLocalDate(item.month + '-01')?.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }) || item.month,
         valor: item.total,
         compras: item.count
     }));
@@ -276,10 +276,10 @@ export default function SupplierProfilePage() {
                             {metrics.lastPurchaseDate ? (
                                 <>
                                     <div className="text-3xl font-bold text-slate-900 tracking-tight">
-                                        {Math.max(0, Math.floor((new Date().getTime() - new Date(metrics.lastPurchaseDate).getTime()) / (1000 * 60 * 60 * 24)))}
+                                        {Math.max(0, Math.floor((new Date().getTime() - (parseLocalDate(metrics.lastPurchaseDate)?.getTime() || 0)) / (1000 * 60 * 60 * 24)))}
                                     </div>
                                     <p className="text-xs text-slate-600 mt-2 font-medium">
-                                        {Math.floor((new Date().getTime() - new Date(metrics.lastPurchaseDate).getTime()) / (1000 * 60 * 60 * 24)) === 0
+                                        {Math.floor((new Date().getTime() - (parseLocalDate(metrics.lastPurchaseDate)?.getTime() || 0)) / (1000 * 60 * 60 * 24)) === 0
                                             ? `Hoje (${formatDate(metrics.lastPurchaseDate)})`
                                             : `dias atrás (${formatDate(metrics.lastPurchaseDate)})`
                                         }
@@ -645,7 +645,7 @@ export default function SupplierProfilePage() {
                                                             className="hover:bg-slate-50/50 border-slate-100 cursor-pointer transition-colors group"
                                                             onClick={() => router.push(`/purchases/${purchase.id}`)}
                                                         >
-                                                            <TableCell className="font-semibold text-slate-900 py-4 px-6">{purchase.date ? formatDate(purchase.date, 'UTC') : '-'}</TableCell>
+                                                            <TableCell className="font-semibold text-slate-900 py-4 px-6">{purchase.date ? formatDate(purchase.date) : '-'}</TableCell>
                                                             <TableCell className="font-mono text-xs text-slate-500 bg-slate-50 m-2 rounded px-2 py-0.5 inline-block border border-slate-100">
                                                                 #{(purchases.length - index).toString().padStart(3, '0')}
                                                             </TableCell>

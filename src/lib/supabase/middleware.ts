@@ -6,6 +6,18 @@ export async function updateSession(request: NextRequest) {
         request,
     })
 
+    const path = request.nextUrl.pathname
+
+    // Bypass Supabase initialization for public paths
+    if (
+        path.startsWith('/lp') ||
+        path.startsWith('/_next') ||
+        path.startsWith('/api/public') ||
+        path === '/favicon.ico'
+    ) {
+        return supabaseResponse
+    }
+
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -40,7 +52,8 @@ export async function updateSession(request: NextRequest) {
         !user &&
         !request.nextUrl.pathname.startsWith('/login') &&
         !request.nextUrl.pathname.startsWith('/signup') &&
-        !request.nextUrl.pathname.startsWith('/auth')
+        !request.nextUrl.pathname.startsWith('/auth') &&
+        !request.nextUrl.pathname.startsWith('/lp')
     ) {
         // no user, redirect to login page
         const url = request.nextUrl.clone()

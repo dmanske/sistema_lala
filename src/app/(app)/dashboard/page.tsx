@@ -15,6 +15,7 @@ import {
     Users,
     CreditCard
 } from "lucide-react";
+import { parseLocalDate } from "@/lib/utils/dateFormatters";
 import { cn } from "@/lib/utils";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -164,10 +165,16 @@ export default function DashboardPage() {
         const now = new Date();
 
         if (period === "current_month") {
-            filteredAppts = appointments.filter(a => isSameMonth(new Date(a.date), now));
+            filteredAppts = appointments.filter(a => {
+                const d = parseLocalDate(a.date);
+                return d ? isSameMonth(d, now) : false;
+            });
         } else if (period === "last_month") {
             const lastMonth = subMonths(now, 1);
-            filteredAppts = appointments.filter(a => isSameMonth(new Date(a.date), lastMonth));
+            filteredAppts = appointments.filter(a => {
+                const d = parseLocalDate(a.date);
+                return d ? isSameMonth(d, lastMonth) : false;
+            });
         }
 
         // Totals
@@ -249,10 +256,10 @@ export default function DashboardPage() {
 
         // NEW METRICS - Agenda Stats
         // Future appointments (PENDING or CONFIRMED)
-        const futureAppointments = appointments.filter(a =>
-            (a.status === 'PENDING' || a.status === 'CONFIRMED') &&
-            new Date(a.date) >= now
-        ).length;
+        const futureAppointments = appointments.filter(a => {
+            const d = parseLocalDate(a.date);
+            return (a.status === 'PENDING' || a.status === 'CONFIRMED') && d && d >= now;
+        }).length;
 
         // Occupancy rate (simplified - based on done appointments vs total slots)
         // Assuming 10 hours/day * 2 slots/hour * 30 days = 600 slots per month
