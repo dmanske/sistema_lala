@@ -30,9 +30,7 @@ export function AccountStatementView({ statement, onFilterChange }: AccountState
     const formatDate = (date: Date | string) => {
         // Garantir que a data seja tratada como Date
         const dateObj = typeof date === 'string' ? new Date(date) : date
-        // Adicionar 3 horas para compensar a conversão UTC -> Local do navegador
-        const adjustedDate = new Date(dateObj.getTime() + (3 * 60 * 60 * 1000))
-        return format(adjustedDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+        return format(dateObj, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
     }
 
     const handleFilter = () => {

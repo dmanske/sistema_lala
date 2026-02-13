@@ -54,7 +54,10 @@ export class SupabaseCreditRepository implements CreditRepository {
     async getByClientId(clientId: string): Promise<CreditMovement[]> {
         const { data, error } = await this.supabase
             .from('credit_movements')
-            .select('*')
+            .select(`
+                *,
+                cash_movements!inner(bank_account_id, bank_accounts(name))
+            `)
             .eq('client_id', clientId)
             .order('created_at', { ascending: false });
 
@@ -64,6 +67,9 @@ export class SupabaseCreditRepository implements CreditRepository {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private mapFromDb(row: any): CreditMovement {
+        // Extrair nome da conta bancária se existir
+        const bankAccountName = row.cash_movements?.[0]?.bank_accounts?.name;
+        
         return {
             id: row.id,
             clientId: row.client_id,
@@ -71,6 +77,7 @@ export class SupabaseCreditRepository implements CreditRepository {
             amount: Number(row.amount),
             origin: row.origin,
             note: row.note || undefined,
+            bankAccountName: bankAccountName || undefined,
             createdAt: row.created_at,
         };
     }

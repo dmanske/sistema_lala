@@ -138,7 +138,12 @@ export function ClientCreditTab({ clientId, creditBalance }: ClientCreditTabProp
                                                     </Badge>
                                                 )}
                                             </TableCell>
-                                            <TableCell className="text-sm">{getOriginLabel(movement.origin)}</TableCell>
+                                            <TableCell className="text-sm">
+                                                {movement.bankAccountName 
+                                                    ? `${getOriginLabel(movement.origin)} - ${movement.bankAccountName}`
+                                                    : getOriginLabel(movement.origin)
+                                                }
+                                            </TableCell>
                                             <TableCell className={movement.type === 'CREDIT' ? 'text-green-600 font-bold' : ''}>
                                                 {movement.type === 'CREDIT' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(movement.amount)}
                                             </TableCell>

@@ -12,7 +12,8 @@ const METHOD_LABELS: Record<string, string> = {
     PIX: 'Pix',
     CARD: 'Cartão',
     TRANSFER: 'Transferência',
-    WALLET: 'Carteira'
+    WALLET: 'Carteira',
+    CREDIT: 'Recarga de Crédito' // Fallback para recargas antigas
 }
 
 /**

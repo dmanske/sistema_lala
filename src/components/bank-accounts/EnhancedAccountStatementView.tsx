@@ -33,15 +33,11 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
     }
 
     const formatDate = (date: Date) => {
-        // Adicionar 3 horas para compensar a conversão UTC -> Local do navegador
-        const adjustedDate = new Date(date.getTime() + (3 * 60 * 60 * 1000))
-        return format(adjustedDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+        return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
     }
 
     const formatDateHeader = (date: Date) => {
-        // Adicionar 3 horas para compensar a conversão UTC -> Local do navegador
-        const adjustedDate = new Date(date.getTime() + (3 * 60 * 60 * 1000))
-        return format(adjustedDate, "dd/MM/yyyy (EEEE)", { locale: ptBR })
+        return format(date, "dd/MM/yyyy (EEEE)", { locale: ptBR })
     }
 
     // Apply filters
@@ -311,7 +307,7 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-sm text-muted-foreground">
-                                                            {format(new Date(movement.occurredAt.getTime() + (3 * 60 * 60 * 1000)), 'HH:mm')}
+                                                            {format(movement.occurredAt, 'HH:mm')}
                                                         </span>
                                                         <span className="font-medium truncate">
                                                             {movement.description}

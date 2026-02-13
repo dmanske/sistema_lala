@@ -13,6 +13,7 @@ export const CreditMovementSchema = z.object({
     amount: z.number().positive('Value must be positive'),
     origin: CreditOriginSchema,
     note: z.string().optional(),
+    bankAccountName: z.string().optional(), // Nome da conta bancária de destino
     createdAt: z.string(), // ISO format
 });
 
