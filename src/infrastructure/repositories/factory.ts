@@ -16,6 +16,7 @@ import { ServiceRepository } from '@/core/repositories/ServiceRepository';
 import { SupplierRepository } from '@/core/repositories/SupplierRepository';
 import { ProfessionalRepository } from '@/core/repositories/ProfessionalRepository';
 import { PurchaseRepository } from '@/core/repositories/PurchaseRepository';
+import { PurchasePaymentRepository } from '@/core/repositories/PurchasePaymentRepository';
 import { AppointmentRepository } from '@/core/repositories/AppointmentRepository';
 import { SaleRepository } from '@/core/repositories/SaleRepository';
 import { CreditRepository } from '@/core/repositories/CreditRepository';
@@ -42,6 +43,7 @@ import { SupabaseServiceRepository } from './supabase/SupabaseServiceRepository'
 import { SupabaseSupplierRepository } from './supabase/SupabaseSupplierRepository';
 import { SupabaseProfessionalRepository } from './supabase/SupabaseProfessionalRepository';
 import { SupabasePurchaseRepository } from './supabase/SupabasePurchaseRepository';
+import { SupabasePurchasePaymentRepository } from './supabase/SupabasePurchasePaymentRepository';
 import { SupabaseAppointmentRepository } from './supabase/SupabaseAppointmentRepository';
 import { SupabaseSaleRepository } from './supabase/SupabaseSaleRepository';
 import { SupabaseCreditRepository } from './supabase/SupabaseCreditRepository';
@@ -65,6 +67,7 @@ let serviceRepo: ServiceRepository | null = null;
 let supplierRepo: SupplierRepository | null = null;
 let professionalRepo: ProfessionalRepository | null = null;
 let purchaseRepo: PurchaseRepository | null = null;
+let purchasePaymentRepo: PurchasePaymentRepository | null = null;
 let appointmentRepo: AppointmentRepository | null = null;
 let saleRepo: SaleRepository | null = null;
 let creditRepo: CreditRepository | null = null;
@@ -125,6 +128,17 @@ export function getPurchaseRepository(): PurchaseRepository {
             : new LocalStoragePurchaseRepository();
     }
     return purchaseRepo;
+}
+
+export function getPurchasePaymentRepository(): PurchasePaymentRepository {
+    if (!purchasePaymentRepo) {
+        if (useSupabase()) {
+            purchasePaymentRepo = new SupabasePurchasePaymentRepository();
+        } else {
+            throw new Error('Purchase Payment module is only available with Supabase backend.');
+        }
+    }
+    return purchasePaymentRepo;
 }
 
 export function getAppointmentRepository(): AppointmentRepository {
@@ -190,6 +204,7 @@ export function resetRepositories(): void {
     supplierRepo = null;
     professionalRepo = null;
     purchaseRepo = null;
+    purchasePaymentRepo = null;
     appointmentRepo = null;
     saleRepo = null;
     creditRepo = null;

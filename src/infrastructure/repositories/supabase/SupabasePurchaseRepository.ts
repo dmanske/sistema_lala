@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
-import { Purchase, CreatePurchaseInput } from '@/core/domain/Purchase';
+import { Purchase, CreatePurchaseInput, UpdatePurchaseInput } from '@/core/domain/Purchase';
 import { PurchaseRepository } from '@/core/repositories/PurchaseRepository';
 
 export class SupabasePurchaseRepository implements PurchaseRepository {
@@ -22,7 +22,7 @@ export class SupabasePurchaseRepository implements PurchaseRepository {
         return profile.tenant_id;
     }
 
-    async getAll(filter?: { supplierId?: string; startDate?: string; endDate?: string }): Promise<Purchase[]> {
+    async getAll(filter?: { supplierId?: string; startDate?: string; endDate?: string; paymentStatus?: string }): Promise<Purchase[]> {
         // RLS will automatically filter by tenant_id
         let query = this.supabase
             .from('purchases')
@@ -30,6 +30,9 @@ export class SupabasePurchaseRepository implements PurchaseRepository {
                 *,
                 purchase_items (
                     id, purchase_id, product_id, quantity, unit_cost, line_total
+                ),
+                purchase_payments (
+                    id, purchase_id, bank_account_id, amount, method, paid_at, notes, created_at
                 )
             `)
             .order('date', { ascending: false });
@@ -42,6 +45,9 @@ export class SupabasePurchaseRepository implements PurchaseRepository {
         }
         if (filter?.endDate) {
             query = query.lte('date', filter.endDate);
+        }
+        if (filter?.paymentStatus) {
+            query = query.eq('payment_status', filter.paymentStatus);
         }
 
         const { data, error } = await query;
@@ -56,6 +62,9 @@ export class SupabasePurchaseRepository implements PurchaseRepository {
                 *,
                 purchase_items (
                     id, purchase_id, product_id, quantity, unit_cost, line_total
+                ),
+                purchase_payments (
+                    id, purchase_id, bank_account_id, amount, method, paid_at, notes, created_at
                 )
             `)
             .eq('id', id)
@@ -96,6 +105,36 @@ export class SupabasePurchaseRepository implements PurchaseRepository {
         return purchase;
     }
 
+    async update(id: string, input: UpdatePurchaseInput): Promise<Purchase> {
+        // Use RPC for atomicity (updates purchase + items + adjusts stock movements)
+        const { error } = await this.supabase.rpc('update_purchase', {
+            p_purchase_id: id,
+            p_date: input.date,
+            p_notes: input.notes || null,
+            p_items: input.items.map(item => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                unitCost: item.unitCost,
+            })),
+        });
+
+        if (error) throw new Error(`Failed to update purchase: ${error.message}`);
+
+        // Fetch the updated purchase
+        const purchase = await this.getById(id);
+        if (!purchase) throw new Error('Purchase updated but not found');
+        return purchase;
+    }
+
+    async delete(id: string): Promise<void> {
+        // Use RPC for atomicity (deletes purchase + reverses stock + reverses payments)
+        const { error } = await this.supabase.rpc('delete_purchase', {
+            p_purchase_id: id,
+        });
+
+        if (error) throw new Error(`Failed to delete purchase: ${error.message}`);
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private mapFromDb(row: any): Purchase {
         const items = (row.purchase_items || []).map((item: Record<string, unknown>) => ({
@@ -107,6 +146,17 @@ export class SupabasePurchaseRepository implements PurchaseRepository {
             lineTotal: Number(item.line_total) || Number(item.quantity) * Number(item.unit_cost),
         }));
 
+        const payments = (row.purchase_payments || []).map((payment: Record<string, unknown>) => ({
+            id: payment.id as string,
+            purchaseId: payment.purchase_id as string,
+            bankAccountId: payment.bank_account_id as string,
+            amount: Number(payment.amount),
+            method: payment.method as string,
+            paidAt: payment.paid_at as string,
+            notes: payment.notes as string | undefined,
+            createdAt: payment.created_at as string,
+        }));
+
         return {
             id: row.id,
             supplierId: row.supplier_id,
@@ -114,10 +164,14 @@ export class SupabasePurchaseRepository implements PurchaseRepository {
             notes: row.notes || undefined,
             total: Number(row.total) || 0,
             items: items.length > 0 ? items : undefined,
+            paymentStatus: row.payment_status || 'PENDING',
+            payments: payments.length > 0 ? payments : undefined,
+            // Legacy fields (kept for backward compatibility)
             paymentMethod: row.payment_method || undefined,
             paidAmount: Number(row.paid_amount) || 0,
             paidAt: row.paid_at || undefined,
             createdAt: row.created_at,
+            updatedAt: row.updated_at || undefined,
         };
     }
 }

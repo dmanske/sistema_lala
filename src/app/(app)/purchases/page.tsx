@@ -157,10 +157,7 @@ export default function PurchasesPage() {
                                             onClick={() => router.push(`/purchases/${purchase.id}`)}
                                         >
                                             <TableCell className="font-medium text-slate-700">
-                                                <div className="flex flex-col">
-                                                    <span>{format(new Date(purchase.date), 'dd/MM/yyyy')}</span>
-                                                    <span className="text-xs text-muted-foreground font-mono">#{purchase.id.slice(0, 8)}</span>
-                                                </div>
+                                                {format(new Date(purchase.date), 'dd/MM/yyyy')}
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
@@ -175,8 +172,21 @@ export default function PurchasesPage() {
                                             <TableCell className="text-center">
                                                 <Badge variant="secondary" className="bg-white/50">{purchase.items ? purchase.items.reduce((s, i) => s + i.quantity, 0) : 0}</Badge>
                                             </TableCell>
-                                            <TableCell className="text-right font-bold text-slate-700">
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(purchase.total)}
+                                            <TableCell className="text-right">
+                                                <div className="flex flex-col items-end gap-1">
+                                                    <span className="font-bold text-slate-700">
+                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(purchase.total)}
+                                                    </span>
+                                                    {purchase.paymentStatus === 'PENDING' && (
+                                                        <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 text-xs">Pendente</Badge>
+                                                    )}
+                                                    {purchase.paymentStatus === 'PARTIAL' && (
+                                                        <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs">Parcial</Badge>
+                                                    )}
+                                                    {purchase.paymentStatus === 'PAID' && (
+                                                        <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">Pago</Badge>
+                                                    )}
+                                                </div>
                                             </TableCell>
                                             <TableCell>
                                                 <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-primary transition-colors" />

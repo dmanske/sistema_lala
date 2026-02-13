@@ -31,26 +31,44 @@ import { Professional } from "@/core/domain/Professional";
 
 // Helper Components
 const StatCard = ({ title, value, subtext, icon: Icon, trend, color = "blue" }: any) => {
-    const colorClasses = {
-        blue: "bg-blue-50 text-blue-600",
-        green: "bg-emerald-50 text-emerald-600",
-        purple: "bg-purple-50 text-purple-600",
-        rose: "bg-rose-50 text-rose-600",
+    const gradientClasses = {
+        blue: "from-blue-500/10 to-cyan-500/10 border-blue-100",
+        green: "from-emerald-500/10 to-green-500/10 border-emerald-100",
+        purple: "from-purple-500/10 to-pink-500/10 border-purple-100",
+        rose: "from-rose-500/10 to-orange-500/10 border-rose-100",
+        orange: "from-orange-500/10 to-amber-500/10 border-orange-100",
+    } as Record<string, string>;
+
+    const iconColorClasses = {
+        blue: "bg-blue-50 text-blue-600 shadow-blue-100",
+        green: "bg-emerald-50 text-emerald-600 shadow-emerald-100",
+        purple: "bg-purple-50 text-purple-600 shadow-purple-100",
+        rose: "bg-rose-50 text-rose-600 shadow-rose-100",
+        orange: "bg-orange-50 text-orange-600 shadow-orange-100",
     } as Record<string, string>;
 
     return (
-        <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow">
+        <Card className={cn(
+            "group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-gradient-to-br border",
+            gradientClasses[color] || gradientClasses.blue
+        )}>
+            {/* Decorative gradient blob */}
+            <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-white/40 to-transparent blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-                <div className={cn("p-2 rounded-full", colorClasses[color] || colorClasses.blue)}>
+                <CardTitle className="text-sm font-semibold text-slate-600 uppercase tracking-wider">{title}</CardTitle>
+                <div className={cn(
+                    "p-2.5 rounded-xl shadow-sm transition-transform duration-300 group-hover:scale-110",
+                    iconColorClasses[color] || iconColorClasses.blue
+                )}>
                     <Icon className="h-4 w-4" />
                 </div>
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold text-slate-800">{value}</div>
-                <div className="flex items-center text-xs text-muted-foreground mt-1">
-                    {trend === 'up' && <ArrowUpRight className="h-3 w-3 text-emerald-500 mr-1" />}
-                    {trend === 'down' && <ArrowDownRight className="h-3 w-3 text-rose-500 mr-1" />}
+                <div className="text-3xl font-bold text-slate-900 tracking-tight">{value}</div>
+                <div className="flex items-center text-xs text-slate-600 mt-2 font-medium">
+                    {trend === 'up' && <ArrowUpRight className="h-3.5 w-3.5 text-emerald-600 mr-1" />}
+                    {trend === 'down' && <ArrowDownRight className="h-3.5 w-3.5 text-rose-600 mr-1" />}
                     {subtext}
                 </div>
             </CardContent>
@@ -213,7 +231,7 @@ export default function DashboardPage() {
 
         // NEW METRICS - Client Stats
         const activeClients = clients.filter(c => c.status === 'ACTIVE').length;
-        
+
         // New clients in period
         let newClients = 0;
         if (period === "current_month") {
@@ -230,40 +248,40 @@ export default function DashboardPage() {
 
         // NEW METRICS - Agenda Stats
         // Future appointments (PENDING or CONFIRMED)
-        const futureAppointments = appointments.filter(a => 
-            (a.status === 'PENDING' || a.status === 'CONFIRMED') && 
+        const futureAppointments = appointments.filter(a =>
+            (a.status === 'PENDING' || a.status === 'CONFIRMED') &&
             new Date(a.date) >= now
         ).length;
 
         // Occupancy rate (simplified - based on done appointments vs total slots)
         // Assuming 10 hours/day * 2 slots/hour * 30 days = 600 slots per month
         const totalSlotsPerMonth = 600;
-        const occupancyRate = filteredAppts.length > 0 
-            ? Math.min(100, (filteredAppts.length / totalSlotsPerMonth) * 100) 
+        const occupancyRate = filteredAppts.length > 0
+            ? Math.min(100, (filteredAppts.length / totalSlotsPerMonth) * 100)
             : 0;
 
         // NEW METRICS - Cash Flow
         const totalIn = cashMovements
             .filter(m => m.type === 'IN')
             .reduce((sum, m) => sum + m.amount, 0);
-        
+
         const totalOut = cashMovements
             .filter(m => m.type === 'OUT')
             .reduce((sum, m) => sum + m.amount, 0);
-        
+
         const netCashFlow = totalIn - totalOut;
 
         // NEW METRICS - Professional Ranking
         const professionalStats = professionals.map(prof => {
             const profAppts = filteredAppts.filter(a => a.professionalId === prof.id);
-            const revenue = profAppts.reduce((sum, a) => 
+            const revenue = profAppts.reduce((sum, a) =>
                 sum + (a.totalServiceValue || 0) + (a.totalProductValue || 0), 0
             );
-            return { 
+            return {
                 id: prof.id,
-                name: prof.name, 
-                appointments: profAppts.length, 
-                revenue 
+                name: prof.name,
+                appointments: profAppts.length,
+                revenue
             };
         }).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
 
@@ -294,16 +312,16 @@ export default function DashboardPage() {
     const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
     return (
-        <div className="container mx-auto p-4 space-y-4 bg-slate-50/50 min-h-screen">
+        <div className="space-y-6">
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">Visão Geral</h1>
-                    <p className="text-muted-foreground mt-1">Acompanhe métricas, resultados e alertas do seu negócio.</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground font-heading">Visão Geral</h1>
+                    <p className="text-muted-foreground">Acompanhe métricas, resultados e alertas do seu negócio.</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Select value={period} onValueChange={setPeriod}>
-                        <SelectTrigger className="w-[180px] bg-white border-slate-200">
+                        <SelectTrigger className="w-[180px] bg-white border-slate-200 shadow-sm">
                             <Calendar className="mr-2 h-4 w-4 text-slate-500" />
                             <SelectValue placeholder="Período" />
                         </SelectTrigger>
@@ -397,33 +415,35 @@ export default function DashboardPage() {
                 <TabsContent value="overview" className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                         {/* Cash Flow Card */}
-                        <Card className="col-span-3 border-none shadow-sm">
+                        <Card className="col-span-3 border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <TrendingUp className="h-5 w-5 text-emerald-500" />
+                                <CardTitle className="flex items-center gap-2 text-lg">
+                                    <div className="p-2 bg-emerald-50 rounded-lg">
+                                        <TrendingUp className="h-4 w-4 text-emerald-600" />
+                                    </div>
                                     Fluxo de Caixa
                                 </CardTitle>
                                 <CardDescription>Entradas e saídas do período selecionado.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-center bg-emerald-50 p-4 rounded-lg border border-emerald-100">
-                                        <span className="font-medium text-slate-700">Entradas</span>
-                                        <span className="font-bold text-emerald-600 text-lg">{formatCurrency(stats.totalIn)}</span>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-center bg-gradient-to-r from-emerald-50 to-emerald-50/50 p-4 rounded-xl border border-emerald-100">
+                                        <span className="font-semibold text-slate-700">Entradas</span>
+                                        <span className="font-bold text-emerald-600 text-xl">{formatCurrency(stats.totalIn)}</span>
                                     </div>
-                                    <div className="flex justify-between items-center bg-rose-50 p-4 rounded-lg border border-rose-100">
-                                        <span className="font-medium text-slate-700">Saídas</span>
-                                        <span className="font-bold text-rose-600 text-lg">{formatCurrency(stats.totalOut)}</span>
+                                    <div className="flex justify-between items-center bg-gradient-to-r from-rose-50 to-rose-50/50 p-4 rounded-xl border border-rose-100">
+                                        <span className="font-semibold text-slate-700">Saídas</span>
+                                        <span className="font-bold text-rose-600 text-xl">{formatCurrency(stats.totalOut)}</span>
                                     </div>
                                     <div className={cn(
-                                        "flex justify-between items-center p-4 rounded-lg border-2",
-                                        stats.netCashFlow >= 0 
-                                            ? "bg-emerald-50 border-emerald-200" 
-                                            : "bg-rose-50 border-rose-200"
+                                        "flex justify-between items-center p-4 rounded-xl border-2 shadow-sm",
+                                        stats.netCashFlow >= 0
+                                            ? "bg-gradient-to-r from-emerald-50 to-emerald-100/50 border-emerald-200"
+                                            : "bg-gradient-to-r from-rose-50 to-rose-100/50 border-rose-200"
                                     )}>
-                                        <span className="font-semibold text-slate-800">Saldo Líquido</span>
+                                        <span className="font-bold text-slate-800">Saldo Líquido</span>
                                         <span className={cn(
-                                            "font-bold text-xl",
+                                            "font-bold text-2xl",
                                             stats.netCashFlow >= 0 ? "text-emerald-600" : "text-rose-600"
                                         )}>
                                             {formatCurrency(stats.netCashFlow)}
@@ -434,44 +454,46 @@ export default function DashboardPage() {
                         </Card>
 
                         {/* Top Professionals Card */}
-                        <Card className="col-span-4 border-none shadow-sm">
+                        <Card className="col-span-4 border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Users className="h-5 w-5 text-purple-500" />
+                                <CardTitle className="flex items-center gap-2 text-lg">
+                                    <div className="p-2 bg-purple-50 rounded-lg">
+                                        <Users className="h-4 w-4 text-purple-600" />
+                                    </div>
                                     Top Profissionais
                                 </CardTitle>
                                 <CardDescription>Ranking por faturamento no período.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 {stats.professionalStats.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center h-48 text-muted-foreground bg-slate-50 rounded-lg border">
+                                    <div className="flex flex-col items-center justify-center h-48 text-muted-foreground bg-slate-50 rounded-xl border border-dashed border-slate-200">
                                         <Users className="h-10 w-10 text-slate-300 mb-2" />
                                         <p className="font-medium text-slate-600">Nenhum atendimento no período</p>
                                         <p className="text-xs">Finalize atendimentos para ver o ranking</p>
                                     </div>
                                 ) : (
-                                    <div className="space-y-3">
+                                    <div className="space-y-2">
                                         {stats.professionalStats.map((prof, idx) => (
-                                            <div key={prof.id} className="flex items-center justify-between p-3 bg-white border rounded-lg hover:border-purple-200 transition-colors shadow-sm">
+                                            <div key={prof.id} className="group flex items-center justify-between p-3.5 bg-gradient-to-r from-white to-slate-50/30 border border-slate-100 rounded-xl hover:border-purple-200 hover:shadow-sm transition-all">
                                                 <div className="flex items-center gap-3">
                                                     <div className={cn(
-                                                        "flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm",
-                                                        idx === 0 ? "bg-yellow-100 text-yellow-700" :
-                                                        idx === 1 ? "bg-slate-100 text-slate-700" :
-                                                        idx === 2 ? "bg-orange-100 text-orange-700" :
-                                                        "bg-purple-50 text-purple-600"
+                                                        "flex items-center justify-center w-9 h-9 rounded-xl font-bold text-sm shadow-sm transition-transform group-hover:scale-105",
+                                                        idx === 0 ? "bg-gradient-to-br from-yellow-100 to-yellow-200 text-yellow-700 border border-yellow-300" :
+                                                            idx === 1 ? "bg-gradient-to-br from-slate-100 to-slate-200 text-slate-700 border border-slate-300" :
+                                                                idx === 2 ? "bg-gradient-to-br from-orange-100 to-orange-200 text-orange-700 border border-orange-300" :
+                                                                    "bg-gradient-to-br from-purple-50 to-purple-100 text-purple-600 border border-purple-200"
                                                     )}>
                                                         {idx + 1}º
                                                     </div>
                                                     <div>
-                                                        <div className="font-medium text-slate-800">{prof.name}</div>
-                                                        <div className="text-xs text-muted-foreground">
+                                                        <div className="font-semibold text-slate-900">{prof.name}</div>
+                                                        <div className="text-xs text-slate-500 font-medium">
                                                             {prof.appointments} atendimento{prof.appointments !== 1 ? 's' : ''}
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
-                                                    <div className="font-bold text-slate-900">{formatCurrency(prof.revenue)}</div>
+                                                    <div className="font-bold text-lg text-slate-900">{formatCurrency(prof.revenue)}</div>
                                                 </div>
                                             </div>
                                         ))}
@@ -482,29 +504,33 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                        <Card className="col-span-4 border-none shadow-sm">
+                        <Card className="col-span-4 border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Activity className="h-5 w-5 text-indigo-500" />
+                                <CardTitle className="flex items-center gap-2 text-lg">
+                                    <div className="p-2 bg-indigo-50 rounded-lg">
+                                        <Activity className="h-4 w-4 text-indigo-600" />
+                                    </div>
                                     Top Serviços (Receita)
                                 </CardTitle>
                                 <CardDescription>Os 5 serviços que mais geraram faturamento no período.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <SimpleBarChart data={stats.topRevenueServices} color="bg-indigo-500" />
+                                <SimpleBarChart data={stats.topRevenueServices} color="bg-gradient-to-r from-indigo-500 to-indigo-600" />
                             </CardContent>
                         </Card>
 
-                        <Card className="col-span-3 border-none shadow-sm">
+                        <Card className="col-span-3 border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Users className="h-5 w-5 text-blue-500" />
+                                <CardTitle className="flex items-center gap-2 text-lg">
+                                    <div className="p-2 bg-blue-50 rounded-lg">
+                                        <Users className="h-4 w-4 text-blue-600" />
+                                    </div>
                                     Mais Populares
                                 </CardTitle>
                                 <CardDescription>Serviços mais realizados por volume.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <SimpleBarChart data={stats.topServices} color="bg-blue-500" />
+                                <SimpleBarChart data={stats.topServices} color="bg-gradient-to-r from-blue-500 to-blue-600" />
                             </CardContent>
                         </Card>
                     </div>

@@ -1,4 +1,4 @@
-import { Purchase, CreatePurchaseInput, PurchaseItem } from "@/core/domain/Purchase";
+import { Purchase, CreatePurchaseInput, UpdatePurchaseInput, PurchaseItem } from "@/core/domain/Purchase";
 import { PurchaseRepository } from "@/core/repositories/PurchaseRepository";
 
 const STORAGE_KEY = 'salon_purchases';
@@ -64,11 +64,60 @@ export class LocalStoragePurchaseRepository implements PurchaseRepository {
             notes: input.notes,
             total: grandTotal,
             items: purchaseItems,
+            paymentStatus: 'PENDING',
             createdAt: new Date().toISOString()
         };
 
         purchases.push(newPurchase);
         this.savePurchases(purchases);
         return newPurchase;
+    }
+
+    async update(id: string, input: UpdatePurchaseInput): Promise<Purchase> {
+        const purchases = this.getPurchases();
+        const index = purchases.findIndex(p => p.id === id);
+        
+        if (index === -1) {
+            throw new Error('Purchase not found');
+        }
+
+        const existingPurchase = purchases[index];
+
+        // Check if has payments
+        if (existingPurchase.payments && existingPurchase.payments.length > 0) {
+            throw new Error('Cannot update purchase with existing payments. Delete payments first.');
+        }
+
+        // Calculate new items
+        let grandTotal = 0;
+        const purchaseItems: PurchaseItem[] = input.items.map(itemInput => {
+            const lineTotal = itemInput.quantity * itemInput.unitCost;
+            grandTotal += lineTotal;
+            return {
+                ...itemInput,
+                id: crypto.randomUUID(),
+                purchaseId: id,
+                lineTotal
+            };
+        });
+
+        const updatedPurchase: Purchase = {
+            ...existingPurchase,
+            date: input.date,
+            notes: input.notes,
+            total: grandTotal,
+            items: purchaseItems,
+            updatedAt: new Date().toISOString()
+        };
+
+        purchases[index] = updatedPurchase;
+        this.savePurchases(purchases);
+        return updatedPurchase;
+    }
+
+    async delete(id: string): Promise<void> {
+        const purchases = this.getPurchases();
+        const filtered = purchases.filter(p => p.id !== id);
+        this.savePurchases(filtered);
     }
 }
