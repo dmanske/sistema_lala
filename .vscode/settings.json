@@ -1,4 +1,3 @@
 {
-    "typescript.autoClosingTags": false,
-    "html.autoClosingTags": false
+    "typescript.autoClosingTags": false
 }

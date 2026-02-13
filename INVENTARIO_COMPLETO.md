@@ -1,6 +1,6 @@
 # 📋 INVENTÁRIO COMPLETO DO SISTEMA LALA
 **Data:** 13/02/2026
-**Status:** CONSOLIDADO V2.8.1 (13/02/2026) - AGENDA COM CORES FIXAS + RECONCILIAÇÃO DE ESTOQUE + MÓDULO DE ANIVERSÁRIOS + ESTATÍSTICAS E GRÁFICOS DE CLIENTES + EXTRATO DE CONTA MELHORADO + UPLOAD DE FOTO DO CLIENTE + SISTEMA FINANCEIRO EM DESENVOLVIMENTO
+**Status:** CONSOLIDADO V2.8.2 (13/02/2026) - FOTOS NA AGENDA + AGENDA COM CORES FIXAS + RECONCILIAÇÃO DE ESTOQUE + MÓDULO DE ANIVERSÁRIOS + ESTATÍSTICAS E GRÁFICOS DE CLIENTES + EXTRATO DE CONTA MELHORADO + UPLOAD DE FOTO DO CLIENTE + SISTEMA FINANCEIRO EM DESENVOLVIMENTO
 
 ---
 
@@ -618,7 +618,7 @@ PurchaseItem {
 ### 6. **AGENDA** ✅ Completo
 **Status:** Funcional, Polido e Otimizado  
 **Localização:** `/agenda`  
-**Última atualização:** 13/02/2026 - Sistema de cores fixas por status implementado
+**Última atualização:** 13/02/2026 - Sistema de cores fixas + Fotos dos clientes implementadas
 
 #### O que está implementado:
 - ✅ Visualização em 5 modos: Dia, Dia Full, Semana, Semana Full, Mês
@@ -627,13 +627,19 @@ PurchaseItem {
 - ✅ Edição de agendamento
 - ✅ **Exclusão de agendamento com confirmação:** AlertDialog antes de deletar
 - ✅ Alteração de status (PENDING, CONFIRMED, CANCELED, NO_SHOW, DONE)
-- ✅ **Sistema de cores fixas por status (NOVO):**
+- ✅ **Sistema de cores fixas por status:**
   - 🟡 PENDING = Amarelo/Amber (sempre)
   - 🔵 CONFIRMED = Azul (sempre)
   - 🟢 DONE = Verde/Emerald (sempre)
   - ⚪ CANCELED = Cinza (sempre)
   - 🔴 NO_SHOW = Vermelho/Rose (sempre)
   - ⬜ BLOCKED = Cinza listrado (sempre)
+- ✅ **Fotos dos clientes nos avatares (NOVO):**
+  - Avatar no card do agendamento (6x6)
+  - Avatar no popover de detalhes (16x16)
+  - Avatar na visualização de mês (10x10)
+  - Fallback para iniciais quando não há foto
+  - Alt text para acessibilidade
 - ✅ Popover com detalhes do agendamento (abre no hover)
 - ✅ Busca por cliente ou serviço
 - ✅ Grid de horários (5h às 23:30, intervalos de 30min)
@@ -649,7 +655,7 @@ PurchaseItem {
   - **Dia/Semana:** 55px por hora - mostra mais horas na tela com scroll
   - **Dia Full/Semana Full:** 30px por hora - agenda completa (5h-23:30) numa tela só sem scroll
 - ✅ Cards compactos e informativos:
-  - Linha 1: Horário + Nome do Cliente + Avatar
+  - Linha 1: Horário + Nome do Cliente + Avatar com foto
   - Linha 2: Serviço
   - Indicador visual de pagamento (checkmark verde)
 - ✅ Indicador de Tempo atual (linha vermelha)
@@ -1407,6 +1413,122 @@ Todas as 27 referências diretas a `new LocalStorage*Repository()` foram substit
 **Versão Final:** V2.6.0
 **Data:** 13/02/2026
 **Status:** OFICIAL E AUDITADO — PRODUTOS COM INTELIGÊNCIA E ANÁLISE (FASE 1 COMPLETA) + ESTATÍSTICAS E GRÁFICOS DE CLIENTES + EXTRATO DE CONTA MELHORADO + UPLOAD DE FOTO DO CLIENTE + SISTEMA FINANCEIRO COMPLETO
+
+---
+
+## 🆕 ATUALIZAÇÕES RECENTES (V2.8.2 - 13/02/2026)
+
+### ✅ AGENDA - FOTOS DOS CLIENTES NOS AVATARES
+
+**Status:** Implementado e testado  
+**Data:** 13/02/2026  
+**Prioridade:** MÉDIA - Melhoria de UX e Personalização  
+**Impacto:** Interface mais personalizada e identificação visual mais rápida
+
+#### Problema Identificado:
+- Fotos dos clientes não apareciam na agenda
+- Avatares mostravam apenas iniciais (fallback)
+- Componentes `Avatar` não tinham `AvatarImage`
+- Inconsistência com outras telas do sistema (clientes, aniversários, checkout)
+
+#### Solução Implementada:
+
+**Função Helper Criada:**
+```typescript
+const getClientPhoto = (clientId: string) => {
+    if (!clientId) return undefined;
+    const client = clients.find(c => c.id === clientId);
+    return client?.photoUrl;
+};
+```
+
+**3 Avatares Atualizados:**
+
+1. **Avatar no Card do Agendamento (Grid):**
+   - Tamanho: 6x6
+   - Localização: Card pequeno quando há apenas 1 agendamento no horário
+   - Visualizações: Dia, Semana
+
+2. **Avatar no Popover de Detalhes:**
+   - Tamanho: 16x16
+   - Localização: Popover grande ao passar o mouse
+   - Visualizações: Todas
+
+3. **Avatar na Visualização de Mês:**
+   - Tamanho: 10x10
+   - Localização: Popover ao clicar no dia
+   - Visualizações: Mês
+
+**Estrutura Implementada:**
+```tsx
+<Avatar>
+    <AvatarImage 
+        src={getClientPhoto(apt.clientId)} 
+        alt={getClientName(apt.clientId)} 
+    />
+    <AvatarFallback>
+        {getClientInitial(apt.clientId)}
+    </AvatarFallback>
+</Avatar>
+```
+
+#### Comportamento:
+
+**Com Foto:**
+- ✅ Mostra a foto do cliente carregada do Supabase Storage
+- ✅ Foto tem alt text para acessibilidade
+- ✅ Carregamento otimizado
+
+**Sem Foto:**
+- ✅ Mostra fallback com iniciais do nome
+- ✅ Cor de fundo baseada no status do agendamento
+- ✅ Mantém consistência visual
+
+#### Benefícios:
+
+**Para o Usuário:**
+- ✅ Identificação visual instantânea dos clientes
+- ✅ Interface mais personalizada e profissional
+- ✅ Consistência com outras telas (clientes, aniversários)
+- ✅ Melhor experiência visual
+
+**Para o Sistema:**
+- ✅ Padrão consistente em todos os componentes
+- ✅ Código alinhado com o resto da aplicação
+- ✅ Acessibilidade melhorada (alt text)
+- ✅ Manutenibilidade facilitada
+
+#### Comparação:
+
+**Antes:**
+- ❌ Apenas iniciais nos avatares
+- ❌ Sem personalização visual
+- ❌ Inconsistente com outras telas
+
+**Depois:**
+- ✅ Fotos dos clientes quando disponíveis
+- ✅ Fallback para iniciais quando necessário
+- ✅ Consistente com todo o sistema
+- ✅ Alt text para acessibilidade
+
+#### Arquivos Modificados:
+- `src/app/(app)/agenda/page.tsx`
+  - Adicionada função `getClientPhoto()` (linha ~525)
+  - Atualizado Avatar no card (linha ~645)
+  - Atualizado Avatar no popover (linha ~790)
+  - Atualizado Avatar na visualização de mês (linha ~1333)
+
+#### Arquivos Criados:
+- `AGENDA_FOTO_CLIENTE_FIX.md` (documentação técnica completa)
+
+#### Build e Testes:
+- ✅ Build passou sem erros (0 errors)
+- ✅ TypeScript compilou com sucesso
+- ✅ Diagnósticos: nenhum erro
+- ✅ Todas as rotas geradas corretamente
+
+#### Impacto:
+Agenda agora mostra as fotos dos clientes em todos os avatares, proporcionando identificação visual mais rápida e interface mais personalizada.
 
 ---
 
@@ -3077,8 +3199,8 @@ Todas as estatísticas atualizam em tempo real conforme filtros são aplicados.
 
 ---
 
-**Versão Final:** V2.8.1
+**Versão Final:** V2.8.2
 **Data:** 13/02/2026
-**Status:** OFICIAL E AUDITADO — AGENDA COM CORES FIXAS + RECONCILIAÇÃO DE ESTOQUE + MÓDULO DE ANIVERSÁRIOS COMPLETO + PRODUTOS COM INTELIGÊNCIA E ANÁLISE + ESTATÍSTICAS E GRÁFICOS DE CLIENTES + EXTRATO DE CONTA MELHORADO + UPLOAD DE FOTO DO CLIENTE + SISTEMA FINANCEIRO COMPLETO
+**Status:** OFICIAL E AUDITADO — FOTOS NA AGENDA + AGENDA COM CORES FIXAS + RECONCILIAÇÃO DE ESTOQUE + MÓDULO DE ANIVERSÁRIOS COMPLETO + PRODUTOS COM INTELIGÊNCIA E ANÁLISE + ESTATÍSTICAS E GRÁFICOS DE CLIENTES + EXTRATO DE CONTA MELHORADO + UPLOAD DE FOTO DO CLIENTE + SISTEMA FINANCEIRO COMPLETO
 
 ---

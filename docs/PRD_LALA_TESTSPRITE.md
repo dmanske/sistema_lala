@@ -1,8 +1,8 @@
 # Product Requirements Document (PRD) - Lala System
 
-**Version:** 2.4.1
+**Version:** 2.4.2
 **Date:** 2026-02-13
-**Status:** In Development - Agenda Color System Fixed, Client Analytics Complete, Account Statement Improvements Complete, Client Photo Upload Complete, Financial System In Progress
+**Status:** In Development - Client Photos in Agenda, Agenda Color System Fixed, Client Analytics Complete, Account Statement Improvements Complete, Client Photo Upload Complete, Financial System In Progress
 
 ## 1. Product Overview
 Lala System is a production-ready SaaS management platform for beauty salons, designed to streamline operations including scheduling, client management, inventory control, and financial transactions. Built with Next.js 15, TypeScript, and Supabase backend.
@@ -87,6 +87,12 @@ Lala System is a production-ready SaaS management platform for beauty salons, de
 - **Acceptance Criteria 13:** Colors remain consistent regardless of appointment position or order.
 - **Acceptance Criteria 14:** User can delete appointments with confirmation dialog before deletion.
 - **Acceptance Criteria 15:** System shows success/error toasts after delete operations.
+- **Acceptance Criteria 16:** Client photos are displayed in appointment avatars:
+    - Avatar in appointment card (6x6) when single appointment in slot
+    - Avatar in details popover (16x16) on hover
+    - Avatar in month view popover (10x10) on click
+- **Acceptance Criteria 17:** Avatars show client photo when available, fallback to initials when not.
+- **Acceptance Criteria 18:** All avatar images have alt text for accessibility.
 
 ### 3.3. Sales & Checkout
 **User Story:** As a User, I want to finalize appointments with flexible payment options, visual progress tracking, and automatic inventory updates.
@@ -1221,6 +1227,59 @@ Added comprehensive birthday tracking and celebration module to improve client r
 ---
 
 ## Version History & Changelog
+
+### Version 2.4.2 (2026-02-13)
+**Agenda - Client Photos in Avatars**
+
+**Changes:**
+- Added client photos to all appointment avatars in agenda
+- Created `getClientPhoto()` helper function
+- Updated 3 avatar components to include `AvatarImage`
+- Implemented fallback to initials when photo not available
+- Added alt text for accessibility
+
+**Technical Details:**
+- Created helper function to fetch client photo from loaded clients array
+- Updated Avatar components in `src/app/(app)/agenda/page.tsx`:
+  1. Appointment card avatar (6x6) - line ~645
+  2. Details popover avatar (16x16) - line ~790
+  3. Month view popover avatar (10x10) - line ~1333
+- Each avatar now includes both `AvatarImage` and `AvatarFallback`
+
+**Avatar Locations:**
+| Location | Size | When Displayed |
+|----------|------|----------------|
+| Appointment Card | 6x6 | Single appointment in time slot (Day/Week views) |
+| Details Popover | 16x16 | Hover over appointment (All views) |
+| Month View Popover | 10x10 | Click on day (Month view) |
+
+**Behavior:**
+- **With Photo:** Displays client photo from Supabase Storage
+- **Without Photo:** Shows initials with status-based background color
+- **Accessibility:** All images have alt text with client name
+
+**Benefits:**
+- Faster visual client identification
+- More personalized interface
+- Consistency with other screens (clients, birthdays, checkout)
+- Better user experience
+- Improved accessibility
+
+**Files Modified:**
+- `src/app/(app)/agenda/page.tsx` (getClientPhoto function + 3 avatars)
+
+**Documentation:**
+- Created `AGENDA_FOTO_CLIENTE_FIX.md` (technical documentation)
+- Updated `INVENTARIO_COMPLETO.md` (V2.8.2)
+- Updated `docs/PRD_LALA_TESTSPRITE.md` (V2.4.2)
+
+**Testing:**
+- ✅ Build passed without errors
+- ✅ TypeScript compilation successful
+- ✅ No diagnostics errors
+- ✅ All routes generated correctly
+
+---
 
 ### Version 2.4.1 (2026-02-13)
 **Agenda - Fixed Color System**

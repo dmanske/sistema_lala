@@ -522,6 +522,12 @@ export default function AgendaPage() {
         return name.charAt(0).toUpperCase();
     };
 
+    const getClientPhoto = (clientId: string) => {
+        if (!clientId) return undefined;
+        const client = clients.find(c => c.id === clientId);
+        return client?.photoUrl;
+    };
+
     const getProfessionalName = (professionalId: string) => {
         const prof = professionals.find(p => p.id === professionalId);
         return prof?.name || "Profissional";
@@ -642,6 +648,7 @@ export default function AgendaPage() {
                                 </span>
                                 {totalInSlot === 1 && !isCompactMode && (
                                     <Avatar className="border border-white/50 shrink-0 h-6 w-6">
+                                        <AvatarImage src={getClientPhoto(apt.clientId || "")} alt={getClientName(apt.clientId || "")} />
                                         <AvatarFallback className="bg-white/80 text-slate-700 font-bold text-[9px]">
                                             {getClientInitial(apt.clientId || "")}
                                         </AvatarFallback>
@@ -786,6 +793,7 @@ export default function AgendaPage() {
 
                                 <div className="relative z-10 flex gap-4 items-start">
                                     <Avatar className="h-16 w-16 border-4 border-white shadow-sm">
+                                        <AvatarImage src={getClientPhoto(apt.clientId || "")} alt={getClientName(apt.clientId || "")} />
                                         <AvatarFallback className={cn("text-xl font-bold text-white", style.accent)}>
                                             {getClientInitial(apt.clientId || "")}
                                         </AvatarFallback>
@@ -1322,6 +1330,7 @@ export default function AgendaPage() {
                                                                             <div className="p-4 border-b border-slate-100/50 bg-slate-50/50">
                                                                                 <div className="flex items-center gap-3">
                                                                                     <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
+                                                                                        <AvatarImage src={getClientPhoto(apt.clientId || "")} alt={getClientName(apt.clientId || "")} />
                                                                                         <AvatarFallback className={cn("text-sm font-bold text-white", style.accent)}>
                                                                                             {getClientInitial(apt.clientId || "")}
                                                                                         </AvatarFallback>
