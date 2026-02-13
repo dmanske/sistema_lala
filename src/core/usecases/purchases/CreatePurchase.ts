@@ -19,7 +19,7 @@ export class CreatePurchase {
                     productId: item.productId,
                     type: 'IN',
                     quantity: item.quantity,
-                    reason: `Compra #${purchase.id.slice(0, 8)}`,
+                    reason: 'Compra',
                     referenceId: purchase.id,
                     referenceType: 'PURCHASE',
                     unitCost: item.unitCost,
