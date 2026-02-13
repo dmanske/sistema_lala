@@ -106,6 +106,95 @@ export default function PurchasesPage() {
                 </Button>
             </div>
 
+            {/* Metrics Cards */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-100">
+                    <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-white/40 to-transparent blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Total de Compras</p>
+                                <p className="text-3xl font-bold text-slate-900 tracking-tight mt-2">{purchases.length}</p>
+                                <p className="text-xs text-slate-600 mt-2 font-medium">Entradas registradas</p>
+                            </div>
+                            <div className="p-2.5 bg-purple-50 rounded-xl shadow-sm transition-transform duration-300 group-hover:scale-110">
+                                <ShoppingBag className="h-4 w-4 text-purple-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-gradient-to-br from-emerald-500/10 to-green-500/10 border border-emerald-100">
+                    <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-white/40 to-transparent blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Valor Total</p>
+                                <p className="text-3xl font-bold text-slate-900 tracking-tight mt-2">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                                        purchases.reduce((sum, p) => sum + p.total, 0)
+                                    )}
+                                </p>
+                                <p className="text-xs text-slate-600 mt-2 font-medium">Investido em estoque</p>
+                            </div>
+                            <div className="p-2.5 bg-emerald-50 rounded-xl shadow-sm transition-transform duration-300 group-hover:scale-110">
+                                <Package className="h-4 w-4 text-emerald-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-100">
+                    <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-white/40 to-transparent blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Última Compra</p>
+                                <p className="text-xl font-bold text-slate-900 tracking-tight mt-2 truncate">
+                                    {purchases.length > 0
+                                        ? suppliers.get(purchases[0].supplierId) || "N/A"
+                                        : "N/A"
+                                    }
+                                </p>
+                                <p className="text-xs text-slate-600 mt-2 font-medium">
+                                    {purchases.length > 0
+                                        ? format(new Date(purchases[0].date), "dd/MM/yyyy", { locale: ptBR })
+                                        : "Sem compras"
+                                    }
+                                </p>
+                            </div>
+                            <div className="p-2.5 bg-blue-50 rounded-xl shadow-sm transition-transform duration-300 group-hover:scale-110">
+                                <Calendar className="h-4 w-4 text-blue-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-gradient-to-br from-orange-500/10 to-amber-500/10 border border-orange-100">
+                    <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-white/40 to-transparent blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Pagamentos Pendentes</p>
+                                <p className="text-3xl font-bold text-slate-900 tracking-tight mt-2">
+                                    {purchases.filter(p => p.paymentStatus === 'PENDING' || p.paymentStatus === 'PARTIAL').length}
+                                </p>
+                                <p className="text-xs text-slate-600 mt-2 font-medium">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                                        purchases
+                                            .filter(p => p.paymentStatus === 'PENDING' || p.paymentStatus === 'PARTIAL')
+                                            .reduce((sum, p) => sum + p.total, 0)
+                                    )}
+                                </p>
+                            </div>
+                            <div className="p-2.5 bg-orange-50 rounded-xl shadow-sm transition-transform duration-300 group-hover:scale-110">
+                                <Loader2 className="h-4 w-4 text-orange-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
             <div className="bg-card/50 backdrop-blur-xl p-4 sm:p-6 rounded-2xl border border-white/20 shadow-lg shadow-purple-500/5 flex flex-col md:flex-row gap-4">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
