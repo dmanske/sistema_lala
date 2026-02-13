@@ -481,32 +481,80 @@ SalePayment {
 
 ---
 
-### 8. **DASHBOARD** ⚠️ Parcial
-**Status:** Implementado mas limitado  
+### 8. **DASHBOARD** ⚠️ Parcial → 🚧 EM MELHORIA
+**Status:** Implementado mas necessita expansão para MVP completo  
 **Localização:** `/dashboard`
 
 #### O que está implementado:
-- ✅ Cards de estatísticas:
-  - Faturamento total
-  - Ticket médio
-  - Lucro estimado
-  - Estoque crítico
+- ✅ Cards de estatísticas (4 cards):
+  - Faturamento total (serviços + produtos)
+  - Ticket médio por atendimento
+  - Lucro estimado (com cálculo de custos e comissões)
+  - Estoque crítico (produtos abaixo do mínimo)
 - ✅ Filtro por período (mês atual, mês anterior, todo período)
-- ✅ Gráficos simples (barras horizontais):
-  - Top serviços por faturamento
-  - Serviços mais realizados
-  - Alertas de estoque
-  - Faturamento com produtos
+- ✅ Abas de visualização (3 abas):
+  - **Visão Geral:** Top serviços por receita e popularidade
+  - **Serviços:** Detalhamento de receita (serviços vs produtos)
+  - **Estoque:** Alertas de reposição + economia de produtos
+- ✅ Gráficos simples:
+  - Gráfico de barras horizontal (top 5 serviços)
+  - Lista de produtos críticos com destaque visual
+  - Cards de resumo financeiro
 - ✅ Cálculo de margem de lucro
+- ✅ Design glassmorphism consistente
 
-#### O que NÃO está implementado:
-- ❌ Gráficos de linha (evolução temporal)
-- ❌ Comparativo entre períodos
-- ❌ Métricas de profissionais
-- ❌ Taxa de ocupação da agenda
-- ❌ Taxa de cancelamento/no-show
-- ❌ Clientes novos vs recorrentes
-- ❌ Exportação de relatórios
+#### O que NÃO está implementado (Gaps Críticos):
+- ❌ **Métricas de Clientes:**
+  - Total de clientes ativos
+  - Novos clientes no período
+  - Taxa de retorno
+  - Clientes com dívida (Fiado)
+- ❌ **Métricas de Agenda:**
+  - Taxa de ocupação
+  - Taxa de cancelamento/no-show
+  - Horários mais populares
+  - Agendamentos futuros
+- ❌ **Métricas Financeiras Avançadas:**
+  - Fluxo de caixa (entradas vs saídas)
+  - Contas a receber (Fiado)
+  - Distribuição por método de pagamento
+  - Comparação com período anterior
+- ❌ **Métricas de Profissionais:**
+  - Ranking de profissionais por faturamento
+  - Comissões a pagar
+  - Produtividade por profissional
+- ❌ **Gráficos de Evolução Temporal:**
+  - Gráfico de linha (evolução de faturamento)
+  - Gráfico de área (fluxo de caixa)
+  - Comparativo mensal
+- ❌ **Abas Adicionais:**
+  - Aba "Financeiro" com detalhamento completo
+  - Aba "Equipe" com ranking de profissionais
+  - Aba "Clientes" com métricas de relacionamento
+
+#### Melhorias Propostas (Prioridade ALTA):
+**Fase 1 - Métricas Essenciais (1 dia):**
+1. Adicionar 4 novos cards:
+   - Clientes Ativos
+   - Novos Clientes
+   - Taxa de Ocupação da Agenda
+   - Agendamentos Futuros
+2. Adicionar seção de Fluxo de Caixa:
+   - Card com entradas, saídas e saldo líquido
+   - Gráfico de barras comparativo
+3. Adicionar Ranking de Profissionais:
+   - Top 5 profissionais por faturamento
+   - Total de atendimentos por profissional
+
+**Fase 2 - Visualizações Avançadas (2 dias):**
+1. Gráfico de evolução de faturamento (linha)
+2. Gráfico de distribuição de pagamentos (pizza)
+3. Comparação com período anterior (indicadores ↑↓)
+4. Novas abas: Financeiro, Equipe, Clientes
+
+**Documentação Completa:**
+- `.kiro/specs/dashboard-improvements/ANALISE_E_MELHORIAS_FINAIS.md`
+- Proposta detalhada com layout, implementação e timeline
 
 ---
 

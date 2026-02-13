@@ -44,7 +44,7 @@ export default function AccountStatementPage() {
 
     if (loading) {
         return (
-            <div className="p-8">
+            <div className="p-4">
                 <div className="animate-pulse space-y-4">
                     <div className="h-32 bg-muted rounded-lg"></div>
                     <div className="grid grid-cols-4 gap-4">
@@ -59,19 +59,19 @@ export default function AccountStatementPage() {
     }
 
     if (!statement) {
-        return <div className="p-8">Conta não encontrada</div>
+        return <div className="p-4">Conta não encontrada</div>
     }
 
     return (
-        <div className="p-8 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex items-center gap-4">
+        <div className="p-4 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex items-center gap-3">
                 <Button variant="ghost" size="sm" onClick={() => router.push('/contas')}>
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Voltar
                 </Button>
                 <div>
-                    <h1 className="text-3xl font-bold">Extrato da Conta</h1>
-                    <p className="text-muted-foreground">
+                    <h1 className="text-2xl font-bold">Extrato da Conta</h1>
+                    <p className="text-muted-foreground text-sm">
                         Visualize e filtre todas as movimentações desta conta
                     </p>
                 </div>

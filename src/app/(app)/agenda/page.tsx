@@ -942,7 +942,7 @@ export default function AgendaPage() {
 
     return (
         <>
-            <div className="relative h-[calc(100vh-65px)] flex flex-col p-6 overflow-hidden bg-slate-50/50">
+            <div className="relative h-[calc(100vh-65px)] flex flex-col p-4 overflow-hidden bg-slate-50/50">
                 {/* Ambient Background - Animated Mesh Gradient */}
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
                     <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-purple-200/30 blur-[100px] animate-pulse" />

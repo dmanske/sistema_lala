@@ -127,13 +127,21 @@ Lala System is a production-ready SaaS management platform for beauty salons, de
 - **Acceptance Criteria 6:** Credit balance displayed in client profile with movement history.
 
 ### 3.8. Dashboard & Analytics
-**User Story:** As a User, I want business insights and performance metrics.
+**User Story:** As a User, I want comprehensive business insights and performance metrics across all areas of the business.
 - **Acceptance Criteria 1:** Revenue statistics: total revenue, average ticket, estimated profit.
 - **Acceptance Criteria 2:** Critical stock alerts for products at or below minimum stock.
 - **Acceptance Criteria 3:** Top services by revenue and frequency.
 - **Acceptance Criteria 4:** Product revenue and profit tracking.
 - **Acceptance Criteria 5:** Period filtering: current month, previous month, all time.
 - **Acceptance Criteria 6:** Real-time data updates from sales and inventory.
+- **Acceptance Criteria 7:** Client metrics: active clients, new clients, clients with debt (Fiado).
+- **Acceptance Criteria 8:** Agenda metrics: occupancy rate, cancellation rate, future appointments.
+- **Acceptance Criteria 9:** Cash flow overview: total in, total out, net balance.
+- **Acceptance Criteria 10:** Professional ranking by revenue and productivity.
+- **Acceptance Criteria 11:** Payment method distribution visualization.
+- **Acceptance Criteria 12:** Comparison with previous period (trend indicators).
+- **Acceptance Criteria 13:** Multiple tabs: Overview, Financial, Services, Stock, Team, Clients.
+- **Acceptance Criteria 14:** Visual charts: bar charts, pie charts, line charts for trends.
 
 ## 4. Functional Requirements
 

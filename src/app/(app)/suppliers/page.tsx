@@ -46,6 +46,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Supplier } from "@/core/domain/Supplier";
 import { getSupplierRepository } from "@/infrastructure/repositories/factory";
 import { formatPhone } from "@/core/formatters/phone";
+import { SupplierCard } from "@/components/suppliers/SupplierCard";
+import { DeleteSupplierDialog } from "@/components/suppliers/DeleteSupplierDialog";
 
 export default function SuppliersPage() {
     const router = useRouter();
@@ -53,32 +55,33 @@ export default function SuppliersPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("ALL");
-    const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+    const [viewMode, setViewMode] = useState<"table" | "grid">("grid");
     const [currentPage, setCurrentPage] = useState(1);
-    const ITEMS_PER_PAGE = 10;
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [supplierToDelete, setSupplierToDelete] = useState<{ id: string; name: string } | null>(null);
 
+    const ITEMS_PER_PAGE = 8;
     const repo = getSupplierRepository();
 
-    useEffect(() => {
-        const fetchSuppliers = async () => {
-            setIsLoading(true);
-            try {
-                const data = await repo.getAll({
-                    search: search || undefined,
-                    status: statusFilter === "ALL" ? undefined : statusFilter
-                });
-                setSuppliers(data);
-            } catch (error) {
-                console.error("Failed to fetch suppliers", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+    const fetchSuppliers = async () => {
+        setIsLoading(true);
+        try {
+            const data = await repo.getAll({
+                search: search || undefined,
+                status: statusFilter === "ALL" ? undefined : statusFilter
+            });
+            setSuppliers(data);
+        } catch (error) {
+            console.error("Failed to fetch suppliers", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
+    useEffect(() => {
         const timer = setTimeout(() => {
             fetchSuppliers();
         }, 300);
-
         return () => clearTimeout(timer);
     }, [search, statusFilter]);
 
@@ -92,14 +95,21 @@ export default function SuppliersPage() {
         currentPage * ITEMS_PER_PAGE
     );
 
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case "ACTIVE":
-                return <Badge className="bg-green-500 hover:bg-green-600">Ativo</Badge>;
-            case "INACTIVE":
-                return <Badge variant="secondary">Inativo</Badge>;
-            default:
-                return <Badge variant="outline">{status}</Badge>;
+    const handleEdit = (supplier: Supplier) => {
+        router.push(`/suppliers/${supplier.id}/edit`);
+    };
+
+    const handleDelete = (id: string, name: string) => {
+        setSupplierToDelete({ id, name });
+        setDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (supplierToDelete) {
+            await repo.delete(supplierToDelete.id);
+            setDeleteDialogOpen(false);
+            setSupplierToDelete(null);
+            fetchSuppliers();
         }
     };
 
@@ -117,15 +127,14 @@ export default function SuppliersPage() {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="hidden md:flex justify-between items-center gap-4">
+        <div className="container mx-auto p-0 space-y-8 min-h-screen">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground font-heading">Fornecedores</h1>
-                    <p className="text-muted-foreground">
-                        Gerencie seus fornecedores e parceiros.
-                    </p>
+                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">Fornecedores</h1>
+                    <p className="text-muted-foreground mt-1">Gerencie seus fornecedores e parceiros de negócio.</p>
                 </div>
-                <Button asChild className="rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all">
+                <Button asChild className="rounded-xl bg-primary shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all px-6">
                     <Link href="/suppliers/new">
                         <Plus className="mr-2 h-4 w-4" />
                         Novo Fornecedor
@@ -133,39 +142,38 @@ export default function SuppliersPage() {
                 </Button>
             </div>
 
-            <div className="bg-card/50 backdrop-blur-xl p-4 sm:p-6 rounded-2xl border border-white/20 shadow-lg shadow-purple-500/5 flex flex-col md:flex-row gap-4 items-stretch md:items-center transition-all hover:shadow-purple-500/10">
+            {/* Filters/Toolbar */}
+            <div className="bg-white/60 backdrop-blur-xl p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-stretch md:items-center">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Buscar por nome, CNPJ ou email..."
-                        className="pl-9 bg-white/40 border-white/20 focus:bg-white/60 rounded-xl h-11 md:h-10"
+                        className="pl-10 bg-slate-50 border-slate-200 focus:bg-white rounded-xl h-10 transition-all"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
-                <div className="flex flex-row gap-3 items-center">
-                    <div className="flex-1 md:w-[200px]">
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger className="bg-white/40 border-white/20 focus:ring-primary/20 h-11 md:h-10 rounded-xl">
-                                <div className="flex items-center gap-2">
-                                    <Filter className="h-4 w-4 text-primary/70" />
-                                    <SelectValue placeholder="Status" />
-                                </div>
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="ALL">Todos os status</SelectItem>
-                                <SelectItem value="ACTIVE">Ativo</SelectItem>
-                                <SelectItem value="INACTIVE">Inativo</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                <div className="flex flex-row gap-2 items-center">
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="w-[160px] bg-slate-50 border-slate-200 rounded-xl h-10">
+                            <div className="flex items-center gap-2">
+                                <Filter className="h-4 w-4 text-slate-500" />
+                                <SelectValue placeholder="Status" />
+                            </div>
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ALL">Todos os status</SelectItem>
+                            <SelectItem value="ACTIVE">Ativos</SelectItem>
+                            <SelectItem value="INACTIVE">Inativos</SelectItem>
+                        </SelectContent>
+                    </Select>
 
-                    <div className="hidden sm:flex items-center gap-1 bg-white/40 border border-white/20 p-1 rounded-xl h-11 md:h-10">
+                    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl h-10">
                         <Button
                             variant={viewMode === "table" ? "secondary" : "ghost"}
                             size="icon"
                             onClick={() => setViewMode("table")}
-                            className={`h-8 w-8 rounded-lg ${viewMode === "table" ? "bg-white shadow-sm" : ""}`}
+                            className={cn("h-8 w-8 rounded-lg", viewMode === "table" ? "bg-white shadow-sm" : "text-slate-500")}
                         >
                             <LayoutList className="h-4 w-4" />
                         </Button>
@@ -173,7 +181,7 @@ export default function SuppliersPage() {
                             variant={viewMode === "grid" ? "secondary" : "ghost"}
                             size="icon"
                             onClick={() => setViewMode("grid")}
-                            className={`h-8 w-8 rounded-lg ${viewMode === "grid" ? "bg-white shadow-sm" : ""}`}
+                            className={cn("h-8 w-8 rounded-lg", viewMode === "grid" ? "bg-white shadow-sm" : "text-slate-500")}
                         >
                             <LayoutGrid className="h-4 w-4" />
                         </Button>
@@ -181,35 +189,33 @@ export default function SuppliersPage() {
                 </div>
             </div>
 
-            <div className={cn(
-                "rounded-2xl border border-white/20 bg-card/40 backdrop-blur-xl shadow-lg shadow-purple-500/5 overflow-hidden transition-all",
-                viewMode === "table" ? "block hidden md:block" : "hidden"
-            )}>
-                <div className="overflow-x-auto">
+            {/* Content Table */}
+            {viewMode === "table" && (
+                <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-all">
                     <Table>
                         <TableHeader>
-                            <TableRow className="hover:bg-transparent border-white/10">
-                                <TableHead className="font-heading font-semibold text-primary/80">Nome / Razão Social</TableHead>
-                                <TableHead className="font-heading font-semibold text-primary/80">Contato</TableHead>
-                                <TableHead className="font-heading font-semibold text-primary/80">CNPJ / Email</TableHead>
-                                <TableHead className="font-heading font-semibold text-primary/80">Cadastrado em</TableHead>
-                                <TableHead className="font-heading font-semibold text-primary/80">Status</TableHead>
+                            <TableRow className="hover:bg-transparent bg-slate-50/50 border-slate-100">
+                                <TableHead className="font-semibold text-slate-700">Fornecedor</TableHead>
+                                <TableHead className="font-semibold text-slate-700">Contato</TableHead>
+                                <TableHead className="font-semibold text-slate-700">Identificação</TableHead>
+                                <TableHead className="font-semibold text-slate-700">Cadastro</TableHead>
+                                <TableHead className="font-semibold text-slate-700 text-right">Status</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {isLoading ? (
                                 Array.from({ length: 5 }).map((_, i) => (
-                                    <TableRow key={i} className="border-white/10">
+                                    <TableRow key={i} className="border-slate-50">
                                         <TableCell><Skeleton className="h-4 w-[150px]" /></TableCell>
                                         <TableCell><Skeleton className="h-4 w-[120px]" /></TableCell>
                                         <TableCell><Skeleton className="h-4 w-[150px]" /></TableCell>
                                         <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
-                                        <TableCell><Skeleton className="h-4 w-[80px]" /></TableCell>
+                                        <TableCell className="text-right"><Skeleton className="h-6 w-[80px] ml-auto" /></TableCell>
                                     </TableRow>
                                 ))
                             ) : paginatedSuppliers.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground border-white/10">
+                                    <TableCell colSpan={5} className="h-32 text-center text-muted-foreground border-slate-50">
                                         Nenhum fornecedor encontrado.
                                     </TableCell>
                                 </TableRow>
@@ -217,142 +223,105 @@ export default function SuppliersPage() {
                                 paginatedSuppliers.map((supplier) => (
                                     <TableRow
                                         key={supplier.id}
-                                        className="cursor-pointer group hover:bg-white/40 border-white/10 transition-colors relative"
+                                        className="cursor-pointer group hover:bg-slate-50 border-slate-50 transition-colors"
                                         onClick={() => router.push(`/suppliers/${supplier.id}`)}
                                     >
-                                        <TableCell className="font-medium">
-                                            {supplier.name}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex flex-col">
-                                                <span>{supplier.phone ? formatPhone(supplier.phone) : "-"}</span>
-                                                {supplier.whatsapp && <span className="text-xs text-muted-foreground flex gap-1 items-center"><MessageCircle className="w-3 h-3" /> {formatPhone(supplier.whatsapp)}</span>}
+                                        <TableCell className="font-medium py-4">
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-9 w-9">
+                                                    <AvatarFallback className="bg-orange-50 text-orange-600 text-xs font-bold">
+                                                        {getInitials(supplier.name)}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <span className="text-slate-900">{supplier.name}</span>
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="flex flex-col text-sm text-muted-foreground">
-                                                <span>{supplier.cnpj ? formatCNPJ(supplier.cnpj) : "-"}</span>
-                                                {supplier.email && <span className="text-xs">{supplier.email}</span>}
+                                            <div className="flex flex-col text-sm">
+                                                <span className="text-slate-700 font-medium">{supplier.phone ? formatPhone(supplier.phone) : "-"}</span>
+                                                {supplier.email && <span className="text-xs text-muted-foreground">{supplier.email}</span>}
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <span className="text-muted-foreground text-sm">{format(new Date(supplier.createdAt), 'dd/MM/yy', { locale: ptBR })}</span>
+                                            <div className="flex flex-col text-xs text-muted-foreground">
+                                                <span className="font-medium text-slate-600">{supplier.cnpj ? formatCNPJ(supplier.cnpj) : "-"}</span>
+                                                {supplier.whatsapp && <span className="flex gap-1 items-center text-emerald-600 mt-0.5"><MessageCircle className="w-3 h-3" /> {formatPhone(supplier.whatsapp)}</span>}
+                                            </div>
                                         </TableCell>
-                                        <TableCell>{getStatusBadge(supplier.status)}</TableCell>
+                                        <TableCell>
+                                            <span className="text-muted-foreground text-sm">{format(new Date(supplier.createdAt), 'dd/MM/yyyy', { locale: ptBR })}</span>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Badge variant={supplier.status === 'ACTIVE' ? "default" : "secondary"} className={cn(
+                                                "rounded-lg px-2.5 py-0.5 font-medium text-[10px] uppercase tracking-wider",
+                                                supplier.status === 'ACTIVE' ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-slate-100 text-slate-600 border-slate-200"
+                                            )}>
+                                                {supplier.status === 'ACTIVE' ? "Ativo" : "Inativo"}
+                                            </Badge>
+                                        </TableCell>
                                     </TableRow>
                                 ))
                             )}
                         </TableBody>
                     </Table>
                 </div>
-            </div>
+            )}
 
-            <div className={cn(
-                "grid grid-cols-1 md:grid-cols-2 gap-y-8 gap-x-6 pb-20",
-                viewMode === "grid" ? "block" : "md:hidden"
-            )}>
-                {isLoading ? (
-                    Array.from({ length: 4 }).map((_, i) => (
-                        <Card key={i} className="border-white/20 bg-white/40 backdrop-blur-xl h-[120px]">
-                            <CardContent className="flex h-full items-center gap-4 p-6">
-                                <Skeleton className="h-16 w-16 rounded-full flex-shrink-0" />
-                                <div className="space-y-2 flex-1">
-                                    <Skeleton className="h-5 w-3/4" />
-                                    <Skeleton className="h-3 w-1/2" />
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))
-                ) : paginatedSuppliers.length === 0 ? (
-                    <div className="col-span-full text-center py-12 text-muted-foreground bg-card/30 rounded-2xl border border-white/10">
-                        Nenhum fornecedor encontrado.
-                    </div>
-                ) : (
-                    paginatedSuppliers.map((supplier) => (
-                        <Link href={`/suppliers/${supplier.id}`} key={supplier.id} className="block group">
-                            <Card className="border-none bg-white/60 hover:bg-white/90 backdrop-blur-xl shadow-lg shadow-purple-500/5 hover:shadow-purple-500/15 transition-all duration-300 rounded-2xl overflow-hidden group">
-                                <CardContent className="p-0 flex flex-col sm:flex-row items-stretch">
-                                    <div className="p-5 flex flex-row items-center gap-5 flex-1">
-                                        {/* Avatar */}
-                                        <div className="relative flex-shrink-0">
-                                            <Avatar className="h-20 w-20 border-2 border-white shadow-md transition-transform group-hover:scale-105 duration-300">
-                                                <AvatarFallback className="text-xl bg-orange-100 text-orange-600 font-bold">
-                                                    {getInitials(supplier.name)}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <div className={cn(
-                                                "absolute bottom-0 right-0 h-5 w-5 rounded-full border-4 border-white shadow-sm",
-                                                supplier.status === 'ACTIVE' ? 'bg-green-500' : 'bg-gray-300'
-                                            )} />
-                                        </div>
+            {/* Grid View */}
+            {(viewMode === "grid" || (viewMode === "table" && paginatedSuppliers.length > 0)) && (
+                <div className={cn(
+                    "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20",
+                    viewMode === "grid" ? "block" : "md:hidden"
+                )}>
+                    {isLoading ? (
+                        Array.from({ length: 4 }).map((_, i) => (
+                            <Skeleton key={i} className="h-[200px] rounded-2xl" />
+                        ))
+                    ) : paginatedSuppliers.length === 0 && viewMode === "grid" ? (
+                        <div className="col-span-full py-20 text-center bg-slate-50 rounded-3xl border border-slate-200 border-dashed">
+                            <Truck className="h-10 w-10 text-slate-300 mx-auto mb-4" />
+                            <h3 className="text-lg font-bold text-slate-900">Nenhum fornecedor encontrado</h3>
+                            <p className="text-muted-foreground">Tente ajustar seus filtros de busca.</p>
+                        </div>
+                    ) : (
+                        paginatedSuppliers.map((supplier) => (
+                            <SupplierCard
+                                key={supplier.id}
+                                supplier={supplier}
+                                onEdit={handleEdit}
+                                onDelete={handleDelete}
+                            />
+                        ))
+                    )}
+                </div>
+            )}
 
-                                        {/* Details */}
-                                        <div className="flex-1 min-w-0 space-y-1">
-                                            <h3 className="text-lg font-bold text-slate-800 truncate font-heading group-hover:text-primary transition-colors">
-                                                {supplier.name}
-                                            </h3>
-
-                                            <div className="space-y-0.5">
-                                                {(supplier.phone || supplier.whatsapp) && (
-                                                    <div className="flex items-center gap-2 text-slate-600">
-                                                        {supplier.whatsapp ? (
-                                                            <MessageCircle className="h-3.5 w-3.5 text-green-500/70" />
-                                                        ) : (
-                                                            <Phone className="h-3.5 w-3.5 text-primary/70" />
-                                                        )}
-                                                        <span className="text-sm font-medium">
-                                                            {formatPhone(supplier.whatsapp || supplier.phone || '')}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                                {supplier.email && (
-                                                    <div className="flex items-center gap-2 text-slate-500">
-                                                        <Mail className="h-3.5 w-3.5 text-blue-500/70" />
-                                                        <span className="text-xs truncate">{supplier.email}</span>
-                                                    </div>
-                                                )}
-                                                {supplier.cnpj && (
-                                                    <div className="flex items-center gap-2 text-slate-500">
-                                                        <Truck className="h-3.5 w-3.5 text-orange-500/70" />
-                                                        <span className="text-xs">{formatCNPJ(supplier.cnpj)}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="px-6 py-4 flex items-center justify-end sm:border-l border-white/20 bg-white/20 sm:bg-transparent">
-                                        <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </Link>
-                    ))
-                )}
-            </div>
-
-            {/* Pagination Controls */}
+            {/* Pagination */}
             {totalPages > 1 && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pb-10">
-                    <p className="text-sm text-muted-foreground">
-                        Mostrando <span className="font-medium text-foreground">{paginatedSuppliers.length}</span> de <span className="font-medium text-foreground">{suppliers.length}</span> fornecedores
+                    <p className="text-sm text-slate-500">
+                        Mostrando <span className="font-semibold text-slate-900">{paginatedSuppliers.length}</span> de <span className="font-semibold text-slate-900">{suppliers.length}</span> fornecedores
                     </p>
                     <div className="flex items-center gap-2">
                         <Button
                             variant="outline"
                             size="sm"
-                            className="bg-white/50 border-white/20 rounded-xl"
+                            className="bg-white border-slate-200 rounded-xl"
                             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                             disabled={currentPage === 1}
                         >
                             <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
                         </Button>
-                        <div className="flex items-center bg-white/40 border border-white/20 rounded-xl px-4 py-1.5 min-w-[100px] justify-center text-sm">
-                            Página <span className="font-bold text-primary mx-1">{currentPage}</span> de <span className="font-medium ml-1">{totalPages}</span>
+                        <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm">
+                            <span className="text-slate-400 mr-2">Página</span>
+                            <span className="font-bold text-slate-900">{currentPage}</span>
+                            <span className="text-slate-400 mx-2">de</span>
+                            <span className="font-medium text-slate-700">{totalPages}</span>
                         </div>
                         <Button
                             variant="outline"
                             size="sm"
-                            className="bg-white/50 border-white/20 rounded-xl transition-all"
+                            className="bg-white border-slate-200 rounded-xl"
                             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                             disabled={currentPage === totalPages}
                         >
@@ -361,6 +330,14 @@ export default function SuppliersPage() {
                     </div>
                 </div>
             )}
+
+            <DeleteSupplierDialog
+                isOpen={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+                supplierId={supplierToDelete?.id || ""}
+                supplierName={supplierToDelete?.name || ""}
+                onSuccess={fetchSuppliers}
+            />
         </div>
     );
 }
