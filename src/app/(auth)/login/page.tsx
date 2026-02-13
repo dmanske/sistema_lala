@@ -166,6 +166,35 @@ export default function LoginPage() {
                         Cadastros temporariamente desativados
                     </div>
                 </div>
+
+                {/* Shortcuts for testing */}
+                <div className="pt-6 border-t border-gray-200/50">
+                    <p className="text-xs text-center text-gray-400 font-medium uppercase tracking-wider mb-3">
+                        Área de Testes
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                        <a
+                            href="/lp/app"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center p-2.5 rounded-lg bg-gray-50 hover:bg-rose-50 border border-gray-200 hover:border-rose-200 transition-all duration-200 group"
+                        >
+                            <span className="text-xs font-medium text-gray-600 group-hover:text-rose-700">
+                                Landing App
+                            </span>
+                        </a>
+                        <a
+                            href="/lp/salon"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center p-2.5 rounded-lg bg-gray-50 hover:bg-rose-50 border border-gray-200 hover:border-rose-200 transition-all duration-200 group"
+                        >
+                            <span className="text-xs font-medium text-gray-600 group-hover:text-rose-700">
+                                Landing Salão
+                            </span>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     )

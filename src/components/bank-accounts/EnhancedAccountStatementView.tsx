@@ -12,6 +12,7 @@ import { ptBR } from 'date-fns/locale'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { formatBrazilDate, toBrazilTime } from '@/lib/utils/dateUtils'
+import { parseLocalDate } from '@/lib/utils/dateFormatters'
 
 interface EnhancedAccountStatementViewProps {
     statement: AccountStatement
@@ -38,7 +39,7 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
             const saleIds = statement.movements
                 .filter(m => m.sourceType === 'SALE' && m.sourceId)
                 .map(m => m.sourceId!)
-            
+
             if (saleIds.length === 0) return
 
             const supabase = createClient()
@@ -90,7 +91,7 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
 
         // Type filter
         if (filters.type !== 'all') {
-            result = result.filter(m => 
+            result = result.filter(m =>
                 filters.type === 'in' ? m.type === 'IN' : m.type === 'OUT'
             )
         }
@@ -121,9 +122,9 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
     // Group by date
     const groupedMovements = useMemo(() => {
         const groups = new Map<string, MovementWithBalance[]>()
-        
+
         // Sort by date descending (newest first)
-        const sorted = [...filteredMovements].sort((a, b) => 
+        const sorted = [...filteredMovements].sort((a, b) =>
             b.occurredAt.getTime() - a.occurredAt.getTime()
         )
 
@@ -138,8 +139,8 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
         })
 
         return Array.from(groups.entries()).map(([dateStr, movements]) => {
-            const date = new Date(dateStr)
-            const dailyTotal = movements.reduce((sum, m) => 
+            const date = parseLocalDate(dateStr)!
+            const dailyTotal = movements.reduce((sum, m) =>
                 sum + (m.type === 'IN' ? m.amount : -m.amount), 0
             )
             return { date, movements, dailyTotal }
@@ -154,8 +155,8 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
         return {
             highestEntry: entries.length > 0 ? Math.max(...entries.map(m => m.amount)) : 0,
             highestExit: exits.length > 0 ? Math.max(...exits.map(m => m.amount)) : 0,
-            averageTicket: filteredMovements.length > 0 
-                ? filteredMovements.reduce((sum, m) => sum + m.amount, 0) / filteredMovements.length 
+            averageTicket: filteredMovements.length > 0
+                ? filteredMovements.reduce((sum, m) => sum + m.amount, 0) / filteredMovements.length
                 : 0,
             transactionCount: filteredMovements.length
         }
@@ -166,7 +167,7 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
         const totalIn = filteredMovements
             .filter(m => m.type === 'IN')
             .reduce((sum, m) => sum + m.amount, 0)
-        
+
         const totalOut = filteredMovements
             .filter(m => m.type === 'OUT')
             .reduce((sum, m) => sum + m.amount, 0)
@@ -191,7 +192,7 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
 
     const getSourceLink = (movement: MovementWithBalance) => {
         if (!movement.sourceId) return null
-        
+
         switch (movement.sourceType) {
             case 'SALE':
                 // Use the sale_id directly from the movement to find the correct appointment
@@ -306,7 +307,7 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
             </div>
 
             {/* Filters */}
-            <StatementFilters 
+            <StatementFilters
                 onFilterChange={setFilters}
                 resultCount={filteredMovements.length}
             />
@@ -359,7 +360,7 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
                                                             {getMethodLabel(movement.method)}
                                                         </Badge>
                                                         {link && (
-                                                            <Link 
+                                                            <Link
                                                                 href={link}
                                                                 className="text-xs text-blue-600 hover:underline"
                                                             >
@@ -369,9 +370,8 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
-                                                    <div className={`text-lg font-bold ${
-                                                        movement.type === 'IN' ? 'text-green-600' : 'text-red-600'
-                                                    }`}>
+                                                    <div className={`text-lg font-bold ${movement.type === 'IN' ? 'text-green-600' : 'text-red-600'
+                                                        }`}>
                                                         {movement.type === 'IN' ? '+' : '-'}{formatCurrency(movement.amount)}
                                                     </div>
                                                     <div className="text-xs text-muted-foreground">

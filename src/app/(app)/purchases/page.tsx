@@ -7,8 +7,6 @@ import {
     Plus, Search, ShoppingBag, Calendar, Package, ArrowRight,
     Loader2
 } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +25,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Purchase } from "@/core/domain/Purchase";
 import { Supplier } from "@/core/domain/Supplier";
 import { getPurchaseRepository, getSupplierRepository } from "@/infrastructure/repositories/factory";
+import { formatDate, parseLocalDate } from "@/lib/utils/dateFormatters";
 
 export default function PurchasesPage() {
     const router = useRouter();
@@ -52,7 +51,11 @@ export default function PurchasesPage() {
                 setSuppliers(sMap);
 
                 // Sort by Date Desc
-                const sorted = pList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                const sorted = pList.sort((a, b) => {
+                    const dateA = parseLocalDate(a.date)?.getTime() || 0;
+                    const dateB = parseLocalDate(b.date)?.getTime() || 0;
+                    return dateB - dateA;
+                });
                 setPurchases(sorted);
             } catch (error) {
                 console.error(error);
@@ -158,7 +161,7 @@ export default function PurchasesPage() {
                                 </p>
                                 <p className="text-xs text-slate-600 mt-2 font-medium">
                                     {purchases.length > 0
-                                        ? format(new Date(purchases[0].date), "dd/MM/yyyy", { locale: ptBR })
+                                        ? formatDate(purchases[0].date)
                                         : "Sem compras"
                                     }
                                 </p>
@@ -252,7 +255,7 @@ export default function PurchasesPage() {
                                             <TableCell className="font-medium text-slate-700">
                                                 <div className="flex items-center gap-2">
                                                     <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                                                    {format(new Date(purchase.date), 'dd/MM/yyyy')}
+                                                    {formatDate(purchase.date)}
                                                 </div>
                                             </TableCell>
                                             <TableCell>
