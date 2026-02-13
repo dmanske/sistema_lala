@@ -171,7 +171,11 @@ export function CashMovementDetailsDialog({ open, onOpenChange, movement }: Cash
     
     // Para vendas, usar o appointment_id da venda
     const getLinkUrl = () => {
-        if (movement.sourceType === 'SALE' && saleDetails?.appointmentId) {
+        if (movement.sourceType === 'SALE') {
+            // Only show link if we have loaded the appointment ID
+            if (!saleDetails?.appointmentId) {
+                return null
+            }
             return `/appointments/${saleDetails.appointmentId}/checkout`
         }
         if (movement.sourceType === 'PURCHASE' && movement.sourceId) {
