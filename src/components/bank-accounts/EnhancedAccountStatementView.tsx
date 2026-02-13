@@ -11,6 +11,7 @@ import { format, isSameDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { formatBrazilDate, toBrazilTime } from '@/lib/utils/dateUtils'
 
 interface EnhancedAccountStatementViewProps {
     statement: AccountStatement
@@ -127,7 +128,9 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
         )
 
         sorted.forEach(movement => {
-            const dateKey = format(movement.occurredAt, 'yyyy-MM-dd')
+            // Convert to Brazil time before grouping by date
+            const brazilDate = toBrazilTime(movement.occurredAt)
+            const dateKey = format(brazilDate, 'yyyy-MM-dd')
             if (!groups.has(dateKey)) {
                 groups.set(dateKey, [])
             }
@@ -191,6 +194,8 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
         
         switch (movement.sourceType) {
             case 'SALE':
+                // Use the sale_id directly from the movement to find the correct appointment
+                // This ensures we get the paid sale, not a draft one
                 const appointmentId = saleAppointments[movement.sourceId]
                 return appointmentId ? `/appointments/${appointmentId}/checkout` : null
             case 'PURCHASE':
@@ -343,7 +348,7 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-sm text-muted-foreground">
-                                                            {format(movement.occurredAt, 'HH:mm')}
+                                                            {formatBrazilDate(movement.occurredAt, 'HH:mm')}
                                                         </span>
                                                         <span className="font-medium truncate">
                                                             {movement.description}

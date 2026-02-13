@@ -111,6 +111,7 @@ export class SupabaseSaleRepository implements SaleRepository {
                 sale_payments (*)
             `)
             .eq('appointment_id', appointmentId)
+            .order('status', { ascending: false }) // 'paid' comes before 'draft'
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle();

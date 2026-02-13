@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/utils"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import { formatBrazilDate } from "@/lib/utils/dateUtils"
 import { Badge } from "@/components/ui/badge"
 import { useEffect, useState, useMemo, Fragment } from 'react'
 import { SupabaseBankAccountRepository } from '@/infrastructure/repositories/supabase/SupabaseBankAccountRepository'
@@ -229,7 +230,7 @@ export function CashList({ movements }: CashListProps) {
                                         {isExpanded && item.movements.map((movement, idx) => (
                                             <TableRow key={movement.id} className="bg-muted/10 border-t-0">
                                                 <TableCell className="pl-8 text-xs text-muted-foreground">
-                                                    {format(new Date(movement.occurredAt), "HH:mm", { locale: ptBR })}
+                                                    {formatBrazilDate(movement.occurredAt, "HH:mm")}
                                                 </TableCell>
                                                 <TableCell>
                                                     <span className="text-sm text-muted-foreground ml-8">{movement.description || "Pagamento parcial"}</span>
@@ -274,10 +275,10 @@ export function CashList({ movements }: CashListProps) {
                                         <TableCell>
                                             <div className="flex flex-col">
                                                 <span className="font-medium text-sm">
-                                                    {format(new Date(movement.occurredAt), "dd/MM/yyyy", { locale: ptBR })}
+                                                    {formatBrazilDate(movement.occurredAt, "dd/MM/yyyy")}
                                                 </span>
                                                 <span className="text-[10px] text-muted-foreground">
-                                                    {format(new Date(movement.occurredAt), "HH:mm", { locale: ptBR })}
+                                                    {formatBrazilDate(movement.occurredAt, "HH:mm")}
                                                 </span>
                                             </div>
                                         </TableCell>

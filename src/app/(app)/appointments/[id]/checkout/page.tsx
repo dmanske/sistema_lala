@@ -29,6 +29,7 @@ export default function AppointmentCheckoutPage() {
     const [loading, setLoading] = useState(true)
     const [checkoutStep, setCheckoutStep] = useState<'items' | 'payment' | 'completed'>('items')
     const [showCelebration, setShowCelebration] = useState(false)
+    const [initializing, setInitializing] = useState(true)
 
     useEffect(() => {
         const initSale = async () => {
@@ -60,17 +61,24 @@ export default function AppointmentCheckoutPage() {
                     appointmentId: actualAppointmentId,
                     createdBy: 'system'
                 })
+                
+                console.log('Sale loaded:', { id: sale.id, status: sale.status, payments: sale.payments })
+                
                 setSaleId(sale.id)
                 
                 // Se a venda já está paga, ir direto para o passo 3
                 if (sale.status === 'paid') {
+                    console.log('Sale is paid, going to completed step')
                     setCheckoutStep('completed')
+                } else {
+                    console.log('Sale is not paid, status:', sale.status)
                 }
             } catch (error) {
                 toast.error("Erro ao iniciar caixa")
                 console.error(error)
             } finally {
                 setLoading(false)
+                setInitializing(false)
             }
         }
 
@@ -79,7 +87,7 @@ export default function AppointmentCheckoutPage() {
         }
     }, [appointmentId])
 
-    if (loading) return <div className="p-8 text-center text-muted-foreground">Iniciando checkout...</div>
+    if (loading || initializing) return <div className="p-8 text-center text-muted-foreground">Iniciando checkout...</div>
     if (!saleId) return <div className="p-8 text-center text-destructive">Erro ao carregar venda.</div>
 
     return (
