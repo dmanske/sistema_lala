@@ -362,7 +362,7 @@ export default function ClientsPage() {
                                     <CardContent className="p-4 flex flex-col gap-3 flex-1">
                                         {/* Top Section: Avatar, Name and Balance */}
                                         <div className="flex items-start justify-between gap-3">
-                                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                            <div className="flex items-start gap-3 flex-1 min-w-0">
                                                 <div className="relative flex-shrink-0">
                                                     <Avatar className="h-12 w-12 border-2 border-white shadow-md">
                                                         <AvatarImage src={client.photoUrl} alt={client.name} />
@@ -378,7 +378,7 @@ export default function ClientsPage() {
                                                 </div>
 
                                                 <div className="flex-1 min-w-0">
-                                                    <h3 className="font-bold text-slate-800 truncate font-heading group-hover:text-primary transition-colors text-base">
+                                                    <h3 className="font-bold text-slate-800 line-clamp-2 break-words font-heading group-hover:text-primary transition-colors text-base">
                                                         {formatName(client.name)}
                                                     </h3>
                                                     <div className="flex items-center gap-1.5 text-sm text-slate-600">

@@ -16,6 +16,8 @@ import {
     Truck,
     ChevronLeft,
     ChevronRight,
+    Calendar,
+    ArrowRight
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -122,32 +124,41 @@ export default function SuppliersPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="hidden md:flex justify-between items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground font-heading">Fornecedores</h1>
-                    <p className="text-muted-foreground">Gerencie seus fornecedores e parceiros de negócio.</p>
-                </div>
-                <Button asChild className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 transition-all">
-                    <Link href="/suppliers/new">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Novo Fornecedor
-                    </Link>
-                </Button>
-            </div>
+            {/* Header Area */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-violet-600 to-indigo-700 p-8 text-white shadow-2xl shadow-purple-500/20">
+                {/* Decorative Elements */}
+                <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-fuchsia-500/20 blur-3xl animate-pulse" />
+                <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl" />
 
-            {/* Mobile Header */}
-            <div className="md:hidden flex justify-between items-center">
-                <h1 className="text-2xl font-bold font-heading">Fornecedores</h1>
-                <Button asChild size="sm" className="bg-orange-600 rounded-lg">
-                    <Link href="/suppliers/new">
-                        <Plus className="h-4 w-4" />
-                    </Link>
-                </Button>
+                <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md border border-white/20 shadow-xl">
+                            <Truck className="h-8 w-8 text-white" />
+                        </div>
+                        <div>
+                            <h1 className="text-3xl md:text-4xl font-bold tracking-tight font-heading">
+                                Fornecedores
+                            </h1>
+                            <p className="text-purple-100 mt-1 flex items-center gap-2">
+                                <Badge variant="outline" className="text-white border-white/30 bg-white/10 backdrop-blur-sm">
+                                    {suppliers.length} Parceiros
+                                </Badge>
+                                Gestão estratégica de abastecimento
+                            </p>
+                        </div>
+                    </div>
+
+                    <Button asChild className="rounded-xl bg-white text-violet-700 hover:bg-purple-50 shadow-xl shadow-purple-900/20 px-6 py-6 h-auto text-lg font-bold group border-0">
+                        <Link href="/suppliers/new">
+                            <Plus className="mr-2 h-5 w-5 transition-transform group-hover:rotate-90" />
+                            Novo Fornecedor
+                        </Link>
+                    </Button>
+                </div>
             </div>
 
             {/* Filters/Toolbar */}
-            <div className="bg-card/50 backdrop-blur-xl p-4 sm:p-6 rounded-2xl border border-white/20 shadow-lg shadow-orange-500/5 flex flex-col md:flex-row gap-4 items-stretch md:items-center transition-all hover:shadow-orange-500/10">
+            <div className="bg-card/50 backdrop-blur-xl p-4 sm:p-6 rounded-2xl border border-white/20 shadow-lg shadow-purple-500/5 flex flex-col md:flex-row gap-4 items-stretch md:items-center transition-all hover:shadow-purple-500/10">
                 <div className="relative flex-1">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -195,87 +206,107 @@ export default function SuppliersPage() {
 
             {/* Content Table */}
             {viewMode === "table" && (
-                <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-all">
+                <div className="hidden md:block bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden transition-all">
                     <Table>
                         <TableHeader>
-                            <TableRow className="hover:bg-transparent bg-slate-50/50 border-slate-100">
-                                <TableHead className="font-semibold text-slate-700">
-                                    <div className="flex items-center gap-1">
+                            <TableRow className="hover:bg-transparent bg-slate-50 border-b border-slate-100">
+                                <TableHead className="font-bold text-slate-800 h-14 px-6">
+                                    <div className="flex items-center gap-2">
                                         Fornecedor
-                                        <span className="text-xs text-muted-foreground">(A-Z)</span>
+                                        <div className="p-1 bg-slate-200 rounded text-[10px] text-slate-500 font-mono">A-Z</div>
                                     </div>
                                 </TableHead>
-                                <TableHead className="font-semibold text-slate-700">Contato</TableHead>
-                                <TableHead className="font-semibold text-slate-700">Identificação</TableHead>
-                                <TableHead className="font-semibold text-slate-700">Cadastro</TableHead>
-                                <TableHead className="font-semibold text-slate-700 text-right">Status</TableHead>
+                                <TableHead className="font-bold text-slate-800 h-14">Contato & Email</TableHead>
+                                <TableHead className="font-bold text-slate-800 h-14">Documentos</TableHead>
+                                <TableHead className="font-bold text-slate-800 h-14">Início Parceria</TableHead>
+                                <TableHead className="font-bold text-slate-800 h-14 text-right px-6">Status</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {isLoading ? (
                                 Array.from({ length: 5 }).map((_, i) => (
                                     <TableRow key={i} className="border-slate-50">
+                                        <TableCell className="px-6 py-6"><Skeleton className="h-6 w-[200px]" /></TableCell>
                                         <TableCell><Skeleton className="h-4 w-[150px]" /></TableCell>
                                         <TableCell><Skeleton className="h-4 w-[120px]" /></TableCell>
-                                        <TableCell><Skeleton className="h-4 w-[150px]" /></TableCell>
                                         <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
-                                        <TableCell className="text-right"><Skeleton className="h-6 w-[80px] ml-auto" /></TableCell>
+                                        <TableCell className="px-6 text-right"><Skeleton className="h-8 w-[80px] ml-auto" /></TableCell>
                                     </TableRow>
                                 ))
                             ) : paginatedSuppliers.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="h-32 text-center text-muted-foreground border-slate-50">
-                                        Nenhum fornecedor encontrado.
+                                    <TableCell colSpan={5} className="h-60 text-center text-slate-400 italic bg-slate-50/50">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Search className="h-8 w-8 text-slate-300" />
+                                            <p>Nenhum fornecedor encontrado para sua busca.</p>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ) : (
                                 paginatedSuppliers.map((supplier) => (
                                     <TableRow
                                         key={supplier.id}
-                                        className="cursor-pointer group hover:bg-slate-50 border-slate-50 transition-colors"
+                                        className="cursor-pointer group hover:bg-slate-50/80 border-slate-50 transition-all"
                                         onClick={() => router.push(`/suppliers/${supplier.id}`)}
                                     >
-                                        <TableCell className="font-medium py-4">
-                                            <div className="flex items-center gap-3">
+                                        <TableCell className="py-5 px-6">
+                                            <div className="flex items-center gap-4">
                                                 <div className={cn(
-                                                    "p-2 rounded-lg",
-                                                    supplier.status === 'ACTIVE' ? "bg-orange-50 text-orange-600" : "bg-slate-50 text-slate-500"
+                                                    "p-3 rounded-xl transition-all group-hover:scale-110",
+                                                    supplier.status === 'ACTIVE' ? "bg-violet-50 text-violet-600 shadow-sm" : "bg-slate-100 text-slate-400"
                                                 )}>
-                                                    <Truck className="h-4 w-4" />
+                                                    <Truck className="h-5 w-5" />
                                                 </div>
-                                                <span className="text-slate-900">{supplier.name}</span>
+                                                <div className="flex flex-col">
+                                                    <span className="text-slate-900 font-bold text-lg group-hover:text-orange-600 transition-colors tracking-tight">{supplier.name}</span>
+                                                    <span className="text-xs text-slate-400 font-medium">Cadastrado há {Math.floor((new Date().getTime() - new Date(supplier.createdAt).getTime()) / (1000 * 60 * 60 * 24))} dias</span>
+                                                </div>
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="flex flex-col text-sm">
-                                                <div className="flex items-center gap-1.5">
-                                                    <Phone className="h-3 w-3 text-slate-400" />
-                                                    <span className="text-slate-700 font-medium">{supplier.phone ? formatPhone(supplier.phone) : "-"}</span>
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="p-1 bg-blue-50 text-blue-600 rounded">
+                                                        <Phone className="h-3 w-3" />
+                                                    </div>
+                                                    <span className="text-slate-700 font-bold text-sm">{supplier.phone ? formatPhone(supplier.phone) : "-"}</span>
                                                 </div>
                                                 {supplier.email && (
-                                                    <div className="flex items-center gap-1.5 mt-0.5">
-                                                        <Mail className="h-3 w-3 text-slate-400" />
-                                                        <span className="text-xs text-muted-foreground">{supplier.email}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="p-1 bg-slate-100 text-slate-500 rounded">
+                                                            <Mail className="h-3 w-3" />
+                                                        </div>
+                                                        <span className="text-xs text-slate-500 font-medium truncate max-w-[180px]">{supplier.email}</span>
                                                     </div>
                                                 )}
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="flex flex-col text-xs text-muted-foreground">
-                                                <span className="font-medium text-slate-600">{supplier.cnpj ? formatCNPJ(supplier.cnpj) : "-"}</span>
-                                                {supplier.whatsapp && <span className="flex gap-1 items-center text-emerald-600 mt-0.5"><MessageCircle className="w-3 h-3" /> {formatPhone(supplier.whatsapp)}</span>}
+                                            <div className="flex flex-col gap-1">
+                                                <span className="font-mono text-sm font-bold text-slate-600">{supplier.cnpj ? formatCNPJ(supplier.cnpj) : "-"}</span>
+                                                {supplier.whatsapp && (
+                                                    <div className="flex gap-1.5 items-center text-emerald-600 font-bold text-[10px] uppercase tracking-tighter">
+                                                        <MessageCircle className="w-3.5 h-3.5" /> WhatsApp Ativo
+                                                    </div>
+                                                )}
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <span className="text-muted-foreground text-sm">{format(new Date(supplier.createdAt), 'dd/MM/yyyy', { locale: ptBR })}</span>
+                                            <div className="flex items-center gap-2 text-slate-500 font-medium">
+                                                <Calendar className="h-4 w-4 text-slate-300" />
+                                                {format(new Date(supplier.createdAt), 'dd MMMM yyyy', { locale: ptBR })}
+                                            </div>
                                         </TableCell>
-                                        <TableCell className="text-right">
-                                            <Badge variant={supplier.status === 'ACTIVE' ? "default" : "secondary"} className={cn(
-                                                "rounded-lg px-2.5 py-0.5 font-medium text-[10px] uppercase tracking-wider",
-                                                supplier.status === 'ACTIVE' ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-slate-100 text-slate-600 border-slate-200"
-                                            )}>
-                                                {supplier.status === 'ACTIVE' ? "Ativo" : "Inativo"}
-                                            </Badge>
+                                        <TableCell className="text-right px-6">
+                                            <div className="flex items-center justify-end gap-3">
+                                                <Badge variant={supplier.status === 'ACTIVE' ? "default" : "secondary"} className={cn(
+                                                    "rounded-lg px-3 py-1 font-bold text-[10px] uppercase tracking-widest",
+                                                    supplier.status === 'ACTIVE' ? "bg-emerald-500 hover:bg-emerald-600" : "bg-slate-300"
+                                                )}>
+                                                    {supplier.status === 'ACTIVE' ? "Ativo" : "Inativo"}
+                                                </Badge>
+                                                <ArrowRight className="h-4 w-4 text-slate-300 transform translate-x-[-10px] opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all" />
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))
@@ -291,7 +322,7 @@ export default function SuppliersPage() {
 
                     {isLoading ? (
                         Array.from({ length: 4 }).map((_, i) => (
-                            <Skeleton key={i} className="h-[200px] rounded-2xl" />
+                            <Skeleton key={i} className="h-[280px] rounded-3xl" />
                         ))
                     ) : paginatedSuppliers.length === 0 && viewMode === "grid" ? (
                         <div className="col-span-full py-20 text-center bg-slate-50 rounded-3xl border border-slate-200 border-dashed">

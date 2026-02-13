@@ -43,14 +43,14 @@ export function ProductCard({ product, onEdit, onDelete }: ProductCardProps) {
             <CardHeader className="p-5 pb-2 relative z-10">
                 <div className="flex justify-between items-start">
                     <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-start gap-2 mb-2">
                             <div className={cn(
                                 "p-2 rounded-lg",
                                 isLowStock ? "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400" : "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
                             )}>
                                 {isLowStock ? <AlertTriangle className="h-4 w-4" /> : <Package className="h-4 w-4" />}
                             </div>
-                            <h3 className="font-bold text-lg text-slate-900 truncate dark:text-slate-100">
+                            <h3 className="font-bold text-lg text-slate-900 line-clamp-2 break-words dark:text-slate-100">
                                 {product.name}
                             </h3>
                         </div>

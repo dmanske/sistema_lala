@@ -16,7 +16,8 @@ import {
     Sparkles,
     Plus,
     Truck,
-    Building2
+    Building2,
+    Gift
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -58,6 +59,7 @@ export function Sidebar({ className }: SidebarProps) {
             label: "Pessoas",
             items: [
                 { name: "Clientes", icon: Users, href: "/clients", active: true },
+                { name: "Aniversários", icon: Gift, href: "/aniversarios", active: true },
                 { name: "Fornecedores", icon: Truck, href: "/suppliers", active: true },
                 { name: "Profissionais", icon: UserCircle, href: "/professionals", active: true },
             ],

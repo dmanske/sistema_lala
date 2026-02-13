@@ -32,11 +32,11 @@ export function ServiceCard({ service, onEdit, onDelete }: ServiceCardProps) {
             <CardHeader className="p-5 pb-2">
                 <div className="flex justify-between items-start">
                     <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-start gap-2 mb-2">
                             <div className="p-2 bg-purple-50 text-purple-600 rounded-lg dark:bg-purple-900/20 dark:text-purple-400">
                                 <Scissors className="h-4 w-4" />
                             </div>
-                            <h3 className="font-bold text-lg text-slate-900 truncate dark:text-slate-100">
+                            <h3 className="font-bold text-lg text-slate-900 line-clamp-2 break-words dark:text-slate-100">
                                 {service.name}
                             </h3>
                         </div>

@@ -936,6 +936,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 - Loading skeletons for async data
 - Orange color theme (#f97316) for supplier identity
 
+**4. UI/UX Improvements:**
+- Fixed "days ago" formatting across all modules
+- Shows "Hoje" (Today) when date is current day
+- Proper spacing between number and "dias atrás"
+- Consistent date formatting in Portuguese
+- Applied to: Products (last sale), Suppliers (last purchase), Clients (last visit)
+
 **Technical Implementation:**
 - Created `getProductOverview` use case (`src/core/usecases/products/getProductOverview.ts`)
 - Created `getProductSuppliers` use case (`src/core/usecases/products/getProductSuppliers.ts`)
@@ -945,6 +952,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 - Enhanced product listing with sorting and filtering
 - Integrated Recharts for data visualization
 - Added Select components for sort and filter controls
+- Fixed TypeScript type issues in Recharts Tooltip formatters
 
 **Data Analysis:**
 - Sales tracking from finalized appointments
@@ -960,12 +968,14 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 - Contextual links to related records
 - Responsive design for all screen sizes
 - Consistent glassmorphism theme
+- Improved date/time formatting
 
 **Build Status:**
 - ✅ TypeScript compilation successful
 - ✅ No linting errors
 - ✅ Production build passed
 - ✅ All routes generated successfully
+- ✅ All type errors resolved
 
 **Documentation:**
 - Created comprehensive analysis document (`.kiro/specs/products-improvements/ANALISE_E_PROPOSTAS.md`)
@@ -1070,3 +1080,129 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 - Metas e alertas de saldo
 - Conciliação bancária
 - Integração melhorada em vendas e compras
+
+
+---
+
+## Version 2.5.0 - Birthday Management Module (2026-02-13)
+
+**New Feature: Birthday Management**
+
+Added comprehensive birthday tracking and celebration module to improve client relationships and retention.
+
+**Core Functionality:**
+- View today's birthdays with celebration UI
+- Track upcoming birthdays (next 60 days)
+- Complete client list with birthday information
+- Monthly calendar view of all birthdays
+- Search and filter by name, phone, or month
+- WhatsApp message integration for birthday greetings
+- Bulk message sending for today's birthdays
+- CSV export of birthday data
+
+**User Interface:**
+- 4 tabs: Today, Upcoming (60 days), All Clients, Monthly Calendar
+- Statistics cards: Today's count, Upcoming count, Total clients
+- Clean, professional layout matching system design patterns
+- Compact header with white background and border
+- Simplified tabs without excessive gradients
+- Subtle shadows and borders (no heavy backdrop blur)
+- Responsive layout (mobile-first design)
+- Client avatars with photo or initials fallback
+- Age calculation and display
+- Days until next birthday indicator
+
+**WhatsApp Integration:**
+- Individual message sending with customizable template
+- Bulk message sending for all today's birthdays
+- Template variables: {nome} for name, {idade} for age
+- Opens WhatsApp Web with pre-filled message
+- Manual confirmation required (no automatic sending)
+- Preview of message before sending
+
+**Data Export:**
+- CSV export with columns: Name, Birth Date, Age, Days Until Birthday, Phone, Email
+- Filename includes current date for organization
+- Filtered data export (respects current search/filter)
+
+**Technical Implementation:**
+- Created `/aniversarios` route in Next.js app router
+- Integrated with existing `clients` table using `birthDate` field
+- Created utility functions in `src/lib/utils/birthdayUtils.ts`:
+  - `isAniversarioHoje()` - Check if birthday is today
+  - `diasParaProximoAniversario()` - Calculate days until next birthday
+  - `getAniversariantesHoje()` - Filter today's birthdays
+- Created formatters in `src/lib/utils/dateFormatters.ts`:
+  - `formatBirthDate()` - Format date for display (DD/MM/YYYY)
+  - `calcularIdade()` - Calculate age from birth date
+  - `formatPhone()` - Format phone number for display
+- Added "Aniversários" menu item in sidebar under "Pessoas" section
+- Gift icon (Lucide React) for visual identification
+- Multi-tenant support via RLS (automatic filtering by tenant)
+
+**User Experience:**
+- Real-time search across name and phone
+- Month filter for targeted viewing
+- Visual indicators for today's birthdays (purple badges)
+- Loading states with spinners
+- Empty states with helpful messages
+- Toast notifications for actions
+- Smooth animations and transitions
+- Mobile-optimized touch targets
+
+**Business Value:**
+- Improved client retention through personalized contact
+- Automated reminder system for staff
+- Proactive relationship building
+- Marketing opportunity for special offers
+- Data-driven insights on client demographics
+- Professional image through timely greetings
+
+**Database Schema:**
+- No migration required (uses existing `birthDate` field in `clients` table)
+- Field is optional (nullable)
+- Supports ISO format (YYYY-MM-DD)
+- Timezone-aware calculations
+
+**Sidebar Navigation:**
+- Added "Aniversários" item under "Pessoas" section
+- Position: After "Clientes", before "Fornecedores"
+- Icon: Gift (🎁)
+- Route: `/aniversarios`
+- Active state highlighting
+
+**Files Created/Modified:**
+- Created: `src/app/(app)/aniversarios/page.tsx` (main page component)
+- Created: `src/lib/utils/birthdayUtils.ts` (birthday calculations)
+- Created: `src/lib/utils/dateFormatters.ts` (date formatting utilities)
+- Modified: `src/components/layout/Sidebar.tsx` (added menu item)
+- Modified: `next.config.ts` (added turbopack config)
+- Modified: `.gitignore` (excluded temp folder)
+
+**Adaptations from Original Code:**
+- Replaced React Router with Next.js Router
+- Replaced Supabase client import with `createClient()`
+- Removed permission system (simplified for MVP)
+- Removed PageFooter component (not in current system)
+- Changed table name from `clientes` to `clients`
+- Fixed field names to match database schema: `birth_date`, `photo_url` (snake_case)
+- Applied Lala System layout patterns (clean header, subtle colors)
+- Removed TooltipProvider (not needed)
+- Adapted UI to match existing pages (clients, products, suppliers)
+
+**Testing Status:**
+- ✅ Build passes without TypeScript errors
+- ✅ Component renders correctly
+- ✅ Sidebar navigation works
+- ✅ Database fields corrected (birth_date, photo_url)
+- ✅ Layout adapted to system standards
+- ✅ Functional testing completed by user
+
+**Next Steps (Optional Enhancements):**
+- Dashboard card showing upcoming birthdays
+- Automatic notifications when opening system
+- Saved message templates
+- WhatsApp Business API integration for automatic sending
+- Birthday statistics and analytics
+- Gift/discount tracking for birthday promotions
+
