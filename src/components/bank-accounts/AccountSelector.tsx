@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SupabaseBankAccountRepository } from '@/infrastructure/repositories/supabase/SupabaseBankAccountRepository'
+import { createClient } from '@/lib/supabase/client'
 import { ListBankAccounts } from '@/core/usecases/bank-accounts/ListBankAccounts'
 import { BankAccountWithBalance } from '@/core/domain/BankAccount'
 
@@ -12,9 +13,10 @@ interface AccountSelectorProps {
     onValueChange?: (value: string) => void
     placeholder?: string
     allowAll?: boolean
+    className?: string
 }
 
-export function AccountSelector({ value, onChange, onValueChange, placeholder = 'Selecione uma conta', allowAll = false }: AccountSelectorProps) {
+export function AccountSelector({ value, onChange, onValueChange, placeholder = 'Selecione uma conta', allowAll = false, className }: AccountSelectorProps) {
     const [accounts, setAccounts] = useState<BankAccountWithBalance[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -31,7 +33,8 @@ export function AccountSelector({ value, onChange, onValueChange, placeholder = 
     async function loadAccounts() {
         try {
             setLoading(true)
-            const repo = new SupabaseBankAccountRepository()
+            const supabase = createClient() // Use client-side client
+            const repo = new SupabaseBankAccountRepository(supabase)
             const useCase = new ListBankAccounts(repo)
             const data = await useCase.execute(true) // Only active accounts
             setAccounts(data)
@@ -59,7 +62,7 @@ export function AccountSelector({ value, onChange, onValueChange, placeholder = 
 
     return (
         <Select value={value} onValueChange={handleValueChange}>
-            <SelectTrigger>
+            <SelectTrigger className={className}>
                 <SelectValue placeholder={placeholder} />
             </SelectTrigger>
             <SelectContent>
