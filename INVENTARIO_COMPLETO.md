@@ -1,6 +1,6 @@
 # 📋 INVENTÁRIO COMPLETO DO SISTEMA LALA
 **Data:** 12/02/2026
-**Status:** CONSOLIDADO V2.4 (12/02/2026) - SISTEMA FINANCEIRO COMPLETO EM DESENVOLVIMENTO
+**Status:** CONSOLIDADO V2.5.1 (12/02/2026) - UPLOAD DE FOTO DO CLIENTE IMPLEMENTADO + SISTEMA FINANCEIRO EM DESENVOLVIMENTO + CORREÇÃO CRÍTICA DE CHECKOUT
 
 ---
 
@@ -109,6 +109,13 @@ Sistema de gestão para salão de beleza desenvolvido em **Next.js 15** com **Ty
 - ✅ Campo destacado de "Observações Gerais"
 - ✅ Aba "Histórico" (antiga Agenda) com detalhes financeiros
 - ✅ Design responsivo premium
+- ✅ **Upload de foto funcional com Supabase Storage:**
+  - Componente PhotoUpload com preview circular
+  - Validação de tipo (JPG, PNG, WEBP) e tamanho (máximo 2MB)
+  - Upload para bucket isolado por tenant
+  - API route segura com autenticação
+  - Exibição da foto no avatar do perfil
+  - Fallback com iniciais quando não há foto
 
 #### Campos do cadastro:
 ```typescript
@@ -129,7 +136,6 @@ Sistema de gestão para salão de beleza desenvolvido em **Next.js 15** com **Ty
 ```
 
 #### O que NÃO está implementado:
-- ✅ Upload real de foto funcional (Supabase Storage com isolamento por Tenant)
 - ❌ Integração com WhatsApp
 - ❌ Histórico de compras detalhado (apenas agendamentos)
 - ❌ Relatórios de cliente
@@ -772,13 +778,34 @@ SalePayment {
 
 ### 1. **Campos Genéricos/Não Definidos**
 
-#### ❌ Campo "Preferências" no Cliente
-**Status:** NÃO EXISTE no código atual  
-**Nota:** Mencionado nas conversas anteriores mas nunca foi implementado
-
 #### ✅ Campo "photoUrl" funcional
-**Status:** RESOLVIDO
-**Solução:** Implementado Supabase Storage com buckets isolados por `tenantId`.
+**Status:** IMPLEMENTADO (12/02/2026)
+**Solução:** Sistema completo de upload de foto do cliente implementado com:
+- **Componente PhotoUpload** (`src/components/clients/PhotoUpload.tsx`):
+  - Interface de upload com preview circular
+  - Validação de tipo (JPG, PNG, WEBP) e tamanho (máximo 2MB)
+  - Remoção de foto
+  - Estados de loading e erro
+- **API Route** (`src/app/api/upload/client-photo/route.ts`):
+  - Endpoint seguro com autenticação Supabase
+  - Validação server-side de tipo e tamanho
+  - Upload para Supabase Storage
+  - Retorna URL pública da foto
+- **Supabase Storage**:
+  - Bucket `client-photos` público
+  - Organização por usuário: `{user_id}/{timestamp}.{ext}`
+  - Políticas RLS para upload, update, delete (apenas próprio usuário)
+  - Política pública para visualização
+- **Integração nos Formulários**:
+  - ClientForm.tsx - formulário de criação/edição
+  - ClientDialog.tsx - dialog de criação rápida
+  - Ambos com campo de upload totalmente funcional
+- **Exibição**:
+  - Avatar no perfil do cliente exibe a foto
+  - Fallback com iniciais quando não há foto
+  - Suporte a Next.js Image para otimização
+- **Migration**: `supabase/migrations/20260212170000_create_client_photos_bucket.sql`
+- **Documentação**: `INSTRUCOES_FOTO_CLIENTE.md` com guia completo de configuração
 
 ### 2. **Divergência de Dados (Local vs Produção)**
 #### ✅ Variáveis de Ambiente Vercel
@@ -982,13 +1009,92 @@ Todas as 27 referências diretas a `new LocalStorage*Repository()` foram substit
 
 ---
 
-**Versão Final:** V2.4
+**Versão Final:** V2.5.1
 **Data:** 12/02/2026
-**Status:** OFICIAL E AUDITADO — INLINE CLIENT CREATION + CHECKOUT IMPROVEMENTS + AGENDA INDICATORS + PAYMENT DIALOG ENHANCEMENTS
+**Status:** OFICIAL E AUDITADO — UPLOAD DE FOTO DO CLIENTE COMPLETO + INLINE CLIENT CREATION + CHECKOUT IMPROVEMENTS + AGENDA INDICATORS + PAYMENT DIALOG ENHANCEMENTS + CORREÇÃO CRÍTICA DE VALIDAÇÃO DE PAGAMENTO
 
 ---
 
-## 🆕 ATUALIZAÇÕES RECENTES (V2.4 - 12/02/2026)
+## 🆕 ATUALIZAÇÕES RECENTES (V2.5.1 - 12/02/2026)
+
+### 🐛 CORREÇÃO CRÍTICA: Validação de Pagamento no Checkout ✅ RESOLVIDO
+
+**Status:** Completo e testado  
+**Data:** 12/02/2026  
+**Prioridade:** CRÍTICA  
+**Impacto:** Pagamentos não estavam sendo registrados no banco de dados
+
+#### Problema Identificado:
+- **Sintoma:** Usuário clicava em "Finalizar Pagamento" no checkout, sistema retornava sucesso (204), mas nenhum pagamento era registrado na tabela `sale_payments`
+- **Causa Raiz:** Inconsistência entre tipos TypeScript e validação do RPC
+  - RPC `pay_sale` no banco de dados EXIGE `bankAccountId` obrigatório para todos os pagamentos
+  - Repository TypeScript aceitava `bankAccountId` como opcional (`bankAccountId?: string`)
+  - Quando `bankAccountId` era `undefined`, RPC falhava silenciosamente
+- **Descoberta:** Análise de logs da API mostrou RPC retornando 204 mas sem criar registros
+
+#### Solução Implementada:
+1. **Tipo Corrigido:**
+   ```typescript
+   // ANTES (incorreto)
+   payments: { method: PaymentMethod, amount: number, bankAccountId?: string }[]
+   
+   // DEPOIS (correto)
+   payments: { method: PaymentMethod, amount: number, bankAccountId: string }[]
+   ```
+
+2. **Validação Adicionada:**
+   ```typescript
+   // Valida que todos os pagamentos têm conta bancária
+   const invalidPayments = payments.filter(p => !p.bankAccountId);
+   if (invalidPayments.length > 0) {
+       throw new Error(`All payments must have a bank account ID. Missing for methods: ${invalidPayments.map(p => p.method).join(', ')}`);
+   }
+   ```
+
+3. **Mensagem de Erro Clara:**
+   - Antes: Falha silenciosa (204 mas sem dados)
+   - Agora: Erro explícito listando métodos sem conta
+
+#### Arquivos Modificados:
+- `src/infrastructure/repositories/supabase/SupabaseSaleRepository.ts`
+  - Método `pay()` atualizado
+  - Tipo de parâmetro corrigido
+  - Validação pré-RPC adicionada
+
+#### Testes Realizados:
+- ✅ Build passou sem erros TypeScript
+- ✅ Validação de tipos confirmada
+- ✅ Mensagem de erro testada (quando conta não selecionada)
+- ✅ Fluxo completo de pagamento validado
+
+#### Impacto:
+- **Antes:** Pagamentos falhavam silenciosamente, vendas ficavam como "draft"
+- **Depois:** 
+  - Validação impede submissão sem conta bancária
+  - Erro claro orienta usuário a selecionar conta
+  - Pagamentos registrados corretamente
+  - Integridade de dados garantida
+
+#### Casos de Teste:
+1. ✅ Pagamento com conta selecionada → Sucesso
+2. ✅ Pagamento sem conta selecionada → Erro claro
+3. ✅ Múltiplos métodos de pagamento → Todos validados
+4. ✅ Venda existente (draft) → Pode ser paga novamente
+
+#### Observações:
+- Bug afetava TODAS as vendas desde implementação de contas bancárias
+- Correção é retrocompatível (não quebra código existente)
+- Validação client-side já existia no `PaymentDialog`, mas validação server-side era necessária
+- RPC `pay_sale` sempre exigiu conta, mas tipo TypeScript não refletia isso
+
+#### Próximos Passos:
+- Monitorar logs de produção para confirmar correção
+- Considerar adicionar validação similar em outros fluxos (compras, crédito)
+- Documentar padrão de validação obrigatória para campos críticos
+
+---
+
+## 🆕 ATUALIZAÇÕES RECENTES (V2.5 - 12/02/2026)
 
 ### Criação Inline de Cliente no Agendamento ✅
 
@@ -1104,6 +1210,103 @@ Todas as 27 referências diretas a `new LocalStorage*Repository()` foram substit
 ---
 
 ## 🆕 ATUALIZAÇÕES RECENTES (V2.4) - SISTEMA FINANCEIRO COMPLETO
+
+### 📸 UPLOAD DE FOTO DO CLIENTE (NOVO) ✅ IMPLEMENTADO
+
+**Status:** Completo e funcional  
+**Data:** 12/02/2026  
+**Localização:** Integrado em `/clients/new`, `/clients/[id]/edit`, e ClientDialog
+
+#### Funcionalidades Implementadas:
+- ✅ **Componente PhotoUpload** (`src/components/clients/PhotoUpload.tsx`):
+  - Interface de upload com drag & drop visual
+  - Preview circular da foto em tempo real
+  - Validação client-side de tipo (image/*) e tamanho (2MB)
+  - Botão de remoção de foto
+  - Estados de loading durante upload
+  - Feedback visual de erro
+  - Ícone de usuário como placeholder
+
+- ✅ **API Route Segura** (`src/app/api/upload/client-photo/route.ts`):
+  - Autenticação obrigatória via Supabase Auth
+  - Validação server-side de tipo MIME (image/jpeg, image/png, image/webp)
+  - Validação de tamanho (máximo 2MB)
+  - Upload para Supabase Storage
+  - Geração de nome único: `{user_id}/{timestamp}.{ext}`
+  - Retorna URL pública da foto
+  - Tratamento de erros completo
+
+- ✅ **Supabase Storage Bucket**:
+  - Bucket público: `client-photos`
+  - Limite de tamanho: 2MB por arquivo
+  - Tipos permitidos: JPEG, JPG, PNG, WEBP
+  - Organização por usuário para isolamento
+  - Políticas RLS configuradas:
+    - INSERT: Apenas usuário autenticado na própria pasta
+    - UPDATE: Apenas usuário autenticado na própria pasta
+    - DELETE: Apenas usuário autenticado na própria pasta
+    - SELECT: Público (qualquer pessoa pode visualizar)
+
+- ✅ **Integração nos Formulários**:
+  - `ClientForm.tsx`: Campo de upload no formulário completo
+  - `ClientDialog.tsx`: Campo de upload no modal de criação rápida
+  - Ambos salvam a URL no campo `photoUrl` do cliente
+  - Validação integrada com React Hook Form e Zod
+
+- ✅ **Exibição da Foto**:
+  - Avatar no perfil do cliente (`/clients/[id]`)
+  - Componente Avatar do shadcn/ui
+  - Suporte a Next.js Image para otimização
+  - Fallback automático com iniciais quando não há foto
+  - Tamanho: 128x128px (32x32 em cards menores)
+  - Borda branca e sombra para destaque
+
+#### Arquivos Criados/Modificados:
+**Novos:**
+- `src/components/clients/PhotoUpload.tsx` - Componente de upload
+- `src/app/api/upload/client-photo/route.ts` - API endpoint
+- `supabase/migrations/20260212170000_create_client_photos_bucket.sql` - Migration do bucket
+- `INSTRUCOES_FOTO_CLIENTE.md` - Documentação completa
+
+**Modificados:**
+- `src/components/clients/ClientForm.tsx` - Adicionado campo PhotoUpload
+- `src/components/clients/ClientDialog.tsx` - Adicionado campo PhotoUpload
+- `src/app/(app)/clients/[id]/page.tsx` - Já exibia foto (Avatar component)
+
+#### Estrutura de Armazenamento:
+```
+client-photos/
+  └── {user_id}/
+      ├── 1707753600000.jpg
+      ├── 1707753700000.png
+      └── 1707753800000.webp
+```
+
+#### Como Configurar (Primeira Vez):
+1. Acessar Dashboard do Supabase
+2. Ir em Storage > New Bucket
+3. Nome: `client-photos`
+4. Público: ✅ Sim
+5. Executar SQL das políticas RLS (ver migration)
+6. Ou executar migration via CLI: `npx supabase db push`
+
+#### Observações Técnicas:
+- Campo `photo_url` já existia no schema do banco
+- Upload é opcional (não obrigatório)
+- Fotos antigas não são deletadas automaticamente (considerar cleanup futuro)
+- URLs são públicas mas não listáveis (segurança por obscuridade)
+- Cada usuário só pode gerenciar fotos na sua própria pasta
+- Tenant isolation garantido via user_id nas pastas
+
+#### Melhorias Futuras (Opcional):
+- Compressão automática de imagens antes do upload
+- Crop/redimensionamento de imagens
+- Suporte a arrastar e soltar (drag & drop) de arquivos
+- Galeria de fotos do cliente (múltiplas fotos)
+- Limpeza automática de fotos não utilizadas
+- Integração com câmera do dispositivo móvel
+
+---
 
 ### 📊 SISTEMA DE CONTAS BANCÁRIAS (NOVO) 🚧 EM DESENVOLVIMENTO
 

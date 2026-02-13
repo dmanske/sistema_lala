@@ -4,6 +4,7 @@ import { BankAccountWithBalance } from '@/core/domain/BankAccount'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Building2, CreditCard, Wallet, Edit, Power } from 'lucide-react'
+import { BankLogos, isEmoji } from './BankLogos'
 
 interface BankAccountsListProps {
     accounts: BankAccountWithBalance[]
@@ -43,7 +44,7 @@ export function BankAccountsList({ accounts, onEdit, onToggleActive }: BankAccou
                 <table className="w-full">
                     <thead>
                         <tr className="border-b bg-muted/50">
-                            <th className="px-4 py-3 text-left text-sm font-medium">Nome</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium">Conta</th>
                             <th className="px-4 py-3 text-left text-sm font-medium">Tipo</th>
                             <th className="px-4 py-3 text-right text-sm font-medium">Saldo Atual</th>
                             <th className="px-4 py-3 text-center text-sm font-medium">Status</th>
@@ -53,7 +54,27 @@ export function BankAccountsList({ accounts, onEdit, onToggleActive }: BankAccou
                     <tbody>
                         {accounts.map((account) => (
                             <tr key={account.id} className="border-b last:border-0 hover:bg-muted/30">
-                                <td className="px-4 py-3 font-medium">{account.name}</td>
+                                <td className="px-4 py-3">
+                                    <div className="flex items-center gap-3">
+                                        <div
+                                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted/50 text-sm shadow-sm border border-white/10"
+                                            style={{ color: account.color }}
+                                        >
+                                            {isEmoji(account.icon) ? (
+                                                <span>{account.icon}</span>
+                                            ) : (
+                                                (() => {
+                                                    const Logo = BankLogos[account.icon] || BankLogos['generic-bank']
+                                                    return <Logo className="h-4 w-4" />
+                                                })()
+                                            )}
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="font-medium text-sm">{account.name}</span>
+                                            {account.bankName && <span className="text-[10px] text-muted-foreground">{account.bankName}</span>}
+                                        </div>
+                                    </div>
+                                </td>
                                 <td className="px-4 py-3">
                                     <div className="flex items-center gap-2">
                                         {getTypeIcon(account.type)}

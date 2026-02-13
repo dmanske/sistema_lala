@@ -195,4 +195,24 @@ export function resetRepositories(): void {
     creditRepo = null;
     stockMovementRepo = null;
     cashMovementRepo = null;
+    bankAccountRepo = null;
+}
+
+// Singleton for BankAccountRepository
+let bankAccountRepo: BankAccountRepository | null = null;
+import { BankAccountRepository } from '@/core/repositories/BankAccountRepository';
+import { SupabaseBankAccountRepository } from './supabase/SupabaseBankAccountRepository';
+// import { LocalStorageBankAccountRepository } from './LocalStorageBankAccountRepository'; // Not implemented yet
+
+export function getBankAccountRepository(): BankAccountRepository {
+    if (!bankAccountRepo) {
+        if (useSupabase()) {
+            bankAccountRepo = new SupabaseBankAccountRepository();
+        } else {
+            // Placeholder: throw error or return mock if local storage not implemented
+            throw new Error('Bank Account module is only available with Supabase backend.');
+            // bankAccountRepo = new LocalStorageBankAccountRepository();
+        }
+    }
+    return bankAccountRepo;
 }

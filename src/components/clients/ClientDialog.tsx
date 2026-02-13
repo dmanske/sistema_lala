@@ -37,6 +37,7 @@ import { CreateClientSchema, Client } from "@/core/domain/Client";
 import { ClientService } from "@/core/services/ClientService";
 import { getClientRepository } from "@/infrastructure/repositories/factory";
 import { normalizePhone } from "@/core/formatters/phone";
+import { PhotoUpload } from "@/components/clients/PhotoUpload";
 
 const FormSchema = CreateClientSchema.omit({ status: true }).extend({
     status: z.enum(["ACTIVE", "INACTIVE", "ATTENTION"]),
@@ -206,6 +207,24 @@ export function ClientDialog({ isOpen, onOpenChange, onSuccess }: ClientDialogPr
                                             placeholder="Observações gerais sobre o cliente..."
                                             className="resize-none rounded-xl bg-white/50 border-white/20 focus:bg-white"
                                             {...field}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="photoUrl"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-sm font-semibold text-slate-700">Foto do Cliente</FormLabel>
+                                    <FormControl>
+                                        <PhotoUpload
+                                            value={field.value}
+                                            onChange={field.onChange}
+                                            disabled={form.formState.isSubmitting}
                                         />
                                     </FormControl>
                                     <FormMessage />

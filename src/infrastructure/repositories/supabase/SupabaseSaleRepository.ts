@@ -222,11 +222,17 @@ export class SupabaseSaleRepository implements SaleRepository {
 
     async pay(
         saleId: string,
-        payments: { method: PaymentMethod, amount: number, bankAccountId?: string }[],
+        payments: { method: PaymentMethod, amount: number, bankAccountId: string }[],
         stockItems?: { productId: string, qty: number }[],
         creditDebit?: { clientId: string, amount: number },
         change?: number
     ): Promise<void> {
+        // Validate that all payments have bankAccountId
+        const invalidPayments = payments.filter(p => !p.bankAccountId);
+        if (invalidPayments.length > 0) {
+            throw new Error(`All payments must have a bank account ID. Missing for methods: ${invalidPayments.map(p => p.method).join(', ')}`);
+        }
+
         const { error } = await this.supabase.rpc('pay_sale', {
             p_sale_id: saleId,
             p_payments: payments,

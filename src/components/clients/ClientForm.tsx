@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +31,7 @@ import { CreateClientSchema, Client } from "@/core/domain/Client";
 import { ClientService } from "@/core/services/ClientService";
 import { getClientRepository } from "@/infrastructure/repositories/factory";
 import { normalizePhone } from "@/core/formatters/phone";
+import { PhotoUpload } from "@/components/clients/PhotoUpload";
 
 const FormSchema = CreateClientSchema.omit({ status: true }).extend({
     status: z.enum(["ACTIVE", "INACTIVE", "ATTENTION"]),
@@ -207,17 +208,23 @@ export function ClientForm({ initialData, mode }: ClientFormProps) {
                     )}
                 />
 
-                {/* Photo Upload Placeholder */}
-                <div className="space-y-4 pt-2">
-                    <FormLabel className="text-sm font-semibold text-slate-700">Foto do Cliente</FormLabel>
-                    <div className="border-2 border-dashed border-primary/20 bg-primary/5 rounded-2xl p-8 flex flex-col items-center justify-center text-muted-foreground text-sm transition-all hover:bg-primary/10 hover:border-primary/40 cursor-pointer group">
-                        <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center mb-3 shadow-sm group-hover:scale-110 transition-transform">
-                            <Plus className="h-6 w-6 text-primary/60" />
-                        </div>
-                        <span className="font-medium">Carregar foto</span>
-                        <span className="text-[10px]">JPG, PNG até 2MB</span>
-                    </div>
-                </div>
+                <FormField
+                    control={form.control}
+                    name="photoUrl"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="text-sm font-semibold text-slate-700">Foto do Cliente</FormLabel>
+                            <FormControl>
+                                <PhotoUpload
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    disabled={form.formState.isSubmitting}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
                 <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
                     <Button variant="ghost" type="button" onClick={() => router.back()} className="h-11 rounded-xl order-2 sm:order-1">

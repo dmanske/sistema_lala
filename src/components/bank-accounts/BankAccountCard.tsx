@@ -3,8 +3,13 @@
 import { BankAccountWithBalance } from '@/core/domain/BankAccount'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Edit, Power, Eye, Star } from 'lucide-react'
+import { Edit, Star, Copy, TrendingUp, TrendingDown } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+
+import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
+import { BankLogos, isEmoji } from './BankLogos'
+
 
 interface BankAccountCardProps {
     account: BankAccountWithBalance
@@ -14,6 +19,7 @@ interface BankAccountCardProps {
 
 export function BankAccountCard({ account, onEdit, onToggleActive }: BankAccountCardProps) {
     const router = useRouter()
+    const isNegative = account.currentBalance < 0
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', {
@@ -25,100 +31,138 @@ export function BankAccountCard({ account, onEdit, onToggleActive }: BankAccount
     const getTypeLabel = (type: string) => {
         switch (type) {
             case 'BANK': return 'Banco'
-            case 'CARD': return 'Cartão'
+            case 'CARD': return 'Cartão de Crédito'
             case 'WALLET': return 'Carteira Digital'
             default: return type
         }
     }
 
-    const isNegative = account.currentBalance < 0
+    const copyToClipboard = (text: string, label: string) => {
+        navigator.clipboard.writeText(text)
+        toast.success(`${label} copiado!`)
+    }
 
     return (
-        <div 
-            className="relative rounded-lg border-2 bg-card/50 backdrop-blur-sm p-6 hover:shadow-lg transition-all"
-            style={{ borderColor: account.color }}
+        <div
+            className="group relative overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md hover:-translate-y-1"
         >
-            {/* Favorita */}
-            {account.isFavorite && (
-                <div className="absolute top-3 right-3">
-                    <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                </div>
-            )}
+            {/* Gradient Background Decoration */}
+            <div
+                className="absolute top-0 left-0 w-full h-1.5"
+                style={{ backgroundColor: account.color }}
+            />
 
-            {/* Ícone e Nome */}
-            <div className="flex items-start gap-4 mb-4">
-                <div 
-                    className="text-5xl p-3 rounded-lg"
-                    style={{ backgroundColor: `${account.color}20` }}
+            <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full opacity-5 blur-3xl transition-all group-hover:opacity-10"
+                style={{ backgroundColor: account.color }}
+            />
+
+            <div className="p-6 relative z-10">
+                {/* Header */}
+                <div
+                    className="flex items-start justify-between mb-6 cursor-pointer"
+                    onClick={() => router.push(`/contas/${account.id}`)}
                 >
-                    {account.icon}
+                    <div className="flex items-center gap-4">
+                        <div
+                            className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50 text-2xl shadow-inner border border-white/10"
+                            style={{ color: account.color }}
+                        >
+                            {isEmoji(account.icon) ? (
+                                <span>{account.icon}</span>
+                            ) : (
+                                (() => {
+                                    const Logo = BankLogos[account.icon] || BankLogos['generic-bank']
+                                    return <Logo className="h-6 w-6" /> // Lucide icons accept className
+                                })()
+                            )}
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">
+                                    {account.name}
+                                </h3>
+                                {account.isFavorite && (
+                                    <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-500" />
+                                )}
+                            </div>
+                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-0.5">
+                                {getTypeLabel(account.type)}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => onEdit(account)}
+                            title="Editar"
+                        >
+                            <Edit className="h-4 w-4" />
+                        </Button>
+                    </div>
                 </div>
-                <div className="flex-1">
-                    <h3 className="text-xl font-bold mb-1">{account.name}</h3>
-                    <p className="text-sm text-muted-foreground">{getTypeLabel(account.type)}</p>
-                    {account.description && (
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                            {account.description}
-                        </p>
+
+                {/* Balance Section */}
+                <div className="mb-6">
+                    <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wide">Saldo Disponível</p>
+                    <div className="flex items-baseline gap-2">
+                        <h2 className={cn(
+                            "text-3xl font-bold tracking-tight",
+                            isNegative ? "text-red-500" : "text-foreground"
+                        )}>
+                            {formatCurrency(account.currentBalance)}
+                        </h2>
+                        {isNegative ? (
+                            <TrendingDown className="h-4 w-4 text-red-500" />
+                        ) : (
+                            <TrendingUp className="h-4 w-4 text-green-500" />
+                        )}
+                    </div>
+                    {account.type === 'CARD' && account.creditLimit && (
+                        <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground bg-muted/30 p-2 rounded-md">
+                            <span>Limite: {formatCurrency(account.creditLimit)}</span>
+                            <span className={cn(
+                                "font-medium",
+                                account.currentBalance < 0 ? "text-red-500" : "text-green-500"
+                            )}>
+                                {((account.creditLimit + account.currentBalance) / account.creditLimit * 100).toFixed(0)}% disp.
+                            </span>
+                        </div>
                     )}
                 </div>
-            </div>
 
-            {/* Saldo */}
-            <div className="mb-4">
-                <p className="text-sm text-muted-foreground mb-1">Saldo Atual</p>
-                <p className={`text-3xl font-bold ${isNegative ? 'text-red-600' : 'text-green-600'}`}>
-                    {formatCurrency(account.currentBalance)}
-                </p>
-                {account.creditLimit && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                        Limite: {formatCurrency(account.creditLimit)}
-                    </p>
+                {/* Account Details */}
+                {(account.bankName || account.agency || account.accountNumber) && (
+                    <div className="flex flex-col gap-1.5 p-3 rounded-lg bg-muted/40 text-xs border border-border/50">
+                        {account.bankName && (
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Banco</span>
+                                <span className="font-medium truncate max-w-[120px]">{account.bankName}</span>
+                            </div>
+                        )}
+                        {(account.agency || account.accountNumber) && (
+                            <div className="flex justify-between items-center group/copy cursor-pointer"
+                                onClick={() => copyToClipboard(`${account.agency} ${account.accountNumber}`, 'Dados bancários')}>
+                                <span className="text-muted-foreground">Ag/Conta</span>
+                                <div className="flex items-center gap-1.5">
+                                    <span className="font-medium font-mono">
+                                        {account.agency} / {account.accountNumber}
+                                    </span>
+                                    <Copy className="h-3 w-3 text-muted-foreground opacity-0 group-hover/copy:opacity-100 transition-opacity" />
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 )}
             </div>
 
-            {/* Dados Bancários */}
-            {(account.bankName || account.agency || account.accountNumber) && (
-                <div className="mb-4 p-3 rounded bg-muted/30 text-xs space-y-1">
-                    {account.bankName && <p><span className="font-medium">Banco:</span> {account.bankName}</p>}
-                    {account.agency && account.accountNumber && (
-                        <p><span className="font-medium">Ag/Conta:</span> {account.agency} / {account.accountNumber}</p>
-                    )}
-                </div>
-            )}
-
-            {/* Status e Ações */}
-            <div className="flex items-center justify-between pt-4 border-t">
-                <Badge variant={account.isActive ? 'default' : 'secondary'}>
-                    {account.isActive ? 'Ativa' : 'Inativa'}
-                </Badge>
-                <div className="flex gap-2">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => router.push(`/contas/${account.id}`)}
-                        title="Ver Dashboard"
-                    >
-                        <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onEdit(account)}
-                        title="Editar"
-                    >
-                        <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onToggleActive(account.id, account.isActive)}
-                        title={account.isActive ? 'Desativar' : 'Ativar'}
-                    >
-                        <Power className="h-4 w-4" />
-                    </Button>
-                </div>
-            </div>
+            {/* Footer Status */}
+            <div className={cn(
+                "h-1 w-full transition-colors",
+                account.isActive ? "bg-muted" : "bg-muted-foreground/20"
+            )} />
         </div>
     )
 }

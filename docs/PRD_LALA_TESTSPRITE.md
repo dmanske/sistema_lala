@@ -1,8 +1,8 @@
 # Product Requirements Document (PRD) - Lala System
 
-**Version:** 2.2
+**Version:** 2.3.1
 **Date:** 2026-02-12
-**Status:** In Development - Financial System Overhaul
+**Status:** In Development - Client Photo Upload Complete, Financial System In Progress, Checkout Payment Fix Applied
 
 ## 1. Product Overview
 Lala System is a production-ready SaaS management platform for beauty salons, designed to streamline operations including scheduling, client management, inventory control, and financial transactions. Built with Next.js 15, TypeScript, and Supabase backend.
@@ -30,15 +30,19 @@ Lala System is a production-ready SaaS management platform for beauty salons, de
 ## 3. User Stories & Acceptance Criteria
 
 ### 3.1. Client Management
-**User Story:** As a User, I want to register and manage clients with complete history tracking.
+**User Story:** As a User, I want to register and manage clients with complete history tracking and photo upload.
 - **Acceptance Criteria 1:** User can create/edit clients with Name, Birth Date, Phone, WhatsApp, City, Notes, and Photo.
 - **Acceptance Criteria 2:** System requires "Name" and "City" as mandatory fields.
 - **Acceptance Criteria 3:** Client profile displays 4 tabs: Overview (summary), History (appointments), Credit (balance movements), Products (purchase history).
 - **Acceptance Criteria 4:** Upon saving, client is created with "ACTIVE" status and zero credit balance.
-- **Acceptance Criteria 5:** Client photos are uploaded to Supabase Storage in tenant-isolated folders.
-- **Acceptance Criteria 6:** System displays visual debt indicators (red badge) when client has negative balance (Fiado).
-- **Acceptance Criteria 7:** Search and filter by status (ACTIVE, INACTIVE, ATTENTION).
-- **Acceptance Criteria 8:** The created client is ONLY visible to the current Tenant.
+- **Acceptance Criteria 5:** Client photos are uploaded to Supabase Storage in user-isolated folders with validation.
+- **Acceptance Criteria 6:** Photo upload validates file type (JPG, PNG, WEBP) and size (max 2MB) on both client and server.
+- **Acceptance Criteria 7:** Photo preview is shown immediately after selection with circular crop.
+- **Acceptance Criteria 8:** User can remove uploaded photo before saving.
+- **Acceptance Criteria 9:** Client avatar displays photo or fallback to initials if no photo exists.
+- **Acceptance Criteria 10:** System displays visual debt indicators (red badge) when client has negative balance (Fiado).
+- **Acceptance Criteria 11:** Search and filter by status (ACTIVE, INACTIVE, ATTENTION).
+- **Acceptance Criteria 12:** The created client is ONLY visible to the current Tenant.
 
 ### 3.2. Appointment Scheduling
 **User Story:** As a User, I want to schedule services with flexible calendar views and drag & drop support.
@@ -244,7 +248,12 @@ Lala System is a production-ready SaaS management platform for beauty salons, de
 - Search by name/phone
 - Filter by status (ACTIVE, INACTIVE, ATTENTION)
 - 4-tab profile: Overview, History, Credit, Products
-- Photo upload to Supabase Storage
+- Photo upload to Supabase Storage with validation
+- Real-time photo preview with circular crop
+- Photo removal capability
+- Secure API endpoint with authentication
+- Client-side and server-side validation (type, size)
+- Avatar display with photo or initials fallback
 - Credit balance tracking with debt indicators
 - Pagination (10 items per page)
 
@@ -399,6 +408,82 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 
 
 ## 11. Changelog
+
+### Version 2.3.1 (2026-02-12) - Checkout Payment Validation Fix ✅ COMPLETED
+
+**Critical Bug Fix:**
+- Fixed payment registration failure in checkout when bank account was not properly validated
+- Issue: RPC `pay_sale` required `bankAccountId` but repository accepted it as optional
+- Result: Payments returned 204 (success) but were not actually recorded in database
+- Solution: Made `bankAccountId` required in repository type signature
+- Added validation that throws clear error if any payment is missing bank account ID
+- Error message: "All payments must have a bank account ID. Missing for methods: [list]"
+
+**Technical Changes:**
+- Updated `SupabaseSaleRepository.pay()` method signature
+- Changed `bankAccountId?: string` to `bankAccountId: string` (required)
+- Added pre-flight validation before calling RPC
+- Improved error messaging for debugging
+
+**Files Modified:**
+- `src/infrastructure/repositories/supabase/SupabaseSaleRepository.ts`
+
+**Impact:**
+- All checkout payments now properly validated before submission
+- Clear error messages when bank account not selected
+- Prevents silent failures in payment processing
+- Ensures data integrity in financial transactions
+
+**Testing:**
+- Build passed successfully (0 errors)
+- Type checking validated
+- Ready for production deployment
+
+### Version 2.3 (2026-02-12) - Client Photo Upload System ✅ COMPLETED
+
+**Client Photo Management (NEW):**
+- Complete photo upload system for client profiles
+- PhotoUpload component with real-time preview and validation
+- Secure API endpoint with Supabase Auth integration
+- Client-side validation: file type (image/*) and size (2MB max)
+- Server-side validation: MIME type (JPEG, PNG, WEBP) and size enforcement
+- Supabase Storage bucket: `client-photos` with RLS policies
+- User-isolated folder structure: `{user_id}/{timestamp}.{ext}`
+- Photo removal capability before and after upload
+- Avatar display with photo or initials fallback
+- Integration in ClientForm and ClientDialog components
+- Next.js Image optimization support
+- Circular preview with professional styling
+
+**Technical Implementation:**
+- New component: `src/components/clients/PhotoUpload.tsx`
+- New API route: `src/app/api/upload/client-photo/route.ts`
+- New migration: `supabase/migrations/20260212170000_create_client_photos_bucket.sql`
+- Updated: `ClientForm.tsx` and `ClientDialog.tsx` with photo field
+- Documentation: `INSTRUCOES_FOTO_CLIENTE.md` with setup guide
+
+**Storage Configuration:**
+- Public bucket with 2MB file size limit
+- Allowed MIME types: image/jpeg, image/jpg, image/png, image/webp
+- RLS policies: authenticated users can upload/update/delete own photos, public read access
+- Automatic unique filename generation with timestamp
+- No automatic cleanup (consider for future enhancement)
+
+**User Experience:**
+- Click to select photo from device
+- Immediate circular preview after selection
+- Loading state during upload
+- Error handling with toast notifications
+- Remove button to clear photo
+- Placeholder icon when no photo selected
+- Seamless integration in create/edit flows
+
+**Security:**
+- Authentication required for upload
+- User can only manage photos in their own folder
+- Server-side validation prevents malicious uploads
+- Public URLs but not listable (security by obscurity)
+- Tenant isolation via user_id in folder structure
 
 ### Version 2.2 (2026-02-12) - Financial System Overhaul 🚧 IN DEVELOPMENT
 
