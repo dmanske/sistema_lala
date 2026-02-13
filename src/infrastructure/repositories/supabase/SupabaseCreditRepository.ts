@@ -52,24 +52,38 @@ export class SupabaseCreditRepository implements CreditRepository {
     }
 
     async getByClientId(clientId: string): Promise<CreditMovement[]> {
+        // Buscar movimentos de crédito com informações da conta bancária
         const { data, error } = await this.supabase
             .from('credit_movements')
-            .select(`
-                *,
-                cash_movements!inner(bank_account_id, bank_accounts(name))
-            `)
+            .select('*')
             .eq('client_id', clientId)
             .order('created_at', { ascending: false });
 
         if (error) throw new Error(`Failed to fetch credit movements: ${error.message}`);
-        return (data || []).map(this.mapFromDb);
+
+        // Para cada movimento, buscar a conta bancária associada
+        const movementsWithAccounts = await Promise.all(
+            (data || []).map(async (row) => {
+                // Buscar cash_movement relacionado para pegar o bank_account_id
+                const { data: cashMovement } = await this.supabase
+                    .from('cash_movements')
+                    .select('bank_account_id, bank_accounts(name)')
+                    .eq('source_id', row.id)
+                    .eq('source_type', 'CREDIT')
+                    .maybeSingle();
+
+                return {
+                    ...row,
+                    bankAccountName: cashMovement?.bank_accounts?.name
+                };
+            })
+        );
+
+        return movementsWithAccounts.map(this.mapFromDb);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private mapFromDb(row: any): CreditMovement {
-        // Extrair nome da conta bancária se existir
-        const bankAccountName = row.cash_movements?.[0]?.bank_accounts?.name;
-        
         return {
             id: row.id,
             clientId: row.client_id,
@@ -77,7 +91,7 @@ export class SupabaseCreditRepository implements CreditRepository {
             amount: Number(row.amount),
             origin: row.origin,
             note: row.note || undefined,
-            bankAccountName: bankAccountName || undefined,
+            bankAccountName: row.bankAccountName || undefined,
             createdAt: row.created_at,
         };
     }
