@@ -18,6 +18,7 @@ interface CashMovementDetailsDialogProps {
 
 interface SaleDetails {
     id: string
+    appointmentId?: string
     clientId?: string
     clientName?: string
     items: Array<{ name: string; quantity: number; price: number }>
@@ -95,6 +96,7 @@ export function CashMovementDetailsDialog({ open, onOpenChange, movement }: Cash
                         .from('sales')
                         .select(`
                             id,
+                            appointment_id,
                             client_id,
                             notes,
                             clients(name),
@@ -111,6 +113,7 @@ export function CashMovementDetailsDialog({ open, onOpenChange, movement }: Cash
                     if (sale) {
                         setSaleDetails({
                             id: sale.id,
+                            appointmentId: sale.appointment_id,
                             clientId: sale.client_id,
                             clientName: (sale.clients as any)?.name,
                             items: (sale.sale_items || []).map((item: any) => ({
@@ -165,11 +168,19 @@ export function CashMovementDetailsDialog({ open, onOpenChange, movement }: Cash
     if (!movement) return null
 
     const isIncome = movement.type === 'IN'
-    const linkUrl = movement.sourceType === 'SALE' && movement.sourceId
-        ? `/appointments/${movement.sourceId}/checkout`
-        : movement.sourceType === 'PURCHASE' && movement.sourceId
-        ? `/purchases/${movement.sourceId}`
-        : null
+    
+    // Para vendas, usar o appointment_id da venda
+    const getLinkUrl = () => {
+        if (movement.sourceType === 'SALE' && saleDetails?.appointmentId) {
+            return `/appointments/${saleDetails.appointmentId}/checkout`
+        }
+        if (movement.sourceType === 'PURCHASE' && movement.sourceId) {
+            return `/purchases/${movement.sourceId}`
+        }
+        return null
+    }
+    
+    const linkUrl = getLinkUrl()
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

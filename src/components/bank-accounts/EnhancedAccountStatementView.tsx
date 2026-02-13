@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { AccountStatement, MovementWithBalance } from '@/core/domain/BankAccount'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,11 +10,16 @@ import { ArrowDownCircle, ArrowUpCircle, Download, RefreshCw, TrendingUp, Trendi
 import { format, isSameDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
 
 interface EnhancedAccountStatementViewProps {
     statement: AccountStatement
     onRefresh?: () => void
     loading?: boolean
+}
+
+interface SaleAppointmentMap {
+    [saleId: string]: string // Maps sale ID to appointment ID
 }
 
 export function EnhancedAccountStatementView({ statement, onRefresh, loading }: EnhancedAccountStatementViewProps) {
@@ -24,6 +29,36 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
         source: 'all',
         searchText: ''
     })
+    const [saleAppointments, setSaleAppointments] = useState<SaleAppointmentMap>({})
+
+    // Fetch appointment IDs for all sales
+    useEffect(() => {
+        const fetchSaleAppointments = async () => {
+            const saleIds = statement.movements
+                .filter(m => m.sourceType === 'SALE' && m.sourceId)
+                .map(m => m.sourceId!)
+            
+            if (saleIds.length === 0) return
+
+            const supabase = createClient()
+            const { data } = await supabase
+                .from('sales')
+                .select('id, appointment_id')
+                .in('id', saleIds)
+
+            if (data) {
+                const map: SaleAppointmentMap = {}
+                data.forEach(sale => {
+                    if (sale.appointment_id) {
+                        map[sale.id] = sale.appointment_id
+                    }
+                })
+                setSaleAppointments(map)
+            }
+        }
+
+        fetchSaleAppointments()
+    }, [statement.movements])
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', {
@@ -156,7 +191,8 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
         
         switch (movement.sourceType) {
             case 'SALE':
-                return `/appointments/${movement.sourceId}/checkout`
+                const appointmentId = saleAppointments[movement.sourceId]
+                return appointmentId ? `/appointments/${appointmentId}/checkout` : null
             case 'PURCHASE':
                 return `/purchases/${movement.sourceId}`
             default:
