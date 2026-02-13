@@ -43,3 +43,6 @@ next-env.d.ts
 
 # temp files
 /temp
+
+# migration docs (local only)
+/novopc

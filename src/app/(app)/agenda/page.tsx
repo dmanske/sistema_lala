@@ -73,56 +73,31 @@ type CardStyle = {
 };
 
 // Cores dos cards modernizadas (Glassmorphism + Gradients)
+// Cada STATUS tem uma COR FIXA para consistência visual
 const getCardStyle = (status: string, index: number): CardStyle => {
-    // Cores base para diferentes tipos de agendamento/status
-    const styles: CardStyle[] = [
-        {
+    // PENDING = Amarelo/Amber (Aguardando confirmação)
+    if (status === "PENDING") {
+        return {
+            bg: "bg-gradient-to-br from-amber-50 to-amber-100/80 hover:from-amber-100 hover:to-amber-200",
+            border: "border-amber-200/50",
+            text: "text-amber-700",
+            accent: "bg-amber-500",
+            shadow: "hover:shadow-amber-500/10"
+        };
+    }
+
+    // CONFIRMED = Azul (Confirmado)
+    if (status === "CONFIRMED") {
+        return {
             bg: "bg-gradient-to-br from-blue-50 to-blue-100/80 hover:from-blue-100 hover:to-blue-200",
             border: "border-blue-200/50",
             text: "text-blue-700",
             accent: "bg-blue-500",
             shadow: "hover:shadow-blue-500/10"
-        },
-        {
-            bg: "bg-gradient-to-br from-purple-50 to-purple-100/80 hover:from-purple-100 hover:to-purple-200",
-            border: "border-purple-200/50",
-            text: "text-purple-700",
-            accent: "bg-purple-500",
-            shadow: "hover:shadow-purple-500/10"
-        },
-        {
-            bg: "bg-gradient-to-br from-pink-50 to-pink-100/80 hover:from-pink-100 hover:to-pink-200",
-            border: "border-pink-200/50",
-            text: "text-pink-700",
-            accent: "bg-pink-500",
-            shadow: "hover:shadow-pink-500/10"
-        },
-        {
-            bg: "bg-gradient-to-br from-orange-50 to-orange-100/80 hover:from-orange-100 hover:to-orange-200",
-            border: "border-orange-200/50",
-            text: "text-orange-700",
-            accent: "bg-orange-500",
-            shadow: "hover:shadow-orange-500/10"
-        },
-        {
-            bg: "bg-gradient-to-br from-teal-50 to-teal-100/80 hover:from-teal-100 hover:to-teal-200",
-            border: "border-teal-200/50",
-            text: "text-teal-700",
-            accent: "bg-teal-500",
-            shadow: "hover:shadow-teal-500/10"
-        },
-    ];
-
-    if (status === "CANCELED") {
-        return {
-            bg: "bg-slate-50 hover:bg-slate-100",
-            border: "border-slate-200",
-            text: "text-slate-500 decoration-slate-400/50", // line-through handled elsewhere if needed
-            accent: "bg-slate-400",
-            shadow: "hover:shadow-slate-500/5",
-            opacity: "opacity-70"
         };
     }
+
+    // DONE = Verde/Emerald (Finalizado)
     if (status === "DONE") {
         return {
             bg: "bg-gradient-to-br from-emerald-50 to-emerald-100/80 hover:from-emerald-100 hover:to-emerald-200",
@@ -132,6 +107,20 @@ const getCardStyle = (status: string, index: number): CardStyle => {
             shadow: "hover:shadow-emerald-500/10"
         };
     }
+
+    // CANCELED = Cinza (Cancelado/Apagar)
+    if (status === "CANCELED") {
+        return {
+            bg: "bg-slate-50 hover:bg-slate-100",
+            border: "border-slate-200",
+            text: "text-slate-500 decoration-slate-400/50",
+            accent: "bg-slate-400",
+            shadow: "hover:shadow-slate-500/5",
+            opacity: "opacity-70"
+        };
+    }
+
+    // NO_SHOW = Vermelho/Rose (Não compareceu)
     if (status === "NO_SHOW") {
         return {
             bg: "bg-rose-50 hover:bg-rose-100",
@@ -142,6 +131,7 @@ const getCardStyle = (status: string, index: number): CardStyle => {
         };
     }
 
+    // BLOCKED = Cinza com padrão listrado (Bloqueado)
     if (status === "BLOCKED") {
         return {
             bg: "bg-slate-100",
@@ -156,7 +146,14 @@ const getCardStyle = (status: string, index: number): CardStyle => {
         };
     }
 
-    return styles[index % styles.length];
+    // Fallback: Se houver algum status desconhecido, usa azul
+    return {
+        bg: "bg-gradient-to-br from-blue-50 to-blue-100/80 hover:from-blue-100 hover:to-blue-200",
+        border: "border-blue-200/50",
+        text: "text-blue-700",
+        accent: "bg-blue-500",
+        shadow: "hover:shadow-blue-500/10"
+    };
 };
 
 export default function AgendaPage() {

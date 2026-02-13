@@ -1,8 +1,8 @@
 # Product Requirements Document (PRD) - Lala System
 
-**Version:** 2.4.0
+**Version:** 2.4.1
 **Date:** 2026-02-13
-**Status:** In Development - Client Analytics Complete, Account Statement Improvements Complete, Client Photo Upload Complete, Financial System In Progress
+**Status:** In Development - Agenda Color System Fixed, Client Analytics Complete, Account Statement Improvements Complete, Client Photo Upload Complete, Financial System In Progress
 
 ## 1. Product Overview
 Lala System is a production-ready SaaS management platform for beauty salons, designed to streamline operations including scheduling, client management, inventory control, and financial transactions. Built with Next.js 15, TypeScript, and Supabase backend.
@@ -77,6 +77,16 @@ Lala System is a production-ready SaaS management platform for beauty salons, de
 - **Acceptance Criteria 9:** The ID generated for the appointment must be a valid UUID.
 - **Acceptance Criteria 10:** User can create new client inline during appointment creation via modal dialog.
 - **Acceptance Criteria 11:** Newly created client is automatically selected in appointment form.
+- **Acceptance Criteria 12:** Each appointment status has a fixed, consistent color:
+    - 🟡 PENDING = Amarelo/Amber (#f59e0b) - Aguardando confirmação
+    - 🔵 CONFIRMED = Azul (#3b82f6) - Confirmado pelo cliente
+    - 🟢 DONE = Verde/Emerald (#10b981) - Atendimento finalizado
+    - ⚪ CANCELED = Cinza (#94a3b8) - Cancelado/Apagar
+    - 🔴 NO_SHOW = Vermelho/Rose (#f43f5e) - Cliente não compareceu
+    - ⬜ BLOCKED = Cinza listrado (#94a3b8) - Horário bloqueado
+- **Acceptance Criteria 13:** Colors remain consistent regardless of appointment position or order.
+- **Acceptance Criteria 14:** User can delete appointments with confirmation dialog before deletion.
+- **Acceptance Criteria 15:** System shows success/error toasts after delete operations.
 
 ### 3.3. Sales & Checkout
 **User Story:** As a User, I want to finalize appointments with flexible payment options, visual progress tracking, and automatic inventory updates.
@@ -1206,3 +1216,93 @@ Added comprehensive birthday tracking and celebration module to improve client r
 - Birthday statistics and analytics
 - Gift/discount tracking for birthday promotions
 
+
+
+---
+
+## Version History & Changelog
+
+### Version 2.4.1 (2026-02-13)
+**Agenda - Fixed Color System**
+
+**Changes:**
+- Fixed appointment card colors to be consistent and status-based
+- Removed random color assignment based on card index
+- Implemented fixed color palette for each status
+- Added delete confirmation dialog for appointments
+- Improved visual consistency across all calendar views
+
+**Technical Details:**
+- Refactored `getCardStyle()` function in `src/app/(app)/agenda/page.tsx`
+- Removed array-based color selection (`styles[index % 5]`)
+- Implemented status-based color mapping
+- Each status now returns a specific, consistent color scheme
+
+**Color Palette:**
+| Status | Color | Hex | Usage |
+|--------|-------|-----|-------|
+| PENDING | 🟡 Amarelo/Amber | #f59e0b | Awaiting confirmation |
+| CONFIRMED | 🔵 Azul | #3b82f6 | Confirmed by client |
+| DONE | 🟢 Verde/Emerald | #10b981 | Service completed |
+| CANCELED | ⚪ Cinza | #94a3b8 | Canceled/Delete |
+| NO_SHOW | 🔴 Vermelho/Rose | #f43f5e | Client didn't show |
+| BLOCKED | ⬜ Cinza Listrado | #94a3b8 | Time blocked |
+
+**Benefits:**
+- Instant visual status identification
+- Consistent and predictable interface
+- More professional appearance
+- Better user experience
+- Improved accessibility with proper contrast
+
+**Files Modified:**
+- `src/app/(app)/agenda/page.tsx` (getCardStyle function)
+
+**Documentation:**
+- Created `AGENDA_ANALISE_E_CORRECAO.md` (technical analysis)
+- Created `AGENDA_CORES_FIXAS.md` (visual color guide)
+- Updated `INVENTARIO_COMPLETO.md` (V2.8.1)
+- Updated `docs/PRD_LALA_TESTSPRITE.md` (V2.4.1)
+
+**Testing:**
+- ✅ Build passed without errors
+- ✅ TypeScript compilation successful
+- ✅ No diagnostics errors
+- ✅ All routes generated correctly
+
+---
+
+### Version 2.4.0 (2026-02-13)
+**Birthday Module Complete**
+
+See previous sections for complete birthday module implementation details.
+
+---
+
+### Version 2.3.3 (2026-02-12)
+**Dashboard Phase 1 Complete**
+
+See previous sections for complete dashboard implementation details.
+
+---
+
+### Version 2.3.2 (2026-02-12)
+**Account Statement Improvements**
+
+See previous sections for complete account statement improvements.
+
+---
+
+### Version 2.3.1 (2026-02-12)
+**Client Photo Upload**
+
+See previous sections for complete photo upload implementation.
+
+---
+
+### Version 2.3.0 (2026-02-12)
+**Client Analytics & Statistics**
+
+See previous sections for complete client analytics implementation.
+
+---
