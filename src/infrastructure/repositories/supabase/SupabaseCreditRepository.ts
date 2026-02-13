@@ -67,14 +67,21 @@ export class SupabaseCreditRepository implements CreditRepository {
                 // Buscar cash_movement relacionado para pegar o bank_account_id
                 const { data: cashMovement } = await this.supabase
                     .from('cash_movements')
-                    .select('bank_account_id, bank_accounts(name)')
+                    .select('bank_account_id, bank_accounts!inner(name)')
                     .eq('source_id', row.id)
                     .eq('source_type', 'CREDIT')
                     .maybeSingle();
 
+                // Extrair o nome da conta bancária
+                const bankAccountName = cashMovement?.bank_accounts 
+                    ? (Array.isArray(cashMovement.bank_accounts) 
+                        ? cashMovement.bank_accounts[0]?.name 
+                        : (cashMovement.bank_accounts as any)?.name)
+                    : undefined;
+
                 return {
                     ...row,
-                    bankAccountName: cashMovement?.bank_accounts?.name
+                    bankAccountName
                 };
             })
         );
