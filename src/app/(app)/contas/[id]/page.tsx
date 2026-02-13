@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { AccountStatementView } from '@/components/bank-accounts/AccountStatementView'
+import { EnhancedAccountStatementView } from '@/components/bank-accounts/EnhancedAccountStatementView'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { AccountStatement } from '@/core/domain/BankAccount'
@@ -15,20 +15,19 @@ export default function AccountStatementPage() {
     const router = useRouter()
     const [statement, setStatement] = useState<AccountStatement | null>(null)
     const [loading, setLoading] = useState(true)
-    const [filters, setFilters] = useState<{ startDate?: Date; endDate?: Date }>({})
 
     useEffect(() => {
         if (params.id) {
-            loadStatement(params.id as string, filters)
+            loadStatement(params.id as string)
         }
     }, [params.id])
 
-    async function loadStatement(accountId: string, dateFilters: { startDate?: Date; endDate?: Date }) {
+    async function loadStatement(accountId: string) {
         try {
             setLoading(true)
             const repo = new SupabaseBankAccountRepository()
             const useCase = new GetAccountStatement(repo)
-            const data = await useCase.execute(accountId, dateFilters)
+            const data = await useCase.execute(accountId)
             setStatement(data)
         } catch (error) {
             toast.error('Não foi possível carregar o extrato')
@@ -37,16 +36,26 @@ export default function AccountStatementPage() {
         }
     }
 
-    function handleFilterChange(startDate?: Date, endDate?: Date) {
-        const newFilters = { startDate, endDate }
-        setFilters(newFilters)
+    function handleRefresh() {
         if (params.id) {
-            loadStatement(params.id as string, newFilters)
+            loadStatement(params.id as string)
         }
     }
 
     if (loading) {
-        return <div className="p-8">Carregando extrato...</div>
+        return (
+            <div className="p-8">
+                <div className="animate-pulse space-y-4">
+                    <div className="h-32 bg-muted rounded-lg"></div>
+                    <div className="grid grid-cols-4 gap-4">
+                        <div className="h-24 bg-muted rounded-lg"></div>
+                        <div className="h-24 bg-muted rounded-lg"></div>
+                        <div className="h-24 bg-muted rounded-lg"></div>
+                        <div className="h-24 bg-muted rounded-lg"></div>
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     if (!statement) {
@@ -54,7 +63,7 @@ export default function AccountStatementPage() {
     }
 
     return (
-        <div className="p-8 space-y-6">
+        <div className="p-8 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex items-center gap-4">
                 <Button variant="ghost" size="sm" onClick={() => router.push('/contas')}>
                     <ArrowLeft className="h-4 w-4 mr-2" />
@@ -63,14 +72,15 @@ export default function AccountStatementPage() {
                 <div>
                     <h1 className="text-3xl font-bold">Extrato da Conta</h1>
                     <p className="text-muted-foreground">
-                        Visualize todas as movimentações desta conta
+                        Visualize e filtre todas as movimentações desta conta
                     </p>
                 </div>
             </div>
 
-            <AccountStatementView
+            <EnhancedAccountStatementView
                 statement={statement}
-                onFilterChange={handleFilterChange}
+                onRefresh={handleRefresh}
+                loading={loading}
             />
         </div>
     )

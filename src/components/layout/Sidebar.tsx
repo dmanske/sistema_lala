@@ -10,12 +10,7 @@ import {
     UserCircle,
     Scissors,
     Package,
-    Banknote,
     ShoppingBag,
-    Percent,
-    BarChart3,
-    Settings,
-    Database,
     Menu,
     LogOut,
     Sparkles,
@@ -80,15 +75,6 @@ export function Sidebar({ className }: SidebarProps) {
                 { name: "Caixa", icon: Wallet, href: "/cash", active: true },
                 { name: "Contas", icon: Building2, href: "/contas", active: true },
                 { name: "Compras", icon: ShoppingBag, href: "/purchases", active: true },
-                { name: "Comissões", icon: Percent, href: "/commissions", active: false },
-            ],
-        },
-        {
-            label: "Sistema",
-            items: [
-                { name: "Relatórios", icon: BarChart3, href: "/reports", active: false },
-                { name: "Configurações", icon: Settings, href: "/settings", active: false },
-                { name: "Cadastros Gerais", icon: Database, href: "/general", active: false },
             ],
         },
     ];
@@ -148,23 +134,27 @@ export function Sidebar({ className }: SidebarProps) {
                 </div>
             </div>
 
-            <div className="mt-auto p-4 m-4 rounded-2xl bg-white/40 backdrop-blur-sm border border-white/40 shadow-sm flex items-center gap-3">
-                <Avatar className="h-9 w-9 border border-white/50">
-                    <AvatarFallback className="bg-gradient-to-br from-rose-400 to-pink-500 text-white text-xs font-semibold">{userInitials}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 overflow-hidden">
-                    <p className="text-sm font-medium leading-none truncate text-foreground/80">{userName}</p>
-                    <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
+            <div className="mt-auto p-4 space-y-3">
+                <div className="mx-4 p-3 rounded-2xl bg-white/40 backdrop-blur-sm border border-white/40 shadow-sm flex items-center gap-3">
+                    <Avatar className="h-9 w-9 border border-white/50">
+                        <AvatarFallback className="bg-gradient-to-br from-rose-400 to-pink-500 text-white text-xs font-semibold">{userInitials}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 overflow-hidden">
+                        <p className="text-sm font-medium leading-none truncate text-foreground/80">{userName}</p>
+                        <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
+                    </div>
                 </div>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={() => signOut()}
-                    title="Sair"
-                >
-                    <LogOut className="h-4 w-4" />
-                </Button>
+                
+                <div className="px-4">
+                    <Button
+                        variant="outline"
+                        className="w-full justify-start gap-2 h-10 rounded-xl border-destructive/20 text-destructive hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all"
+                        onClick={() => signOut()}
+                    >
+                        <LogOut className="h-4 w-4" />
+                        Sair
+                    </Button>
+                </div>
             </div>
         </div>
     );

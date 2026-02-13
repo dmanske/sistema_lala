@@ -17,6 +17,7 @@ import {
 import { useProducts } from "@/hooks/useProducts";
 import { ProductDialog } from "@/components/products/ProductDialog";
 import { DeleteProductDialog } from "@/components/products/DeleteProductDialog";
+import { ProductCard } from "@/components/products/ProductCard";
 import { Product } from "@/core/domain/Product";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -130,60 +131,14 @@ export default function ProductsPage() {
                 <>
                     {viewMode === "grid" ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
-                            {products.map((product) => {
-                                const isLowStock = product.currentStock <= product.minStock;
-                                return (
-                                    <Link href={`/products/${product.id}`} key={product.id}>
-                                        <Card className={cn(
-                                            "hover:shadow-xl hover:shadow-purple-500/10 transition-all duration-300 group relative overflow-hidden cursor-pointer border-white/20 bg-white/60 backdrop-blur-lg rounded-2xl",
-                                            isLowStock && "border-red-200 bg-red-50/10"
-                                        )}>
-                                            <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10" onClick={(e) => e.stopPropagation()}>
-                                                <Button size="icon" variant="secondary" className="h-8 w-8 rounded-lg bg-white/80 hover:bg-white hover:text-purple-600 shadow-sm" onClick={(e) => { e.preventDefault(); handleEdit(product); }}>
-                                                    <Pencil className="h-3.5 w-3.5" />
-                                                </Button>
-                                                <Button size="icon" variant="secondary" className="h-8 w-8 rounded-lg bg-white/80 hover:bg-red-50 hover:text-red-600 shadow-sm" onClick={(e) => { e.preventDefault(); handleDelete(product.id, product.name); }}>
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </Button>
-                                            </div>
-
-                                            <CardHeader className="pb-2 relative">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div className="p-2 bg-purple-100/50 rounded-xl text-purple-600">
-                                                        <ArrowRightLeft className="h-5 w-5" />
-                                                    </div>
-                                                    {isLowStock && (
-                                                        <Badge variant="destructive" className="animate-pulse shadow-sm rounded-lg px-2 py-0.5 text-[10px] uppercase tracking-wider">
-                                                            Crítico
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                                <CardTitle className="text-lg font-bold font-heading truncate pr-2 text-foreground/90">{product.name}</CardTitle>
-                                                <CardDescription className="flex items-center gap-2 text-xs font-medium">
-                                                    <span className="bg-slate-100 px-2 py-0.5 rounded-md text-slate-500">Min: {product.minStock}</span>
-                                                </CardDescription>
-                                            </CardHeader>
-
-                                            <CardContent>
-                                                <div className="flex justify-between items-end mt-4 pt-4 border-t border-purple-100/50">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Preço</span>
-                                                        <span className="text-lg font-bold text-slate-800">
-                                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Estoque</span>
-                                                        <span className={cn("text-2xl font-bold leading-none", isLowStock ? "text-red-500" : "text-emerald-500")}>
-                                                            {product.currentStock}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    </Link>
-                                )
-                            })}
+                            {products.map((product) => (
+                                <ProductCard
+                                    key={product.id}
+                                    product={product}
+                                    onEdit={handleEdit}
+                                    onDelete={handleDelete}
+                                />
+                            ))}
                         </div>
                     ) : (
                         <div className="bg-white/40 backdrop-blur-xl border border-white/20 rounded-2xl overflow-hidden shadow-sm">

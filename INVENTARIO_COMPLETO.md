@@ -1,6 +1,6 @@
 # 📋 INVENTÁRIO COMPLETO DO SISTEMA LALA
 **Data:** 12/02/2026
-**Status:** CONSOLIDADO V2.5.1 (12/02/2026) - UPLOAD DE FOTO DO CLIENTE IMPLEMENTADO + SISTEMA FINANCEIRO EM DESENVOLVIMENTO + CORREÇÃO CRÍTICA DE CHECKOUT
+**Status:** CONSOLIDADO V2.5.2 (12/02/2026) - EXTRATO DE CONTA MELHORADO + UPLOAD DE FOTO DO CLIENTE + SISTEMA FINANCEIRO EM DESENVOLVIMENTO + CORREÇÃO CRÍTICA DE CHECKOUT
 
 ---
 
@@ -63,14 +63,37 @@ Sistema de gestão para salão de beleza desenvolvido em **Next.js 15** com **Ty
 - **Serviços** (`/services`)
 - **Produtos** (`/products`)
 
-### 4. FINANCEIRO
-- **Compras** (Grupo Unificado)
-  - Gestão de Compras (`/purchases`)
-  - Base de Fornecedores (`/suppliers`)
+---
 
-### 5. SISTEMA
-- Relatórios
-- Configurações
+## 📦 MÓDULOS REMOVIDOS DO ESCOPO
+
+Os seguintes módulos foram removidos da estrutura do sistema:
+
+### ❌ COMISSÕES
+**Status:** Removido do escopo  
+**Motivo:** Funcionalidade simplificada. O sistema mantém apenas o campo de comissão percentual no cadastro de Profissionais e Serviços, sem módulo dedicado para gestão e pagamento de comissões.
+
+**O que foi planejado mas não será implementado:**
+- Relatórios de comissões por profissional
+- Histórico de pagamentos de comissões
+- Cálculo automático de comissões a pagar
+- Gestão de períodos de comissionamento
+
+**Alternativa:** Comissões são registradas como percentual nos cadastros de Profissionais e Serviços, e podem ser calculadas manualmente através dos relatórios de vendas.
+
+### ❌ SISTEMA (Configurações Avançadas)
+**Status:** Removido do escopo  
+**Motivo:** Configurações essenciais foram integradas nos módulos existentes. Configurações avançadas de sistema foram adiadas para versões futuras.
+
+**O que foi planejado mas não será implementado:**
+- Relatórios avançados customizáveis
+- Configurações gerais do sistema
+- Cadastros gerais (categorias, tags, etc)
+- Gestão de permissões e roles avançadas
+
+**Alternativa:** Configurações básicas estão disponíveis nos próprios módulos (ex: status de clientes, tipos de conta bancária, etc).
+
+---
 
 ## 📦 MÓDULOS EXISTENTES
 
@@ -1009,9 +1032,155 @@ Todas as 27 referências diretas a `new LocalStorage*Repository()` foram substit
 
 ---
 
-**Versão Final:** V2.5.1
+**Versão Final:** V2.5.2
 **Data:** 12/02/2026
-**Status:** OFICIAL E AUDITADO — UPLOAD DE FOTO DO CLIENTE COMPLETO + INLINE CLIENT CREATION + CHECKOUT IMPROVEMENTS + AGENDA INDICATORS + PAYMENT DIALOG ENHANCEMENTS + CORREÇÃO CRÍTICA DE VALIDAÇÃO DE PAGAMENTO
+**Status:** OFICIAL E AUDITADO — EXTRATO DE CONTA MELHORADO (FASE 1 COMPLETA) + UPLOAD DE FOTO DO CLIENTE + INLINE CLIENT CREATION + CHECKOUT IMPROVEMENTS + AGENDA INDICATORS + PAYMENT DIALOG ENHANCEMENTS + CORREÇÃO CRÍTICA DE VALIDAÇÃO DE PAGAMENTO
+
+---
+
+## 🆕 ATUALIZAÇÕES RECENTES (V2.5.2 - 12/02/2026)
+
+### ✅ EXTRATO DE CONTA MELHORADO - FASE 1 COMPLETA
+
+**Status:** Implementado e testado  
+**Data:** 12/02/2026  
+**Prioridade:** ALTA  
+**Impacto:** Experiência de visualização financeira significativamente melhorada
+
+#### Funcionalidades Implementadas:
+
+**1. Sistema de Filtros Completo (6 tipos):**
+- ✅ Filtros rápidos de período (6 presets)
+  - Hoje, Ontem, 7 Dias, 30 Dias, Este Mês, Mês Passado
+  - Cálculo automático de datas com date-fns
+  - Indicador visual do período ativo
+- ✅ Filtro por tipo (Todas/Entradas/Saídas)
+  - Botões visuais com cores semânticas
+  - Verde para entradas, vermelho para saídas
+- ✅ Filtro por método de pagamento
+  - Dropdown: Todos, PIX, Cartão, Dinheiro, Transferência, Carteira
+  - Labels em português
+- ✅ Filtro por origem da transação
+  - Dropdown: Todas, Vendas, Compras, Estornos, Manual, Crédito
+  - Filtra por sourceType
+- ✅ Busca por texto
+  - Busca em descrição, cliente, fornecedor
+  - Debounce de 300ms
+  - Case-insensitive
+  - Botão X para limpar
+- ✅ Combinação de filtros
+  - Todos funcionam juntos (AND logic)
+  - Contador de resultados
+  - Botão "Limpar" para resetar todos
+
+**2. Agrupamento por Data:**
+- ✅ Movimentações agrupadas por dia
+- ✅ Ordenação: mais recente primeiro
+- ✅ Header com data formatada e dia da semana
+- ✅ Total do dia em badge (verde/vermelho)
+- ✅ Cards separados por dia
+- ✅ Movimentações ordenadas por horário dentro do grupo
+
+**3. Estatísticas Estendidas (8 cards):**
+- ✅ Saldo Inicial
+- ✅ Total Entradas (filtrado)
+- ✅ Total Saídas (filtrado)
+- ✅ Saldo Atual
+- ✅ Maior Entrada
+- ✅ Maior Saída
+- ✅ Ticket Médio
+- ✅ Contagem de Transações
+- ✅ Todas atualizam em tempo real com filtros
+
+**4. Ícones Visuais:**
+- ✅ 🛒 Venda
+- ✅ 📦 Compra
+- ✅ ↩️ Estorno
+- ✅ ✏️ Manual
+- ✅ 💳 Crédito
+- ✅ Ícones consistentes em toda a aplicação
+
+**5. Links para Transações:**
+- ✅ Vendas: link para checkout
+- ✅ Compras: link para detalhes da compra
+- ✅ Texto "Ver detalhes →" clicável
+- ✅ Abre em nova aba mantendo contexto
+
+**6. Estados Especiais:**
+- ✅ Loading skeletons
+- ✅ Empty state com mensagem amigável
+- ✅ Diferenciação: sem dados vs filtros sem resultado
+- ✅ Sugestões de ação
+- ✅ Botão de refresh com loading animado
+
+#### Componentes Criados:
+1. **EnhancedAccountStatementView.tsx**
+   - Componente principal do extrato
+   - Gerencia estado de filtros
+   - Calcula estatísticas
+   - Agrupa por data
+   - 450+ linhas de código
+
+2. **StatementFilters.tsx**
+   - Barra de filtros completa
+   - 6 tipos de filtro integrados
+   - Contador de resultados
+   - Botão limpar
+   - 200+ linhas de código
+
+3. **QuickPeriodFilters.tsx**
+   - 6 botões de período
+   - Cálculo de datas
+   - Indicador visual ativo
+   - 80+ linhas de código
+
+#### Domain Models Atualizados:
+- `MovementWithBalance`: movimento enriquecido com ícone e nomes
+- `ExtendedStats`: estatísticas avançadas
+- `FilterValues`: estado dos filtros
+- Exports: `PaymentMethod`, `SourceType`
+
+#### Repository Enhancements:
+- `getStatement()` retorna `MovementWithBalance[]`
+- Helper `getMovementIcon()` para mapear tipos
+- Movimentações enriquecidas com cliente/fornecedor
+
+#### Page Integration:
+- `/contas/[id]/page.tsx` atualizada
+- Usa `EnhancedAccountStatementView`
+- Mantém navegação e loading
+- Suporte a refresh
+
+#### Build e Testes:
+- ✅ Build passou sem erros (0 errors)
+- ✅ TypeScript compilation successful
+- ✅ Todos os componentes tipados
+- ✅ Filtros funcionando corretamente
+- ✅ Agrupamento operacional
+- ✅ Estatísticas calculando corretamente
+- ✅ Links funcionando
+
+#### Documentação:
+- ✅ requirements.md: 17 user stories
+- ✅ design.md: arquitetura completa
+- ✅ tasks.md: 68 tasks em 4 fases
+- ✅ Fase 1: 100% COMPLETA
+
+#### Próximas Fases (Opcional):
+- **Fase 2 (Important):** Gráfico de evolução, paginação, ordenação
+- **Fase 3 (Desirable):** Exportação PDF/Excel, toggle de visualização
+- **Fase 4 (Polish):** Acessibilidade, testes, otimizações
+
+#### Impacto:
+- **Antes:** Extrato simples com lista básica de movimentações
+- **Depois:**
+  - 6 tipos de filtros combinados
+  - Agrupamento visual por data
+  - 8 cards de estatísticas
+  - Ícones visuais para identificação rápida
+  - Links para transações originais
+  - Estados de loading e empty bem definidos
+  - UX profissional e intuitiva
 
 ---
 
@@ -1536,6 +1705,255 @@ CLIENTES  FORNECEDORES  CLIENTES  DESPESAS
 ---
 
 
+
+## Atualização 2026-02-12 - Melhorias no Extrato de Conta (Account Statement) ✅ COMPLETO
+
+### Visão Geral
+Implementação completa da Fase 1 das melhorias do extrato de conta bancária, fornecendo uma experiência rica de visualização e filtragem de movimentações financeiras.
+
+### Componentes Criados
+1. **src/components/bank-accounts/EnhancedAccountStatementView.tsx**
+   - Componente principal do extrato melhorado
+   - Integra todos os filtros e visualizações
+   - Gerencia estado de filtros e dados filtrados
+   - Calcula estatísticas estendidas em tempo real
+   - Agrupa movimentações por data
+   - Exibe resumos financeiros completos
+
+2. **src/components/bank-accounts/StatementFilters.tsx**
+   - Barra de filtros completa com 6 tipos de filtro
+   - Integração com QuickPeriodFilters
+   - Filtros de tipo (Todas/Entradas/Saídas) com botões visuais
+   - Dropdown de método de pagamento
+   - Dropdown de origem da transação
+   - Campo de busca com debounce (300ms)
+   - Contador de resultados
+   - Botão "Limpar" para resetar todos os filtros
+   - Indicador visual de filtros ativos
+
+3. **src/components/bank-accounts/QuickPeriodFilters.tsx**
+   - 6 botões de período predefinido
+   - Períodos: Hoje, Ontem, 7 Dias, 30 Dias, Este Mês, Mês Passado
+   - Cálculo automático de datas com date-fns
+   - Indicador visual do período ativo
+   - Layout responsivo com wrap
+
+### Funcionalidades Implementadas
+
+#### Sistema de Filtros
+1. **Filtros Rápidos de Período:**
+   - Hoje: startOfDay → endOfDay
+   - Ontem: startOfDay(yesterday) → endOfDay(yesterday)
+   - 7 Dias: últimos 7 dias completos
+   - 30 Dias: últimos 30 dias completos
+   - Este Mês: início do mês até hoje
+   - Mês Passado: mês anterior completo
+
+2. **Filtro por Tipo:**
+   - Todas: sem filtro
+   - Entradas: apenas movimentos IN
+   - Saídas: apenas movimentos OUT
+   - Botões com cores semânticas (verde/vermelho)
+
+3. **Filtro por Método de Pagamento:**
+   - Todos, PIX, Cartão, Dinheiro, Transferência, Carteira
+   - Dropdown com labels em português
+   - Filtra campo `method` das movimentações
+
+4. **Filtro por Origem:**
+   - Todas, Vendas, Compras, Estornos, Manual, Crédito
+   - Dropdown com labels em português
+   - Filtra campo `sourceType` das movimentações
+
+5. **Busca por Texto:**
+   - Busca em: descrição, nome do cliente, nome do fornecedor
+   - Case-insensitive
+   - Debounce de 300ms para performance
+   - Botão X para limpar busca
+   - Ícone de lupa visual
+
+6. **Combinação de Filtros:**
+   - Todos os filtros funcionam em conjunto (AND logic)
+   - Contador mostra quantos resultados após filtros
+   - Botão "Limpar" reseta todos de uma vez
+
+#### Agrupamento por Data
+- Movimentações agrupadas por dia
+- Ordenação: mais recente primeiro
+- Header de cada grupo mostra:
+  - Data formatada: "dd/MM/yyyy (dia da semana)"
+  - Total do dia em badge (verde se positivo, vermelho se negativo)
+- Cada grupo é um card separado
+- Movimentações dentro do grupo ordenadas por horário
+
+#### Estatísticas Estendidas
+**Cards de Resumo Principal (4 cards):**
+1. Saldo Inicial (do período)
+2. Total Entradas (filtrado)
+3. Total Saídas (filtrado)
+4. Saldo Atual
+
+**Cards de Estatísticas Avançadas (4 cards):**
+1. Maior Entrada (valor máximo de entrada)
+2. Maior Saída (valor máximo de saída)
+3. Ticket Médio (média de todas as transações)
+4. Transações (contagem total)
+
+Todas as estatísticas atualizam em tempo real conforme filtros são aplicados.
+
+#### Visualização de Movimentações
+**Card de Movimentação Individual:**
+- Ícone visual baseado no tipo:
+  - 🛒 Venda
+  - 📦 Compra
+  - ↩️ Estorno
+  - ✏️ Manual
+  - 💳 Crédito
+- Horário (HH:mm)
+- Descrição da transação
+- Badge com método de pagamento
+- Link "Ver detalhes →" (quando aplicável)
+- Valor com cor (verde para entrada, vermelho para saída)
+- Saldo após a transação
+- Hover effect para melhor UX
+
+**Links para Transações Originais:**
+- Vendas: link para `/appointments/[id]/checkout`
+- Compras: link para `/purchases/[id]`
+- Outros tipos: sem link (manual, crédito)
+
+#### Estados Especiais
+1. **Loading State:**
+   - Skeleton loaders para cards
+   - Skeleton para lista de movimentações
+   - Transições suaves quando dados carregam
+
+2. **Empty State:**
+   - Mensagem amigável quando não há movimentações
+   - Texto diferente para: sem dados vs filtros sem resultado
+   - Sugestões de ação (ajustar filtros, registrar transação)
+
+3. **Refresh:**
+   - Botão "Atualizar" no header
+   - Ícone de loading animado durante refresh
+   - Mantém filtros ativos após refresh
+
+### Domain Models Atualizados
+**src/core/domain/BankAccount.ts:**
+- Adicionado `MovementWithBalance` interface:
+  - Estende `AccountMovement`
+  - Adiciona `customerName?: string`
+  - Adiciona `supplierName?: string`
+  - Adiciona `icon: string` (emoji visual)
+- Adicionado `ExtendedStats` interface:
+  - `highestEntry: number`
+  - `highestExit: number`
+  - `averageTicket: number`
+  - `transactionCount: number`
+- Adicionado `FilterValues` interface (em StatementFilters.tsx):
+  - `quickPeriod?: string`
+  - `startDate?: Date`
+  - `endDate?: Date`
+  - `type: 'all' | 'in' | 'out'`
+  - `method: PaymentMethod | 'all'`
+  - `source: SourceType | 'all'`
+  - `searchText: string`
+- Exportados tipos: `PaymentMethod`, `SourceType`
+
+### Repository Enhancements
+**src/infrastructure/repositories/supabase/SupabaseBankAccountRepository.ts:**
+- Método `getStatement()` atualizado para retornar `MovementWithBalance[]`
+- Adicionada função helper `getMovementIcon()`:
+  - Mapeia `sourceType` para emoji apropriado
+  - Retorna ícone visual para cada tipo de transação
+- Movimentações já vêm enriquecidas com:
+  - Nome do cliente (quando aplicável)
+  - Nome do fornecedor (quando aplicável)
+  - Ícone visual
+
+### Page Integration
+**src/app/(app)/contas/[id]/page.tsx:**
+- Substituído `AccountStatementView` por `EnhancedAccountStatementView`
+- Mantida estrutura de loading e navegação
+- Adicionado suporte a refresh
+- Skeleton loading durante carregamento inicial
+- Mensagem de erro quando conta não encontrada
+
+### Especificações Técnicas
+**Bibliotecas Utilizadas:**
+- date-fns: Manipulação e formatação de datas
+- date-fns/locale/ptBR: Localização em português
+- lucide-react: Ícones (Filter, Search, X, RefreshCw, TrendingUp, TrendingDown, DollarSign, Hash)
+- React hooks: useState, useMemo, useCallback, useEffect
+
+**Performance:**
+- Filtros aplicados com `useMemo` para evitar recálculos desnecessários
+- Debounce na busca para reduzir renderizações
+- Agrupamento calculado apenas quando dados ou filtros mudam
+- Estatísticas calculadas de forma eficiente com reduce
+
+**Responsividade:**
+- Grid de cards: 2 colunas (mobile) → 4 colunas (desktop)
+- Filtros: stack vertical (mobile) → grid horizontal (desktop)
+- Cards de movimentação: layout adaptativo
+- Touch-friendly em dispositivos móveis
+
+### Build e Testes
+- ✅ Build passou sem erros (0 errors)
+- ✅ TypeScript compilation successful
+- ✅ Todos os componentes tipados corretamente
+- ✅ Integração com página existente funcional
+- ✅ Filtros funcionando corretamente
+- ✅ Agrupamento por data operacional
+- ✅ Estatísticas calculando corretamente
+- ✅ Links para transações funcionando
+
+### Documentação Criada
+1. **.kiro/specs/account-statement-improvements/requirements.md**
+   - 17 user stories detalhadas
+   - Critérios de aceitação para cada funcionalidade
+   - Requisitos não-funcionais (performance, usabilidade, acessibilidade)
+   - Métricas de sucesso
+
+2. **.kiro/specs/account-statement-improvements/design.md**
+   - Arquitetura de componentes
+   - Fluxo de dados
+   - Estrutura de filtros
+   - Cálculos de estatísticas
+   - Decisões de design
+
+3. **.kiro/specs/account-statement-improvements/tasks.md**
+   - 68 tasks organizadas em 4 fases
+   - Estimativa de 6-8 dias de desenvolvimento
+   - Fase 1 (Essentials): COMPLETA ✅
+   - Fases 2-4: Planejadas para futuro
+
+### Próximas Implementações (Opcional)
+**Fase 2 - Important (2 dias):**
+- Gráfico de evolução de saldo (line chart)
+- Paginação (50 itens por página)
+- Ordenação customizada por coluna
+
+**Fase 3 - Desirable (1-2 dias):**
+- Exportação para PDF/Excel
+- Toggle de visualização compacta/detalhada
+- Auto-refresh em tempo real
+
+**Fase 4 - Polish (1 dia):**
+- Melhorias de acessibilidade
+- Testes automatizados
+- Otimizações de performance
+
+### Status Final
+- ✅ Fase 1 (Essentials): 100% COMPLETA
+- ✅ 11 funcionalidades principais implementadas
+- ✅ 3 componentes novos criados
+- ✅ Domain models expandidos
+- ✅ Repository enriquecido
+- ✅ Build passando sem erros
+- ✅ Pronto para teste em produção
+
+---
 
 ## Atualização 2026-02-12 - Melhorias no Sistema de Contas Bancárias
 

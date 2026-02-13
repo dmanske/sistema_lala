@@ -1,8 +1,8 @@
 # Product Requirements Document (PRD) - Lala System
 
-**Version:** 2.3.1
+**Version:** 2.3.2
 **Date:** 2026-02-12
-**Status:** In Development - Client Photo Upload Complete, Financial System In Progress, Checkout Payment Fix Applied
+**Status:** In Development - Account Statement Improvements Complete (Phase 1), Client Photo Upload Complete, Financial System In Progress, Checkout Payment Fix Applied
 
 ## 1. Product Overview
 Lala System is a production-ready SaaS management platform for beauty salons, designed to streamline operations including scheduling, client management, inventory control, and financial transactions. Built with Next.js 15, TypeScript, and Supabase backend.
@@ -358,7 +358,23 @@ Lala System is a production-ready SaaS management platform for beauty salons, de
 - Storage isolation
 - Complete data separation
 
-## 8. Not Implemented (Future Enhancements)
+## 8. Removed from Scope
+
+The following features were initially planned but have been removed from the product scope:
+
+### 8.1. Comissões (Commissions) ❌
+- Professional commission tracking and payment
+- Commission reports and history
+- Automatic commission calculation
+- Reason: Simplified to basic commission percentage tracking in Professional entity
+
+### 8.2. Sistema (System Settings) ❌
+- Advanced system configuration
+- General data management
+- System-wide settings
+- Reason: Core settings integrated into existing modules, advanced configuration deferred
+
+## 9. Not Implemented (Future Enhancements)
 
 - Service detail page/profile
 - Recurring appointments (series)
@@ -583,6 +599,107 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 - Fixed payment summary showing incorrect totals from duplicate payments
 - Corrected initial value formatting in payment dialog (was showing 5000 instead of 50,00)
 
+
+### Version 2.3.2 (2026-02-12) - Account Statement Improvements ✅ COMPLETED
+
+**Enhanced Account Statement View:**
+- Implemented comprehensive filtering system with 6 filter types
+- Added quick period filters (Today, Yesterday, 7 Days, 30 Days, This Month, Last Month)
+- Created date grouping with daily subtotals and visual organization
+- Added extended statistics cards (Highest Entry, Highest Exit, Average Ticket, Transaction Count)
+- Implemented visual transaction icons (🛒 Sale, 📦 Purchase, ↩️ Refund, ✏️ Manual, 💳 Credit)
+- Added transaction links to original records (sales, purchases)
+- Created empty state with helpful guidance
+- Implemented loading skeletons for better UX
+- Added refresh functionality with loading indicator
+
+**Filtering Capabilities:**
+- Quick period selection with 6 preset options
+- Type filter (All/Entries/Exits) with visual buttons
+- Payment method filter (All/PIX/Card/Cash/Transfer/Wallet)
+- Source filter (All/Sales/Purchases/Refunds/Manual/Credit)
+- Text search across description, customer name, supplier name
+- Real-time debounced search (300ms)
+- Combined filters with AND logic
+- Result count display
+- Clear all filters button
+
+**Visual Enhancements:**
+- Date headers with day of week in Portuguese
+- Daily total badges (green for positive, red for negative)
+- Transaction cards with hover effects
+- Color-coded amounts (green for entries, red for exits)
+- Balance after each transaction
+- Payment method badges with icons
+- Glassmorphism design consistent with app theme
+- Responsive layout for mobile and desktop
+
+**Statistics Dashboard:**
+- Initial Balance card
+- Total Entries card (filtered)
+- Total Exits card (filtered)
+- Current Balance card
+- Highest Entry card with amount
+- Highest Exit card with amount
+- Average Ticket card with calculation
+- Transaction Count card
+- All cards update based on active filters
+
+**User Experience:**
+- Movements sorted by date (newest first)
+- Grouped by day with collapsible sections
+- Time display (HH:mm) for each transaction
+- Clickable links to view original transaction details
+- Smooth animations and transitions
+- Loading states during data fetch
+- Empty state when no movements found
+- Helpful messages for filtered results
+
+**Technical Implementation:**
+- Created `EnhancedAccountStatementView` component
+- Created `StatementFilters` component with all filter controls
+- Created `QuickPeriodFilters` component with preset periods
+- Updated domain models with new types (MovementWithBalance, ExtendedStats, FilterValues)
+- Enhanced repository to return enriched movement data with icons
+- Implemented client-side filtering with useMemo for performance
+- Added date-fns for date manipulation and formatting
+- Integrated with existing account statement page
+
+**Components Created:**
+- `src/components/bank-accounts/EnhancedAccountStatementView.tsx` - Main statement view
+- `src/components/bank-accounts/StatementFilters.tsx` - Filter controls
+- `src/components/bank-accounts/QuickPeriodFilters.tsx` - Period selection buttons
+
+**Domain Models Updated:**
+- Added `MovementWithBalance` interface with icon and enriched data
+- Added `ExtendedStats` interface for additional statistics
+- Added `FilterValues` interface for filter state management
+- Added `PaymentMethod` and `SourceType` type exports
+
+**Repository Enhancements:**
+- Updated `getStatement()` to return movements with icons
+- Added helper function to map source types to emojis
+- Enriched movement data with customer/supplier names
+
+**Page Integration:**
+- Updated `/contas/[id]/page.tsx` to use new enhanced view
+- Added loading skeletons for better perceived performance
+- Integrated refresh functionality
+- Maintained existing navigation and layout
+
+**Build Status:**
+- ✅ TypeScript compilation successful
+- ✅ No linting errors
+- ✅ All components properly typed
+- ✅ Production build passed
+
+**Future Enhancements (Optional):**
+- Balance evolution chart (line chart over time)
+- Pagination for large datasets (50+ movements)
+- Export to PDF/Excel functionality
+- Custom sorting by column
+- Compact/Detailed view toggle
+- Real-time auto-refresh option
 
 ### Version 2.2 (2026-02-12) - Bank Accounts System Enhancements
 

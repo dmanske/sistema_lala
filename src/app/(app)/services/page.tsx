@@ -16,6 +16,7 @@ import {
 import { useServices } from "@/hooks/useServices";
 import { ServiceDialog } from "@/components/services/ServiceDialog";
 import { DeleteServiceDialog } from "@/components/services/DeleteServiceDialog";
+import { ServiceCard } from "@/components/services/ServiceCard";
 import { Service } from "@/core/domain/Service";
 import { Badge } from "@/components/ui/badge";
 
@@ -118,49 +119,12 @@ export default function ServicesPage() {
                     {viewMode === "grid" ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
                             {services.map((service) => (
-                                <Card key={service.id} className="hover:shadow-xl hover:shadow-purple-500/10 transition-all duration-300 group relative overflow-hidden cursor-pointer border-white/20 bg-white/60 backdrop-blur-lg rounded-2xl">
-                                    <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
-                                        <Button size="icon" variant="secondary" className="h-8 w-8 rounded-lg bg-white/80 hover:bg-white hover:text-purple-600 shadow-sm" onClick={() => handleEdit(service)}>
-                                            <Pencil className="h-3.5 w-3.5" />
-                                        </Button>
-                                        <Button size="icon" variant="secondary" className="h-8 w-8 rounded-lg bg-white/80 hover:bg-red-50 hover:text-red-600 shadow-sm" onClick={() => handleDelete(service.id, service.name)}>
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </Button>
-                                    </div>
-
-                                    <CardHeader className="pb-2 relative">
-                                        <div className="p-2 w-fit bg-purple-100/50 rounded-xl text-purple-600 mb-3">
-                                            {/* Placeholder Icon if Scissors not available, using existing imports */}
-                                            <Pencil className="h-5 w-5 transform rotate-90" />
-                                        </div>
-                                        <CardTitle className="text-lg font-bold font-heading truncate pr-2 text-foreground/90">{service.name}</CardTitle>
-                                        <CardDescription className="flex items-center gap-2 text-xs font-medium">
-                                            <span className="bg-slate-100 px-2 py-0.5 rounded-md text-slate-500 flex items-center gap-1">
-                                                ⏱ {service.duration} min
-                                            </span>
-                                        </CardDescription>
-                                    </CardHeader>
-
-                                    <CardContent>
-                                        <div className="flex justify-between items-end mt-4 pt-4 border-t border-purple-100/50">
-                                            <div className="flex flex-col">
-                                                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Preço</span>
-                                                <span className="text-xl font-bold text-slate-800">
-                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price)}
-                                                </span>
-                                            </div>
-                                            {service.commission > 0 && (
-                                                <div className="flex flex-col items-end">
-                                                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Comissão</span>
-                                                    <span className="text-sm font-medium text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100">
-                                                        {/* Assuming commission is percentage for label but value for amount based on badges */}
-                                                        {service.commission}%
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                <ServiceCard
+                                    key={service.id}
+                                    service={service}
+                                    onEdit={handleEdit}
+                                    onDelete={handleDelete}
+                                />
                             ))}
                         </div>
                     ) : (
