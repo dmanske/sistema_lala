@@ -33,12 +33,29 @@ export function AccountSelector({ value, onChange, onValueChange, placeholder = 
     async function loadAccounts() {
         try {
             setLoading(true)
-            const supabase = createClient() // Use client-side client
+            setError(null)
+            console.log('🏦 AccountSelector: Iniciando carregamento de contas...')
+            
+            const supabase = createClient()
+            
+            // Verificar autenticação
+            const { data: { user }, error: authError } = await supabase.auth.getUser()
+            console.log('🏦 AccountSelector: User:', user?.id, 'Auth Error:', authError)
+            
+            if (authError || !user) {
+                throw new Error('Usuário não autenticado')
+            }
+            
             const repo = new SupabaseBankAccountRepository(supabase)
             const useCase = new ListBankAccounts(repo)
+            
+            console.log('🏦 AccountSelector: Chamando useCase.execute(true)...')
             const data = await useCase.execute(true) // Only active accounts
+            console.log('🏦 AccountSelector: Contas carregadas:', data.length, data)
+            
             setAccounts(data)
         } catch (err) {
+            console.error('❌ AccountSelector: Erro ao carregar contas:', err)
             setError(err instanceof Error ? err.message : 'Erro ao carregar contas')
         } finally {
             setLoading(false)
@@ -58,6 +75,14 @@ export function AccountSelector({ value, onChange, onValueChange, placeholder = 
 
     if (error) {
         return <div className="text-sm text-destructive">{error}</div>
+    }
+
+    if (accounts.length === 0) {
+        return (
+            <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md p-3">
+                ⚠️ Nenhuma conta bancária encontrada. Crie uma conta em "Contas" primeiro.
+            </div>
+        )
     }
 
     return (

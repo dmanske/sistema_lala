@@ -48,102 +48,24 @@ export default function SignupPage() {
                     </div>
                 )}
 
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="salonName" className="text-sm font-medium text-gray-700">
-                            Nome do Salão
-                        </Label>
-                        <div className="relative">
-                            <Store className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <Input
-                                id="salonName"
-                                name="salonName"
-                                type="text"
-                                placeholder="Ex: Salão da Lala"
-                                required
-                                className="pl-10 h-11 bg-white/50 border-gray-200 focus:border-rose-400 focus:ring-rose-400 rounded-xl"
-                            />
-                        </div>
+                {/* Deactivated Message */}
+                <div className="text-center space-y-4 py-8">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Lock className="w-8 h-8 text-gray-400" />
                     </div>
+                    <h2 className="text-xl font-bold text-gray-900">Cadastros Suspensos</h2>
+                    <p className="text-sm text-gray-500">
+                        O sistema Lala não está aceitando novos registros no momento.
+                        Se você deseja testar a plataforma, use as credenciais de demonstração na página de login.
+                    </p>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="fullName" className="text-sm font-medium text-gray-700">
-                            Seu Nome
-                        </Label>
-                        <div className="relative">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <Input
-                                id="fullName"
-                                name="fullName"
-                                type="text"
-                                placeholder="Seu nome completo"
-                                required
-                                className="pl-10 h-11 bg-white/50 border-gray-200 focus:border-rose-400 focus:ring-rose-400 rounded-xl"
-                            />
-                        </div>
+                    <div className="pt-6">
+                        <Link href="/login">
+                            <Button variant="outline" className="rounded-full px-8">
+                                Voltar para Login
+                            </Button>
+                        </Link>
                     </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                            Email
-                        </Label>
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <Input
-                                id="email"
-                                name="email"
-                                type="email"
-                                placeholder="seu@email.com"
-                                required
-                                className="pl-10 h-11 bg-white/50 border-gray-200 focus:border-rose-400 focus:ring-rose-400 rounded-xl"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                            Senha
-                        </Label>
-                        <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <Input
-                                id="password"
-                                name="password"
-                                type="password"
-                                placeholder="Mínimo 6 caracteres"
-                                required
-                                minLength={6}
-                                className="pl-10 h-11 bg-white/50 border-gray-200 focus:border-rose-400 focus:ring-rose-400 rounded-xl"
-                            />
-                        </div>
-                    </div>
-
-                    <Button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full h-11 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-medium rounded-xl shadow-lg shadow-rose-500/25 transition-all duration-200"
-                    >
-                        {loading ? (
-                            <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Criando conta...
-                            </>
-                        ) : (
-                            'Criar Conta'
-                        )}
-                    </Button>
-                </form>
-
-                {/* Login link */}
-                <div className="text-center text-sm text-gray-500">
-                    Já tem uma conta?{' '}
-                    <Link
-                        href="/login"
-                        className="text-rose-600 hover:text-rose-700 font-medium transition-colors"
-                    >
-                        Entrar
-                    </Link>
                 </div>
             </div>
         </div>

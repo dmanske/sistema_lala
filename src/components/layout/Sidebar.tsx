@@ -17,7 +17,8 @@ import {
     Plus,
     Truck,
     Building2,
-    Gift
+    Gift,
+    Loader2
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -36,11 +37,12 @@ export function Sidebar({ className }: SidebarProps) {
     const [isOpen, setIsOpen] = useState(false);
     const { user, profile, signOut } = useAuth();
 
-    const userInitials = profile?.full_name
+    const isDemo = user?.email === 'daniel.manske@gmail.com';
+    const userInitials = isDemo ? 'DT' : (profile?.full_name
         ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-        : user?.email?.charAt(0).toUpperCase() ?? 'U';
-    const userName = profile?.full_name ?? 'Usuário';
-    const userEmail = user?.email ?? '';
+        : user?.email?.charAt(0).toUpperCase() ?? 'U');
+    const userName = isDemo ? 'Demonstração' : (profile?.full_name ?? 'Usuário');
+    const userEmail = isDemo ? 'demo@lalasystem.com.br' : (user?.email ?? '');
 
     // Close sidebar when route changes
     useEffect(() => {
@@ -81,6 +83,18 @@ export function Sidebar({ className }: SidebarProps) {
         },
     ];
 
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+    const handleSignOut = async () => {
+        try {
+            setIsLoggingOut(true);
+            await signOut();
+        } catch (error) {
+            console.error('Logout failed:', error);
+            setIsLoggingOut(false);
+        }
+    };
+
     const SidebarContent = () => (
         <div className="flex flex-col h-full">
             <div className="p-6 pb-2">
@@ -114,7 +128,7 @@ export function Sidebar({ className }: SidebarProps) {
                                                 !item.active && !isActive && "opacity-60 hover:opacity-100"
                                             )}
                                             asChild={item.active}
-                                            disabled={!item.active}
+                                            disabled={!item.active || isLoggingOut}
                                         >
                                             {item.active ? (
                                                 <Link href={item.href}>
@@ -146,15 +160,20 @@ export function Sidebar({ className }: SidebarProps) {
                         <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
                     </div>
                 </div>
-                
+
                 <div className="px-4">
                     <Button
                         variant="outline"
+                        disabled={isLoggingOut}
                         className="w-full justify-start gap-2 h-10 rounded-xl border-destructive/20 text-destructive hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all"
-                        onClick={() => signOut()}
+                        onClick={handleSignOut}
                     >
-                        <LogOut className="h-4 w-4" />
-                        Sair
+                        {isLoggingOut ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <LogOut className="h-4 w-4" />
+                        )}
+                        {isLoggingOut ? 'Saindo...' : 'Sair'}
                     </Button>
                 </div>
             </div>

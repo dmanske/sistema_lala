@@ -227,15 +227,23 @@ export class SupabaseSaleRepository implements SaleRepository {
         creditDebit?: { clientId: string, amount: number },
         change?: number
     ): Promise<void> {
-        // Validate that all payments have bankAccountId
-        const invalidPayments = payments.filter(p => !p.bankAccountId);
+        // Validate that monetary payments have bankAccountId (credit and fiado don't need it)
+        const invalidPayments = payments.filter(p => 
+            !p.bankAccountId && 
+            p.method !== 'credit' && 
+            p.method !== 'fiado'
+        );
         if (invalidPayments.length > 0) {
-            throw new Error(`All payments must have a bank account ID. Missing for methods: ${invalidPayments.map(p => p.method).join(', ')}`);
+            throw new Error(`All monetary payments must have a bank account ID. Missing for methods: ${invalidPayments.map(p => p.method).join(', ')}`);
         }
 
         const { error } = await this.supabase.rpc('pay_sale', {
             p_sale_id: saleId,
-            p_payments: payments,
+            p_payments: payments.map(p => ({
+                method: p.method,
+                amount: p.amount,
+                bankAccountId: p.bankAccountId || null  // Convert empty string to null for UUID compatibility
+            })),
             p_stock_items: stockItems || [],
             p_credit_debit: creditDebit || null,
             p_change_amount: change || 0,
