@@ -873,6 +873,115 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 - Compact/Detailed view toggle
 - Real-time auto-refresh option
 
+### Version 2.4 (2026-02-13) - Products Intelligence & Analysis ✅ COMPLETED
+
+**Products Module Enhancements - Phase 1:**
+- Implemented comprehensive product analytics and supplier tracking
+- Added advanced sorting and filtering capabilities
+- Created 3-tab product profile (Financial, Statistics, Suppliers)
+- Integrated sales analysis with visual charts and alerts
+
+**1. Sorting and Filtering (NEW):**
+- Default alphabetical sorting (A-Z) with Portuguese locale
+- 6 sorting options:
+  - Name (A-Z / Z-A)
+  - Price (lowest/highest)
+  - Stock (lowest/highest)
+- Stock status filters:
+  - All products
+  - Normal (above minimum)
+  - Critical (at or below minimum)
+  - Zero stock
+- Real-time filter application with useMemo optimization
+- Combined filters (search + sort + stock filter)
+- Updated empty state messaging for filtered results
+
+**2. Product Statistics & Sales Analysis (NEW):**
+- Created comprehensive product overview use case
+- New "Statistics" tab in product profile with 7 metric cards:
+  1. Total Sold (quantity)
+  2. Total Revenue (R$)
+  3. Total Profit (R$)
+  4. Last Sale (date + days ago)
+  5. Stock Turnover (days)
+  6. Stock Value (cost × quantity)
+  7. Average Ticket (R$ per unit)
+- Intelligent alerts system (4 types):
+  1. Inactive Product (60+ days without sale) - Warning
+  2. Never Sold - Info
+  3. Excess Stock (90+ days turnover) - Warning
+  4. Negative Margin (price < cost) - Error
+- Interactive charts with Recharts:
+  1. Sales Evolution (line chart, last 6 months)
+  2. Monthly Revenue (bar chart, last 6 months)
+- Sales data sourced from appointments.used_products
+- Automatic monthly aggregation and trend analysis
+- Loading skeletons for async data
+
+**3. Product Suppliers Tracking (NEW):**
+- Created supplier analysis use case
+- New "Suppliers" tab in product profile
+- Comprehensive supplier information per product:
+  - Supplier name with visual icon
+  - Total quantity purchased
+  - Last purchase date and price
+  - Average historical price
+  - Minimum and maximum prices paid
+  - Purchase frequency count
+- Supplier ranking by quantity (most purchased first)
+- Quick actions per supplier:
+  - View supplier profile (link)
+  - New purchase (pre-filled with supplier and product)
+- Empty state when no suppliers found
+- Loading skeletons for async data
+- Orange color theme (#f97316) for supplier identity
+
+**Technical Implementation:**
+- Created `getProductOverview` use case (`src/core/usecases/products/getProductOverview.ts`)
+- Created `getProductSuppliers` use case (`src/core/usecases/products/getProductSuppliers.ts`)
+- Created `ProductStatsTab` component (`src/components/products/tabs/ProductStatsTab.tsx`)
+- Created `ProductSuppliersTab` component (`src/components/products/tabs/ProductSuppliersTab.tsx`)
+- Updated product profile page with Tabs component
+- Enhanced product listing with sorting and filtering
+- Integrated Recharts for data visualization
+- Added Select components for sort and filter controls
+
+**Data Analysis:**
+- Sales tracking from finalized appointments
+- Product movement analysis from purchase history
+- Supplier price comparison and statistics
+- Stock turnover calculation based on sales velocity
+- Alert generation based on business rules
+
+**User Experience:**
+- Organized product data in 3 logical tabs
+- Visual charts for quick insights
+- Color-coded alerts for attention items
+- Contextual links to related records
+- Responsive design for all screen sizes
+- Consistent glassmorphism theme
+
+**Build Status:**
+- ✅ TypeScript compilation successful
+- ✅ No linting errors
+- ✅ Production build passed
+- ✅ All routes generated successfully
+
+**Documentation:**
+- Created comprehensive analysis document (`.kiro/specs/products-improvements/ANALISE_E_PROPOSTAS.md`)
+- Created implementation status tracker (`.kiro/specs/products-improvements/IMPLEMENTATION_STATUS.md`)
+- Updated PRD with new features
+- Updated inventory with product enhancements
+
+**Future Enhancements (Phase 2 - Optional):**
+- Product categories for organization
+- Barcode/SKU system for inventory
+- Product photos with gallery
+- Unit of measure (liters, kg, etc)
+- Batch and expiration tracking
+- Product kits/bundles
+- Price history tracking
+
 ### Version 2.2 (2026-02-12) - Bank Accounts System Enhancements
 
 **Enhanced Bank Account Management:**

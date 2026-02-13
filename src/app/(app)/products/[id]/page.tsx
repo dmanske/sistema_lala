@@ -13,7 +13,9 @@ import {
     Percent,
     TrendingUp,
     Store,
-    Loader2
+    Loader2,
+    BarChart3,
+    Users
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -22,9 +24,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Product, ProductMovement } from "@/core/domain/Product";
 import { useProducts } from "@/hooks/useProducts";
 import { StockAdjustmentDialog } from "@/components/products/StockAdjustmentDialog";
+import { ProductStatsTab } from "@/components/products/tabs/ProductStatsTab";
+import { ProductSuppliersTab } from "@/components/products/tabs/ProductSuppliersTab";
 import { cn } from "@/lib/utils";
 
 export default function ProductProfilePage() {
@@ -135,113 +140,140 @@ export default function ProductProfilePage() {
                 </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Financial Details */}
-                <Card className="lg:col-span-1 border-slate-100 shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                            <DollarSign className="h-5 w-5 text-green-600" /> Financeiro
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <span className="text-xs text-muted-foreground uppercase">Custo</span>
-                                <div className="font-semibold text-slate-700">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.cost)}
-                                </div>
-                            </div>
-                            <div className="space-y-1">
-                                <span className="text-xs text-muted-foreground uppercase">Venda</span>
-                                <div className="font-bold text-slate-900 text-lg">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
-                                </div>
-                            </div>
-                            <div className="space-y-1">
-                                <span className="text-xs text-muted-foreground uppercase">Comissão</span>
-                                <div className="font-medium text-orange-600">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.commission)}
-                                </div>
-                            </div>
-                            <div className="space-y-1">
-                                <span className="text-xs text-muted-foreground uppercase">Valor Líquido</span>
-                                <div className="font-bold text-emerald-600">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.netValue || (product.price - product.commission))}
-                                </div>
-                            </div>
-                        </div>
-                        <Separator />
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <span className="text-xs text-muted-foreground uppercase">Lucro (R$)</span>
-                                <div className="font-medium text-green-700">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.profitAmount)}
-                                </div>
-                            </div>
-                            <div className="space-y-1">
-                                <span className="text-xs text-muted-foreground uppercase">Margem (%)</span>
-                                <div className="font-medium text-green-700 flex items-center">
-                                    {product.profitPercentage}% <TrendingUp className="h-3 w-3 ml-1" />
-                                </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+            <Tabs defaultValue="financial" className="space-y-6">
+                <TabsList className="grid w-full grid-cols-3 bg-white/40 backdrop-blur-xl border border-white/20 p-1 rounded-xl">
+                    <TabsTrigger value="financial" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                        <DollarSign className="h-4 w-4 mr-2" />
+                        Financeiro
+                    </TabsTrigger>
+                    <TabsTrigger value="stats" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        Estatísticas
+                    </TabsTrigger>
+                    <TabsTrigger value="suppliers" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                        <Users className="h-4 w-4 mr-2" />
+                        Fornecedores
+                    </TabsTrigger>
+                </TabsList>
 
-                {/* Stock History */}
-                <Card className="lg:col-span-2 border-slate-100 shadow-sm flex flex-col">
-                    <CardHeader>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                            <Store className="h-5 w-5 text-purple-600" /> Histórico de Movimentações
-                        </CardTitle>
-                        <CardDescription>Registro completo de entradas e saídas.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-1 overflow-auto max-h-[400px]">
-                        {movements.length === 0 ? (
-                            <div className="text-center py-10 text-muted-foreground">
-                                Nenhuma movimentação registrada.
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {movements.map((move) => (
-                                    <div key={move.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
-                                        <div className="flex items-center gap-3">
-                                            <div className={cn(
-                                                "h-10 w-10 rounded-full flex items-center justify-center font-bold",
-                                                move.type === 'IN' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                                            )}>
-                                                {move.type === 'IN' ? "+" : "-"}
-                                            </div>
-                                            <div>
-                                                <div className="font-medium text-slate-800">
-                                                    {move.referenceType === 'PURCHASE' && move.referenceId ? (
-                                                        <Link href={`/purchases/${move.referenceId}`} className="hover:underline text-primary">
-                                                            {move.reason}
-                                                        </Link>
-                                                    ) : (
-                                                        move.reason
-                                                    )}
-                                                </div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    {format(new Date(move.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className={cn(
-                                                "font-bold text-lg",
-                                                move.type === 'IN' ? "text-green-600" : "text-red-600"
-                                            )}>
-                                                {move.type === 'IN' ? "+" : "-"}{move.quantity}
-                                            </div>
+                <TabsContent value="financial" className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Financial Details */}
+                        <Card className="lg:col-span-1 border-slate-100 shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <DollarSign className="h-5 w-5 text-green-600" /> Financeiro
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <span className="text-xs text-muted-foreground uppercase">Custo</span>
+                                        <div className="font-semibold text-slate-700">
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.cost)}
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
+                                    <div className="space-y-1">
+                                        <span className="text-xs text-muted-foreground uppercase">Venda</span>
+                                        <div className="font-bold text-slate-900 text-lg">
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <span className="text-xs text-muted-foreground uppercase">Comissão</span>
+                                        <div className="font-medium text-orange-600">
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.commission)}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <span className="text-xs text-muted-foreground uppercase">Valor Líquido</span>
+                                        <div className="font-bold text-emerald-600">
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.netValue || (product.price - product.commission))}
+                                        </div>
+                                    </div>
+                                </div>
+                                <Separator />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <span className="text-xs text-muted-foreground uppercase">Lucro (R$)</span>
+                                        <div className="font-medium text-green-700">
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.profitAmount)}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <span className="text-xs text-muted-foreground uppercase">Margem (%)</span>
+                                        <div className="font-medium text-green-700 flex items-center">
+                                            {product.profitPercentage}% <TrendingUp className="h-3 w-3 ml-1" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Stock History */}
+                        <Card className="lg:col-span-2 border-slate-100 shadow-sm flex flex-col">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <Store className="h-5 w-5 text-purple-600" /> Histórico de Movimentações
+                                </CardTitle>
+                                <CardDescription>Registro completo de entradas e saídas.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex-1 overflow-auto max-h-[400px]">
+                                {movements.length === 0 ? (
+                                    <div className="text-center py-10 text-muted-foreground">
+                                        Nenhuma movimentação registrada.
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {movements.map((move) => (
+                                            <div key={move.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={cn(
+                                                        "h-10 w-10 rounded-full flex items-center justify-center font-bold",
+                                                        move.type === 'IN' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                                                    )}>
+                                                        {move.type === 'IN' ? "+" : "-"}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-medium text-slate-800">
+                                                            {move.referenceType === 'PURCHASE' && move.referenceId ? (
+                                                                <Link href={`/purchases/${move.referenceId}`} className="hover:underline text-primary">
+                                                                    {move.reason}
+                                                                </Link>
+                                                            ) : (
+                                                                move.reason
+                                                            )}
+                                                        </div>
+                                                        <div className="text-xs text-muted-foreground">
+                                                            {format(new Date(move.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className={cn(
+                                                        "font-bold text-lg",
+                                                        move.type === 'IN' ? "text-green-600" : "text-red-600"
+                                                    )}>
+                                                        {move.type === 'IN' ? "+" : "-"}{move.quantity}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="stats">
+                    <ProductStatsTab product={product} />
+                </TabsContent>
+
+                <TabsContent value="suppliers">
+                    <ProductSuppliersTab productId={product.id} />
+                </TabsContent>
+            </Tabs>
 
             {product && (
                 <StockAdjustmentDialog

@@ -241,10 +241,13 @@ export default function SupplierProfilePage() {
                             {metrics.lastPurchaseDate ? (
                                 <>
                                     <div className="text-2xl font-bold">
-                                        {Math.floor((new Date().getTime() - new Date(metrics.lastPurchaseDate).getTime()) / (1000 * 60 * 60 * 24))}
+                                        {Math.max(0, Math.floor((new Date().getTime() - new Date(metrics.lastPurchaseDate).getTime()) / (1000 * 60 * 60 * 24)))}
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Dias atrás ({formatDate(metrics.lastPurchaseDate)})
+                                        {Math.floor((new Date().getTime() - new Date(metrics.lastPurchaseDate).getTime()) / (1000 * 60 * 60 * 24)) === 0 
+                                            ? `Hoje (${formatDate(metrics.lastPurchaseDate)})`
+                                            : `dias atrás (${formatDate(metrics.lastPurchaseDate)})`
+                                        }
                                     </p>
                                 </>
                             ) : (
@@ -375,7 +378,8 @@ export default function SupplierProfilePage() {
                                                     tickFormatter={(value) => `R$ ${value}`}
                                                 />
                                                 <Tooltip 
-                                                    formatter={(value: number, name: string) => {
+                                                    formatter={(value: number | undefined, name: string | undefined) => {
+                                                        if (!value) return ['0', name || ''];
                                                         if (name === 'valor') return [formatCurrency(value), 'Valor'];
                                                         return [value, 'Compras'];
                                                     }}
@@ -433,7 +437,7 @@ export default function SupplierProfilePage() {
                                                     }}
                                                 />
                                                 <Tooltip 
-                                                    formatter={(value: number) => [formatCurrency(value), 'Total Gasto']}
+                                                    formatter={(value: number | undefined) => [formatCurrency(value || 0), 'Total Gasto']}
                                                     contentStyle={{
                                                         backgroundColor: '#ffffff',
                                                         border: '1px solid #e2e8f0',

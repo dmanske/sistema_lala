@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Plus, Pencil, Trash2, Search, ArrowRightLeft, AlertTriangle, LayoutGrid, LayoutList, ShoppingCart } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, ArrowRightLeft, AlertTriangle, LayoutGrid, LayoutList, ShoppingCart, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,13 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { useProducts } from "@/hooks/useProducts";
 import { ProductDialog } from "@/components/products/ProductDialog";
 import { DeleteProductDialog } from "@/components/products/DeleteProductDialog";
@@ -22,10 +29,15 @@ import { Product } from "@/core/domain/Product";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
+type SortOption = "name-asc" | "name-desc" | "price-asc" | "price-desc" | "stock-asc" | "stock-desc";
+type StockFilter = "all" | "normal" | "critical" | "zero";
+
 export default function ProductsPage() {
     const { products, loading, addProduct, updateProduct, deleteProduct: removeProduct, fetchProducts } = useProducts();
     const [search, setSearch] = useState("");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+    const [sortBy, setSortBy] = useState<SortOption>("name-asc");
+    const [stockFilter, setStockFilter] = useState<StockFilter>("all");
 
     // Dialog States
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -61,6 +73,42 @@ export default function ProductsPage() {
             setProductToDelete(null);
         }
     };
+
+    // Filtrar e ordenar produtos
+    const filteredAndSortedProducts = useMemo(() => {
+        let filtered = [...products];
+
+        // Aplicar filtro de estoque
+        if (stockFilter === "critical") {
+            filtered = filtered.filter(p => p.currentStock <= p.minStock && p.currentStock > 0);
+        } else if (stockFilter === "zero") {
+            filtered = filtered.filter(p => p.currentStock === 0);
+        } else if (stockFilter === "normal") {
+            filtered = filtered.filter(p => p.currentStock > p.minStock);
+        }
+
+        // Aplicar ordenação
+        filtered.sort((a, b) => {
+            switch (sortBy) {
+                case "name-asc":
+                    return a.name.localeCompare(b.name, 'pt-BR');
+                case "name-desc":
+                    return b.name.localeCompare(a.name, 'pt-BR');
+                case "price-asc":
+                    return a.price - b.price;
+                case "price-desc":
+                    return b.price - a.price;
+                case "stock-asc":
+                    return a.currentStock - b.currentStock;
+                case "stock-desc":
+                    return b.currentStock - a.currentStock;
+                default:
+                    return 0;
+            }
+        });
+
+        return filtered;
+    }, [products, sortBy, stockFilter]);
 
     return (
         <div className="space-y-6">
@@ -101,6 +149,34 @@ export default function ProductsPage() {
                         onChange={handleSearch}
                     />
                 </div>
+                
+                <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+                    <SelectTrigger className="w-full md:w-[200px] bg-white/40 border-white/20 rounded-xl h-11 md:h-10">
+                        <ArrowUpDown className="h-4 w-4 mr-2" />
+                        <SelectValue placeholder="Ordenar por" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="name-asc">Nome (A-Z)</SelectItem>
+                        <SelectItem value="name-desc">Nome (Z-A)</SelectItem>
+                        <SelectItem value="price-asc">Menor Preço</SelectItem>
+                        <SelectItem value="price-desc">Maior Preço</SelectItem>
+                        <SelectItem value="stock-asc">Menor Estoque</SelectItem>
+                        <SelectItem value="stock-desc">Maior Estoque</SelectItem>
+                    </SelectContent>
+                </Select>
+
+                <Select value={stockFilter} onValueChange={(value) => setStockFilter(value as StockFilter)}>
+                    <SelectTrigger className="w-full md:w-[180px] bg-white/40 border-white/20 rounded-xl h-11 md:h-10">
+                        <SelectValue placeholder="Filtrar estoque" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="normal">Normal</SelectItem>
+                        <SelectItem value="critical">Crítico</SelectItem>
+                        <SelectItem value="zero">Zerado</SelectItem>
+                    </SelectContent>
+                </Select>
+
                 <div className="flex items-center gap-1 bg-white/40 border border-white/20 p-1 rounded-xl h-11 md:h-10">
                     <Button
                         variant={viewMode === "list" ? "secondary" : "ghost"}
@@ -131,7 +207,7 @@ export default function ProductsPage() {
                 <>
                     {viewMode === "grid" ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
-                            {products.map((product) => (
+                            {filteredAndSortedProducts.map((product) => (
                                 <ProductCard
                                     key={product.id}
                                     product={product}
@@ -153,7 +229,7 @@ export default function ProductsPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {products.map((product) => {
+                                    {filteredAndSortedProducts.map((product) => {
                                         const isLowStock = product.currentStock <= product.minStock;
                                         return (
                                             <TableRow key={product.id} className="cursor-pointer border-white/10 hover:bg-white/40 transition-colors" onClick={() => window.location.href = `/products/${product.id}`}>
@@ -200,14 +276,14 @@ export default function ProductsPage() {
                         </div>
                     )}
 
-                    {products.length === 0 && (
+                    {filteredAndSortedProducts.length === 0 && (
                         <div className="col-span-full py-20 text-center bg-white/40 backdrop-blur-xl rounded-3xl border border-white/20 border-dashed mt-6">
                             <div className="mx-auto h-16 w-16 bg-purple-50 rounded-full flex items-center justify-center mb-4">
                                 <Search className="h-8 w-8 text-purple-300" />
                             </div>
                             <h3 className="text-lg font-bold text-foreground">Nenhum produto encontrado</h3>
                             <p className="text-muted-foreground max-w-sm mx-auto mt-2">
-                                Tente ajustar sua busca ou adicione um novo produto ao estoque.
+                                Tente ajustar sua busca ou filtros, ou adicione um novo produto ao estoque.
                             </p>
                             <Button onClick={handleNew} variant="outline" className="mt-6 rounded-xl border-purple-200 text-purple-700 hover:bg-purple-50">
                                 Adicionar Produto

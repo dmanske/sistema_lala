@@ -191,26 +191,59 @@ Os seguintes módulos foram removidos da estrutura do sistema:
 
 ---
 
-### 2. **PRODUTOS** ✅ Completo
-**Status:** Implementado e funcional  
-**Localização:** `/products`
+### 2. **PRODUTOS** ✅ Completo + Inteligência e Análise
+**Status:** Implementado e funcional com análise avançada  
+**Localização:** `/products`  
+**Última atualização:** 13/02/2026 - Estatísticas, fornecedores e filtros implementados
 
 #### O que está implementado:
 - ✅ Listagem de produtos (grid e tabela)
+- ✅ **Ordenação e Filtros Avançados (NOVO):**
+  - Ordenação alfabética padrão (A-Z)
+  - 6 opções de ordenação: Nome (A-Z/Z-A), Preço (menor/maior), Estoque (menor/maior)
+  - Filtros de estoque: Todos, Normal, Crítico, Zerado
+  - Aplicação em tempo real com useMemo
+  - Indicadores visuais de filtros ativos
 - ✅ Busca por nome
 - ✅ Toggle entre visualização grid/lista
 - ✅ Criação de produto
 - ✅ Edição de produto
 - ✅ Exclusão de produto
-- ✅ Perfil detalhado do produto com:
-  - Informações financeiras (custo, preço, lucro, margem, comissão)
-  - Estoque atual
-  - Histórico de movimentações (IN/OUT)
+- ✅ **Perfil detalhado do produto com 3 abas (NOVO):**
+  - **Financeiro:** Informações de custo, preço, lucro, margem, comissão + Histórico de movimentações
+  - **Estatísticas (NOVO):** Análise completa de vendas
+    - 7 cards de métricas:
+      - Total Vendido (quantidade)
+      - Receita Total (R$)
+      - Lucro Total (R$)
+      - Última Venda (data + dias atrás)
+      - Giro de Estoque (dias)
+      - Valor em Estoque (R$)
+      - Ticket Médio (R$)
+    - 4 tipos de alertas:
+      - Produto parado (60+ dias sem venda)
+      - Produto nunca vendido
+      - Estoque excessivo (90+ dias de giro)
+      - Margem negativa (preço < custo)
+    - 2 gráficos interativos (Recharts):
+      - Evolução de Vendas (linha, últimos 6 meses)
+      - Receita Mensal (barras, últimos 6 meses)
+  - **Fornecedores (NOVO):** Lista de fornecedores que fornecem este produto
+    - Nome do fornecedor com ícone
+    - Total comprado (quantidade)
+    - Última compra (data e preço)
+    - Preço médio histórico
+    - Menor e maior preço pago
+    - Número de compras
+    - Links para perfil do fornecedor e nova compra
+    - Ordenação por quantidade (mais comprado primeiro)
 - ✅ Movimentação de estoque (entrada/saída)
 - ✅ Alertas de estoque crítico (quando <= minStock)
 - ✅ Cálculo automático de lucro e margem
 - ✅ Integração com Histórico de Compras (links nas movimentações)
 - ✅ PDV (Ponto de Venda) - rota `/products/pos`
+- ✅ Loading skeletons e empty states
+- ✅ Cores vibrantes nos gráficos (roxo #8b5cf6, ciano #06b6d4)
 
 #### Campos do cadastro:
 ```typescript
@@ -246,11 +279,18 @@ Os seguintes módulos foram removidos da estrutura do sistema:
 ```
 
 #### O que NÃO está implementado:
-- ❌ Código de barras
 - ❌ Categorias de produtos
-- ❌ Vínculo de Fornecedor Padrão (embora exista o módulo de Compras)
+- ❌ Código de barras/SKU
+- ❌ Fotos do produto
+- ❌ Unidade de medida
 - ❌ Controle de lote/validade
-- ❌ Relatórios de vendas por produto
+- ❌ Produtos compostos/kits
+- ❌ Histórico de preços
+
+**Melhorias Propostas (Fase 2 - Opcional):**
+- Documentação completa em `.kiro/specs/products-improvements/ANALISE_E_PROPOSTAS.md`
+- Fase 2: Categorias, Código de Barras, Fotos, Unidade de Medida (8 dias)
+- Fase 3: Lote/Validade, Kits, Histórico de Preços (9 dias)
 
 ---
 
@@ -1234,9 +1274,173 @@ Todas as 27 referências diretas a `new LocalStorage*Repository()` foram substit
 
 ---
 
-**Versão Final:** V2.5.2
-**Data:** 12/02/2026
-**Status:** OFICIAL E AUDITADO — EXTRATO DE CONTA MELHORADO (FASE 1 COMPLETA) + UPLOAD DE FOTO DO CLIENTE + INLINE CLIENT CREATION + CHECKOUT IMPROVEMENTS + AGENDA INDICATORS + PAYMENT DIALOG ENHANCEMENTS + CORREÇÃO CRÍTICA DE VALIDAÇÃO DE PAGAMENTO
+**Versão Final:** V2.6.0
+**Data:** 13/02/2026
+**Status:** OFICIAL E AUDITADO — PRODUTOS COM INTELIGÊNCIA E ANÁLISE (FASE 1 COMPLETA) + ESTATÍSTICAS E GRÁFICOS DE CLIENTES + EXTRATO DE CONTA MELHORADO + UPLOAD DE FOTO DO CLIENTE + SISTEMA FINANCEIRO COMPLETO
+
+---
+
+## 🆕 ATUALIZAÇÕES RECENTES (V2.6.0 - 13/02/2026)
+
+### ✅ PRODUTOS - FASE 1 COMPLETA (Inteligência e Análise)
+
+**Status:** Implementado e testado  
+**Data:** 13/02/2026  
+**Prioridade:** MÉDIA-ALTA - Gestão Estratégica de Produtos  
+**Impacto:** Produtos agora oferecem visão 360° com análise de vendas e fornecedores
+
+#### Funcionalidades Implementadas:
+
+**1. Ordenação e Filtros Avançados:**
+- ✅ Ordenação alfabética padrão (A-Z) com localeCompare('pt-BR')
+- ✅ Dropdown de ordenação com 6 opções:
+  - Nome (A-Z / Z-A)
+  - Preço (menor/maior)
+  - Estoque (menor/maior)
+- ✅ Filtros de estoque com 4 opções:
+  - Todos
+  - Normal (acima do mínimo)
+  - Crítico (abaixo do mínimo)
+  - Zerado (estoque = 0)
+- ✅ Aplicação em tempo real com useMemo
+- ✅ Mensagem atualizada quando não há resultados
+- ✅ Select components do shadcn/ui
+- ✅ Ícone ArrowUpDown para indicar ordenação
+
+**2. Estatísticas e Análise de Vendas:**
+- ✅ Nova aba "Estatísticas" no perfil do produto
+- ✅ Use case `getProductOverview` criado
+- ✅ 7 Cards de métricas principais:
+  1. **Total Vendido:** Quantidade total de unidades vendidas
+  2. **Receita Total:** Valor total gerado em vendas (R$)
+  3. **Lucro Total:** Lucro realizado (R$)
+  4. **Última Venda:** Data da última venda + dias atrás
+  5. **Giro de Estoque:** Dias de giro baseado em vendas
+  6. **Valor em Estoque:** Custo × quantidade atual (R$)
+  7. **Ticket Médio:** Valor médio por unidade vendida (R$)
+- ✅ Sistema de Alertas (4 tipos):
+  1. **Produto Parado:** 60+ dias sem venda (Warning)
+  2. **Nunca Vendido:** Produto sem histórico de vendas (Info)
+  3. **Estoque Excessivo:** 90+ dias de giro (Warning)
+  4. **Margem Negativa:** Preço < custo (Error)
+- ✅ 2 Gráficos interativos com Recharts:
+  1. **Evolução de Vendas:** Linha, últimos 6 meses, quantidade
+  2. **Receita Mensal:** Barras, últimos 6 meses, valores em R$
+- ✅ Cores vibrantes (roxo #8b5cf6, ciano #06b6d4)
+- ✅ Tooltips com fundo branco e sombra
+- ✅ Loading skeletons
+- ✅ Formatação monetária brasileira
+
+**3. Fornecedores do Produto:**
+- ✅ Nova aba "Fornecedores" no perfil do produto
+- ✅ Use case `getProductSuppliers` criado
+- ✅ Lista completa de fornecedores com estatísticas:
+  - Nome do fornecedor com ícone laranja
+  - Total comprado (quantidade)
+  - Última compra (data)
+  - Último preço pago (R$)
+  - Preço médio histórico (R$)
+  - Menor e maior preço (R$)
+  - Número de compras
+- ✅ Ordenação por quantidade (mais comprado primeiro)
+- ✅ Links contextuais:
+  - Ver perfil do fornecedor
+  - Nova compra (com supplierId e productId pré-preenchidos)
+- ✅ Empty state quando não há fornecedores
+- ✅ Loading skeletons
+- ✅ Cor laranja (#f97316) para identidade visual
+- ✅ Cards com hover effects
+
+**Cálculos de Métricas:**
+
+**Vendas:**
+```typescript
+// Busca em appointments.used_products
+totalSold = sum(quantity) where productId = id
+totalRevenue = sum(price × quantity)
+totalProfit = sum((price - cost) × quantity)
+lastSaleDate = max(finalized_at)
+averageTicket = totalRevenue / totalSold
+```
+
+**Estoque:**
+```typescript
+stockValue = currentStock × cost
+turnoverDays = currentStock / dailySales
+dailySales = totalSold / daysSinceFirstSale
+```
+
+**Fornecedores:**
+```typescript
+// Busca em product_movements (type=IN, reference_type=PURCHASE)
+totalQuantity = sum(quantity) per supplier
+averagePrice = avg(unit_cost) per supplier
+minPrice = min(unit_cost) per supplier
+maxPrice = max(unit_cost) per supplier
+purchaseCount = count(*) per supplier
+```
+
+**Integração de Dados:**
+- ✅ Busca vendas em `appointments.used_products`
+- ✅ Busca compras em `product_movements`
+- ✅ Agrupamento por mês para gráficos
+- ✅ Cálculo de giro de estoque
+- ✅ Geração de alertas baseada em regras de negócio
+- ✅ Busca de nomes de fornecedores
+
+**Layout e UX:**
+- ✅ Tabs component do shadcn/ui
+- ✅ 3 abas: Financeiro, Estatísticas, Fornecedores
+- ✅ Ícones visuais em cada aba
+- ✅ Cores semânticas consistentes
+- ✅ Empty states informativos
+- ✅ Loading states em todas operações assíncronas
+- ✅ Responsive design
+- ✅ Glassmorphism design
+
+**Arquivos Criados:**
+- `src/core/usecases/products/getProductOverview.ts`
+- `src/core/usecases/products/getProductSuppliers.ts`
+- `src/components/products/tabs/ProductStatsTab.tsx`
+- `src/components/products/tabs/ProductSuppliersTab.tsx`
+- `.kiro/specs/products-improvements/ANALISE_E_PROPOSTAS.md`
+- `.kiro/specs/products-improvements/IMPLEMENTATION_STATUS.md`
+
+**Arquivos Modificados:**
+- `src/app/(app)/products/page.tsx` (ordenação e filtros)
+- `src/app/(app)/products/[id]/page.tsx` (tabs)
+
+**Build e Testes:**
+- ✅ Build passou sem erros (0 errors)
+- ✅ TypeScript compilation successful
+- ✅ Todas as rotas geradas corretamente
+- ✅ Cálculos validados
+- ✅ Layout responsivo testado
+
+**Documentação Atualizada:**
+- ✅ PRD: Adicionado changelog da versão 2.4
+- ✅ Inventário: Seção Produtos expandida com todas as funcionalidades
+- ✅ Análise completa criada com 10 propostas priorizadas
+- ✅ Status de implementação documentado
+
+**Impacto:**
+- **Antes:** Produtos com dados financeiros básicos e histórico de movimentações
+- **Depois:**
+  - Ordenação e filtros avançados na listagem
+  - 7 métricas de vendas
+  - 4 tipos de alertas inteligentes
+  - 2 gráficos de análise
+  - Lista completa de fornecedores com histórico
+  - Comparação de preços
+  - Links contextuais para ações
+  - Visão 360° do produto
+
+**Próximos Passos (Fase 2 - Opcional):**
+- Categorias de produtos (3 dias)
+- Código de barras/SKU (2 dias)
+- Fotos do produto (2 dias)
+- Unidade de medida (1 dia)
+- Total: 8 dias
 
 ---
 

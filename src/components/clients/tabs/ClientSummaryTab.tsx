@@ -224,10 +224,13 @@ export function ClientSummaryTab({ clientId }: ClientSummaryTabProps) {
                         {metrics.lastVisit ? (
                             <>
                                 <div className="text-2xl font-bold">
-                                    {Math.floor((new Date().getTime() - new Date(metrics.lastVisit).getTime()) / (1000 * 60 * 60 * 24))}
+                                    {Math.max(0, Math.floor((new Date().getTime() - new Date(metrics.lastVisit).getTime()) / (1000 * 60 * 60 * 24)))}
                                 </div>
                                 <p className="text-xs text-muted-foreground">
-                                    Dias atrás ({formatDate(metrics.lastVisit)})
+                                    {Math.floor((new Date().getTime() - new Date(metrics.lastVisit).getTime()) / (1000 * 60 * 60 * 24)) === 0 
+                                        ? `Hoje (${formatDate(metrics.lastVisit)})`
+                                        : `dias atrás (${formatDate(metrics.lastVisit)})`
+                                    }
                                 </p>
                             </>
                         ) : (
@@ -317,7 +320,7 @@ export function ClientSummaryTab({ clientId }: ClientSummaryTabProps) {
                                     tickFormatter={(value) => `R$ ${value}`}
                                 />
                                 <Tooltip 
-                                    formatter={(value: number) => [formatCurrency(value), 'Gasto']}
+                                    formatter={(value: number | undefined) => [formatCurrency(value || 0), 'Gasto']}
                                     contentStyle={{
                                         backgroundColor: '#ffffff',
                                         border: '1px solid #e2e8f0',
@@ -371,9 +374,9 @@ export function ClientSummaryTab({ clientId }: ClientSummaryTabProps) {
                                         }}
                                     />
                                     <Tooltip 
-                                        formatter={(value: number, name: string) => {
-                                            if (name === 'count') return [value, 'Vezes'];
-                                            return [formatCurrency(value), 'Total'];
+                                        formatter={(value: number | undefined, name: string | undefined) => {
+                                            if (name === 'count') return [value || 0, 'Vezes'];
+                                            return [formatCurrency(value || 0), 'Total'];
                                         }}
                                         contentStyle={{
                                             backgroundColor: '#ffffff',
@@ -427,9 +430,9 @@ export function ClientSummaryTab({ clientId }: ClientSummaryTabProps) {
                                         }}
                                     />
                                     <Tooltip 
-                                        formatter={(value: number, name: string) => {
-                                            if (name === 'quantity') return [value, 'Unidades'];
-                                            return [formatCurrency(value), 'Total'];
+                                        formatter={(value: number | undefined, name: string | undefined) => {
+                                            if (name === 'quantity') return [value || 0, 'Unidades'];
+                                            return [formatCurrency(value || 0), 'Total'];
                                         }}
                                         contentStyle={{
                                             backgroundColor: '#ffffff',
