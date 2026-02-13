@@ -2,7 +2,6 @@
 
 import { CashMovement } from '@/core/domain/CashMovement'
 import { GroupedMovement, groupMovements } from '@/lib/cash/groupMovements'
-import { CashMovementGroup } from './CashMovementGroup'
 import { CashMovementDetailsDialog } from './CashMovementDetailsDialog'
 import {
     Table,
@@ -17,17 +16,30 @@ import { formatCurrency } from "@/lib/utils"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { Badge } from "@/components/ui/badge"
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, Fragment } from 'react'
 import { SupabaseBankAccountRepository } from '@/infrastructure/repositories/supabase/SupabaseBankAccountRepository'
 import { createClient } from '@/lib/supabase/client'
-
-import { ArrowUpCircle, ArrowDownCircle, ShoppingBag, RotateCcw, Truck, Settings, Eye } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import {
+    ArrowUpCircle,
+    ArrowDownCircle,
+    ShoppingBag,
+    RotateCcw,
+    Truck,
+    Settings,
+    Eye,
+    ChevronDown,
+    ChevronRight,
+    Package,
+    ShoppingCart,
+    Wallet
+} from 'lucide-react'
 
 const SOURCE_ICONS: Record<string, React.ReactNode> = {
-    SALE: <ShoppingBag className="h-3.5 w-3.5 text-emerald-500" />,
-    REFUND: <RotateCcw className="h-3.5 w-3.5 text-rose-500" />,
-    PURCHASE: <Truck className="h-3.5 w-3.5 text-rose-500" />,
-    MANUAL: <Settings className="h-3.5 w-3.5 text-slate-500" />,
+    SALE: <ShoppingBag className="h-4 w-4 text-emerald-500" />,
+    REFUND: <RotateCcw className="h-4 w-4 text-rose-500" />,
+    PURCHASE: <Truck className="h-4 w-4 text-rose-500" />,
+    MANUAL: <Settings className="h-4 w-4 text-slate-500" />,
 }
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -48,12 +60,22 @@ export function CashList({ movements }: CashListProps) {
     const [selectedMovement, setSelectedMovement] = useState<CashMovement | null>(null)
     const [detailsOpen, setDetailsOpen] = useState(false)
 
+    // State to track expanded groups
+    const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
+
     // Group movements
     const groupedMovements = useMemo(() => groupMovements(movements), [movements])
 
     const handleViewDetails = (movement: CashMovement) => {
         setSelectedMovement(movement)
         setDetailsOpen(true)
+    }
+
+    const toggleGroup = (groupId: string) => {
+        setExpandedGroups(prev => ({
+            ...prev,
+            [groupId]: !prev[groupId]
+        }))
     }
 
     useEffect(() => {
@@ -73,11 +95,11 @@ export function CashList({ movements }: CashListProps) {
     useEffect(() => {
         async function loadCustomerAndSupplierNames() {
             const supabase = createClient()
-            
+
             // Get unique sale and purchase IDs
             const saleIds = new Set<string>()
             const purchaseIds = new Set<string>()
-            
+
             movements.forEach(m => {
                 if (m.sourceId) {
                     if (m.sourceType === 'SALE') saleIds.add(m.sourceId)
@@ -91,10 +113,10 @@ export function CashList({ movements }: CashListProps) {
                     .from('sales')
                     .select('id, client_id, clients(name)')
                     .in('id', Array.from(saleIds))
-                
+
                 const customerMap: Record<string, string> = {}
                 sales?.forEach((sale: any) => {
-                    if (sale.clients?.name) {
+                    if (sales && sale.clients?.name) { // Fixed potential undefined access
                         customerMap[sale.id] = sale.clients.name
                     }
                 })
@@ -107,106 +129,202 @@ export function CashList({ movements }: CashListProps) {
                     .from('purchases')
                     .select('id, supplier_id, suppliers(name)')
                     .in('id', Array.from(purchaseIds))
-                
+
                 const supplierMap: Record<string, string> = {}
                 purchases?.forEach((purchase: any) => {
-                    if (purchase.suppliers?.name) {
+                    if (purchases && purchase.suppliers?.name) { // Fixed potential undefined access
                         supplierMap[purchase.id] = purchase.suppliers.name
                     }
                 })
                 setSupplierNames(supplierMap)
             }
         }
-        
+
         if (movements.length > 0) {
             loadCustomerAndSupplierNames()
         }
     }, [movements])
 
     return (
-        <div className="space-y-4">
-            {groupedMovements.length === 0 ? (
-                <div className="rounded-xl border border-white/20 bg-white/40 backdrop-blur-sm p-12 text-center text-muted-foreground">
-                    Nenhuma movimentação no período.
-                </div>
-            ) : (
-                groupedMovements.map((item) => {
-                    if (item._type === 'group') {
-                        return (
-                            <CashMovementGroup
-                                key={`group-${item.sourceId}`}
-                                group={item}
-                                customerName={item.sourceType === 'SALE' ? customerNames[item.sourceId] : undefined}
-                                supplierName={item.sourceType === 'PURCHASE' ? supplierNames[item.sourceId] : undefined}
-                                onViewDetails={handleViewDetails}
-                            />
-                        )
-                    } else {
-                        // Single movement - render as table row in a mini table
-                        const movement = item
-                        return (
-                            <div key={movement.id} className="rounded-xl border border-white/20 bg-white/40 backdrop-blur-sm overflow-hidden shadow-sm">
-                                <Table>
-                                    <TableBody>
-                                        <TableRow className="hover:bg-white/60 transition-colors">
-                                            <TableCell className="whitespace-nowrap w-[120px]">
+        <div className="rounded-md border bg-card">
+            <Table>
+                <TableHeader>
+                    <TableRow className="bg-muted/50">
+                        <TableHead className="w-[140px]">Data</TableHead>
+                        <TableHead>Descrição</TableHead>
+                        <TableHead className="w-[120px]">Método</TableHead>
+                        <TableHead className="w-[140px]">Tipo</TableHead>
+                        <TableHead className="w-[150px]">Conta</TableHead>
+                        <TableHead className="text-right w-[140px]">Valor</TableHead>
+                        <TableHead className="w-[50px]"></TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {groupedMovements.length === 0 ? (
+                        <TableRow>
+                            <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                                Nenhuma movimentação no período.
+                            </TableCell>
+                        </TableRow>
+                    ) : (
+                        groupedMovements.map((item) => {
+                            if (item._type === 'group') {
+                                const isExpanded = expandedGroups[item.sourceId] || false
+                                const isSale = item.sourceType === 'SALE'
+                                const displayName = isSale
+                                    ? (customerNames[item.sourceId] || 'Cliente')
+                                    : (supplierNames[item.sourceId] || 'Fornecedor')
+                                const Icon = isSale ? ShoppingCart : Package
+
+                                return (
+                                    <Fragment key={`group-${item.sourceId}`}>
+                                        <TableRow
+                                            className={cn(
+                                                "cursor-pointer hover:bg-muted/50 transition-colors",
+                                                isExpanded && "bg-muted/30 border-b-0"
+                                            )}
+                                            onClick={() => toggleGroup(item.sourceId)}
+                                        >
+                                            <TableCell className="font-medium">
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-medium">
-                                                        {format(new Date(movement.occurredAt), "dd/MM/yyyy", { locale: ptBR })}
-                                                    </span>
-                                                    <span className="text-[10px] text-muted-foreground">
-                                                        {format(new Date(movement.occurredAt), "HH:mm", { locale: ptBR })}
-                                                    </span>
+                                                    <span>{format(new Date(item.date), "dd/MM/yyyy", { locale: ptBR })}</span>
+                                                    <span className="text-xs text-muted-foreground">{format(new Date(item.date), "HH:mm", { locale: ptBR })}</span>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="flex-1">
-                                                <span className="text-sm text-slate-700">{movement.description || "-"}</span>
-                                            </TableCell>
-                                            <TableCell className="w-[100px]">
-                                                <Badge variant="outline" className="font-normal capitalize bg-white/50">
-                                                    {movement.method.toLowerCase()}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="w-[100px]">
+                                            <TableCell>
                                                 <div className="flex items-center gap-2">
-                                                    {SOURCE_ICONS[movement.sourceType] || <Settings className="h-3.5 w-3.5" />}
-                                                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-tight">
-                                                        {SOURCE_LABELS[movement.sourceType] || movement.sourceType}
-                                                    </span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="w-[120px]">
-                                                <span className="text-xs text-slate-600">
-                                                    {accountNames[movement.bankAccountId] || 'Carregando...'}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="text-right w-[120px]">
-                                                <div className="flex flex-col items-end">
-                                                    <div className={`flex items-center gap-1 font-bold ${movement.type === 'IN' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                                        {movement.type === 'IN' ? <ArrowUpCircle className="h-3 w-3" /> : <ArrowDownCircle className="h-3 w-3" />}
-                                                        {formatCurrency(movement.amount)}
+                                                    <div className={cn("p-1.5 rounded-full shrink-0", isSale ? "bg-emerald-100 text-emerald-600" : "bg-blue-100 text-blue-600")}>
+                                                        <Icon className="h-3.5 w-3.5" />
                                                     </div>
+                                                    <span className="font-medium">{isSale ? 'Venda' : 'Compra'} - {displayName}</span>
+                                                    <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal">
+                                                        {item.movements.length} itens
+                                                    </Badge>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="w-[100px]">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => handleViewDetails(movement)}
-                                                    className="h-8"
-                                                >
-                                                    <Eye className="h-4 w-4 mr-1" />
-                                                    Detalhes
-                                                </Button>
+                                            <TableCell>
+                                                <span className="text-muted-foreground text-sm italic">Múltiplos</span>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-2 text-muted-foreground">
+                                                    {SOURCE_ICONS[item.sourceType] || <Settings className="h-4 w-4" />}
+                                                    <span className="text-sm">{SOURCE_LABELS[item.sourceType] || item.sourceType}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className="text-muted-foreground text-sm">-</span>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <div className={cn("font-bold", isSale ? "text-emerald-600" : "text-rose-600")}>
+                                                    {formatCurrency(item.total)}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                                             </TableCell>
                                         </TableRow>
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        )
-                    }
-                })
-            )}
+
+                                        {isExpanded && item.movements.map((movement, idx) => (
+                                            <TableRow key={movement.id} className="bg-muted/10 border-t-0">
+                                                <TableCell className="pl-8 text-xs text-muted-foreground">
+                                                    {format(new Date(movement.occurredAt), "HH:mm", { locale: ptBR })}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="text-sm text-muted-foreground ml-8">{movement.description || "Pagamento parcial"}</span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className="font-normal capitalize text-xs">
+                                                        {movement.method === 'WALLET' ? 'Carteira' :
+                                                            movement.method === 'CASH' ? 'Dinheiro' :
+                                                                movement.method === 'CARD' ? 'Cartão' :
+                                                                    movement.method === 'PIX' ? 'Pix' :
+                                                                        movement.method === 'TRANSFER' ? 'Transf.' : movement.method}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell></TableCell>
+                                                <TableCell>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {accountNames[movement.bankAccountId] || '...'}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <span className="text-sm font-medium opacity-80">
+                                                        {formatCurrency(movement.amount)}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); handleViewDetails(movement) }}>
+                                                        <Eye className="h-3 w-3 text-muted-foreground" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </Fragment>
+                                )
+                            } else {
+                                // Single movement
+                                const movement = item
+                                const Icon = movement.type === 'IN' ? ArrowUpCircle : ArrowDownCircle
+                                const colorClass = movement.type === 'IN' ? "text-emerald-600" : "text-rose-600"
+
+                                return (
+                                    <TableRow key={movement.id} className="hover:bg-muted/50">
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <span className="font-medium text-sm">
+                                                    {format(new Date(movement.occurredAt), "dd/MM/yyyy", { locale: ptBR })}
+                                                </span>
+                                                <span className="text-[10px] text-muted-foreground">
+                                                    {format(new Date(movement.occurredAt), "HH:mm", { locale: ptBR })}
+                                                </span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="text-sm font-medium">{movement.description || "-"}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant="secondary" className="font-normal capitalize bg-muted text-muted-foreground hover:bg-muted">
+                                                {movement.method === 'WALLET' ? 'Carteira' :
+                                                    movement.method === 'CASH' ? 'Dinheiro' :
+                                                        movement.method === 'CARD' ? 'Cartão' :
+                                                            movement.method === 'PIX' ? 'Pix' :
+                                                                movement.method === 'TRANSFER' ? 'Transf.' : movement.method}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                {SOURCE_ICONS[movement.sourceType] || <Settings className="h-4 w-4 text-muted-foreground" />}
+                                                <span className="text-sm text-muted-foreground">{SOURCE_LABELS[movement.sourceType] || movement.sourceType}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="text-sm text-muted-foreground">
+                                                {accountNames[movement.bankAccountId] || '...'}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className={cn("font-bold flex items-center justify-end gap-1", colorClass)}>
+                                                {movement.type === 'IN' ? <ArrowUpCircle className="h-3 w-3" /> : <ArrowDownCircle className="h-3 w-3" />}
+                                                {formatCurrency(movement.amount)}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleViewDetails(movement)}
+                                                className="h-8 w-8 text-muted-foreground"
+                                            >
+                                                <Eye className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            }
+                        })
+                    )}
+                </TableBody>
+            </Table>
 
             <CashMovementDetailsDialog
                 open={detailsOpen}

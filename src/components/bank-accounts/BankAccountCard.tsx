@@ -56,15 +56,15 @@ export function BankAccountCard({ account, onEdit, onToggleActive }: BankAccount
                 style={{ backgroundColor: account.color }}
             />
 
-            <div className="p-6 relative z-10">
+            <div className="p-5 relative z-10">
                 {/* Header */}
                 <div
-                    className="flex items-start justify-between mb-6 cursor-pointer"
+                    className="flex items-start justify-between mb-3 cursor-pointer"
                     onClick={() => router.push(`/contas/${account.id}`)}
                 >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                         <div
-                            className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50 text-2xl shadow-inner border border-white/10"
+                            className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/50 text-xl shadow-inner border border-white/10"
                             style={{ color: account.color }}
                         >
                             {isEmoji(account.icon) ? (
@@ -72,20 +72,20 @@ export function BankAccountCard({ account, onEdit, onToggleActive }: BankAccount
                             ) : (
                                 (() => {
                                     const Logo = BankLogos[account.icon] || BankLogos['generic-bank']
-                                    return <Logo className="h-6 w-6" /> // Lucide icons accept className
+                                    return <Logo className="h-5 w-5" /> // Lucide icons accept className
                                 })()
                             )}
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">
+                                <h3 className="font-bold text-base leading-tight group-hover:text-primary transition-colors">
                                     {account.name}
                                 </h3>
                                 {account.isFavorite && (
-                                    <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-500" />
+                                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-500" />
                                 )}
                             </div>
-                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-0.5">
+                            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-0.5">
                                 {getTypeLabel(account.type)}
                             </p>
                         </div>
@@ -95,21 +95,21 @@ export function BankAccountCard({ account, onEdit, onToggleActive }: BankAccount
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="h-7 w-7 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
                             onClick={() => onEdit(account)}
                             title="Editar"
                         >
-                            <Edit className="h-4 w-4" />
+                            <Edit className="h-3.5 w-3.5" />
                         </Button>
                     </div>
                 </div>
 
                 {/* Balance Section */}
-                <div className="mb-6">
-                    <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wide">Saldo Disponível</p>
+                <div className="mb-4">
+                    <p className="text-[10px] font-medium text-muted-foreground mb-1 uppercase tracking-wide">Saldo Disponível</p>
                     <div className="flex items-baseline gap-2">
                         <h2 className={cn(
-                            "text-3xl font-bold tracking-tight",
+                            "text-2xl font-bold tracking-tight",
                             isNegative ? "text-red-500" : "text-foreground"
                         )}>
                             {formatCurrency(account.currentBalance)}
@@ -121,7 +121,7 @@ export function BankAccountCard({ account, onEdit, onToggleActive }: BankAccount
                         )}
                     </div>
                     {account.type === 'CARD' && account.creditLimit && (
-                        <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground bg-muted/30 p-2 rounded-md">
+                        <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground bg-muted/30 p-2 rounded-md">
                             <span>Limite: {formatCurrency(account.creditLimit)}</span>
                             <span className={cn(
                                 "font-medium",
@@ -135,7 +135,7 @@ export function BankAccountCard({ account, onEdit, onToggleActive }: BankAccount
 
                 {/* Account Details */}
                 {(account.bankName || account.agency || account.accountNumber) && (
-                    <div className="flex flex-col gap-1.5 p-3 rounded-lg bg-muted/40 text-xs border border-border/50">
+                    <div className="flex flex-col gap-1.5 p-2.5 rounded-lg bg-muted/40 text-[10px] border border-border/50">
                         {account.bankName && (
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Banco</span>

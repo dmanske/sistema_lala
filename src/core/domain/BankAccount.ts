@@ -31,27 +31,87 @@ export interface BankAccountWithBalance extends BankAccount {
     currentBalance: number
 }
 
+export type PaymentMethod = 'CASH' | 'PIX' | 'CARD' | 'TRANSFER' | 'WALLET'
+export type SourceType = 'SALE' | 'REFUND' | 'PURCHASE' | 'MANUAL' | 'CREDIT'
+
 export interface AccountMovement {
     id: string
     type: 'IN' | 'OUT'
     amount: number
-    method: 'CASH' | 'PIX' | 'CARD' | 'TRANSFER' | 'WALLET'
-    sourceType: 'SALE' | 'REFUND' | 'PURCHASE' | 'MANUAL'
+    method: PaymentMethod
+    sourceType: SourceType
     sourceId?: string | null
     description?: string
     occurredAt: Date
     balanceAfter: number
 }
 
+export interface MovementWithBalance extends AccountMovement {
+    // Enriched data
+    customerName?: string
+    supplierName?: string
+    icon: string
+}
+
 export interface AccountStatement {
     account: BankAccount
-    movements: AccountMovement[]
+    movements: MovementWithBalance[]
     summary: {
         initialBalance: number
         totalIn: number
         totalOut: number
         currentBalance: number
     }
+}
+
+export interface ExtendedStats {
+    highestEntry: number
+    highestExit: number
+    averageTicket: number
+    transactionCount: number
+}
+
+export interface PaginationInfo {
+    currentPage: number
+    totalPages: number
+    totalItems: number
+    itemsPerPage: number
+}
+
+export interface StatementFilters {
+    // Period
+    startDate?: Date
+    endDate?: Date
+    quickPeriod?: 'today' | 'yesterday' | '7days' | '30days' | 'thisMonth' | 'lastMonth' | 'custom'
+    
+    // Type
+    type?: 'all' | 'in' | 'out'
+    
+    // Method
+    method?: PaymentMethod | 'all'
+    
+    // Source
+    source?: SourceType | 'all'
+    
+    // Search
+    searchText?: string
+    
+    // Sorting
+    sortBy: 'date' | 'amount' | 'description'
+    sortOrder: 'asc' | 'desc'
+    
+    // Pagination
+    page: number
+    itemsPerPage: number
+    
+    // View
+    viewMode: 'compact' | 'detailed'
+}
+
+export interface EnhancedAccountStatement extends AccountStatement {
+    extendedStats: ExtendedStats
+    balanceEvolution: BalancePoint[]
+    pagination: PaginationInfo
 }
 
 export interface BankAccountWithStats extends BankAccountWithBalance {

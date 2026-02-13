@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import { BankAccount, BankAccountWithBalance, BankAccountWithStats, AccountStatement, AccountMovement, AccountDashboardData, BalancePoint, InOutData, DistributionData } from '@/core/domain/BankAccount'
+import { BankAccount, BankAccountWithBalance, BankAccountWithStats, AccountStatement, AccountMovement, MovementWithBalance, AccountDashboardData, BalancePoint, InOutData, DistributionData } from '@/core/domain/BankAccount'
 import { 
     BankAccountRepository, 
     CreateBankAccountInput, 
@@ -192,9 +192,21 @@ export class SupabaseBankAccountRepository implements BankAccountRepository {
         const { data, error } = await query
         if (error) throw new Error(`Failed to get account statement: ${error.message}`)
 
+        // Helper to get icon based on source type
+        const getSourceIcon = (sourceType: string): string => {
+            switch (sourceType) {
+                case 'SALE': return '🛒'
+                case 'PURCHASE': return '📦'
+                case 'REFUND': return '↩️'
+                case 'MANUAL': return '✏️'
+                case 'CREDIT': return '💳'
+                default: return '💰'
+            }
+        }
+
         // Calculate running balance
         let runningBalance = account.initialBalance
-        const movements: AccountMovement[] = (data || []).map((row) => {
+        const movements: MovementWithBalance[] = (data || []).map((row) => {
             const amount = Number(row.amount)
             if (row.type === 'IN') {
                 runningBalance += amount
@@ -211,7 +223,8 @@ export class SupabaseBankAccountRepository implements BankAccountRepository {
                 sourceId: row.source_id,
                 description: row.description,
                 occurredAt: new Date(row.occurred_at),
-                balanceAfter: runningBalance
+                balanceAfter: runningBalance,
+                icon: getSourceIcon(row.source_type)
             }
         })
 

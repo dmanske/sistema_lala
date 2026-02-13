@@ -4,14 +4,14 @@ import { NewTransactionDialog } from "./NewTransactionDialog"
 
 export function CashHeader() {
     return (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Caixa</h1>
-                <p className="text-muted-foreground">Gerencie o fluxo de caixa do salão.</p>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">Fluxo de Caixa</h1>
+                <p className="text-sm text-muted-foreground mt-1">Gerencie as entradas e saídas do período.</p>
             </div>
             <div className="flex items-center gap-2">
-                <NewTransactionDialog type="IN" />
                 <NewTransactionDialog type="OUT" />
+                <NewTransactionDialog type="IN" />
             </div>
         </div>
     )
