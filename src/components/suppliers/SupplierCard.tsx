@@ -9,6 +9,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatPhone } from "@/core/formatters/phone";
+import { useRouter } from "next/navigation";
 
 interface SupplierCardProps {
     supplier: Supplier;
@@ -17,13 +18,22 @@ interface SupplierCardProps {
 }
 
 export function SupplierCard({ supplier, onEdit, onDelete }: SupplierCardProps) {
+    const router = useRouter();
+    
     const formatCNPJ = (value?: string) => {
         if (!value) return "Sem CNPJ";
         return value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
     }
 
+    const handleCardClick = () => {
+        router.push(`/suppliers/${supplier.id}`);
+    };
+
     return (
-        <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-white border-slate-100 dark:bg-slate-900 dark:border-slate-800">
+        <Card 
+            className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-white border-slate-100 dark:bg-slate-900 dark:border-slate-800 cursor-pointer"
+            onClick={handleCardClick}
+        >
             {/* Decorative Top Gradient */}
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-amber-500" />
 
@@ -42,18 +52,29 @@ export function SupplierCard({ supplier, onEdit, onDelete }: SupplierCardProps) 
 
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600 -mr-2">
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-slate-400 hover:text-slate-600 -mr-2"
+                                onClick={(e) => e.stopPropagation()}
+                            >
                                 <MoreVertical className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => onEdit(supplier)}>
+                            <DropdownMenuItem onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit(supplier);
+                            }}>
                                 <Edit2 className="mr-2 h-3.5 w-3.5" />
                                 Editar
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 className="text-red-600 focus:text-red-600"
-                                onClick={() => onDelete(supplier.id, supplier.name)}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDelete(supplier.id, supplier.name);
+                                }}
                             >
                                 <Trash2 className="mr-2 h-3.5 w-3.5" />
                                 Excluir

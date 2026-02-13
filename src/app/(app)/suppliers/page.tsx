@@ -69,7 +69,9 @@ export default function SuppliersPage() {
                 search: search || undefined,
                 status: statusFilter === "ALL" ? undefined : statusFilter
             });
-            setSuppliers(data);
+            // Ordenar alfabeticamente por nome
+            const sortedData = data.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+            setSuppliers(sortedData);
         } catch (error) {
             console.error("Failed to fetch suppliers", error);
         } finally {
@@ -197,7 +199,12 @@ export default function SuppliersPage() {
                     <Table>
                         <TableHeader>
                             <TableRow className="hover:bg-transparent bg-slate-50/50 border-slate-100">
-                                <TableHead className="font-semibold text-slate-700">Fornecedor</TableHead>
+                                <TableHead className="font-semibold text-slate-700">
+                                    <div className="flex items-center gap-1">
+                                        Fornecedor
+                                        <span className="text-xs text-muted-foreground">(A-Z)</span>
+                                    </div>
+                                </TableHead>
                                 <TableHead className="font-semibold text-slate-700">Contato</TableHead>
                                 <TableHead className="font-semibold text-slate-700">Identificação</TableHead>
                                 <TableHead className="font-semibold text-slate-700">Cadastro</TableHead>
