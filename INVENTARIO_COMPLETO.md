@@ -1332,3 +1332,146 @@ CLIENTES  FORNECEDORES  CLIENTES  DESPESAS
 
 ---
 
+
+
+## Atualização 2026-02-12 - Melhorias no Sistema de Contas Bancárias
+
+### Novos Componentes Criados
+1. **src/components/bank-accounts/ColorPicker.tsx**
+   - Seletor de cores com palette predefinida
+   - Input de cor customizada (HTML5 color picker)
+   - 10 cores preset otimizadas para UI
+
+2. **src/components/bank-accounts/IconPicker.tsx**
+   - Grid de seleção de emojis/ícones
+   - 15 ícones preset relacionados a finanças
+   - Seleção visual com hover e estado ativo
+
+3. **src/components/bank-accounts/BankAccountCard.tsx**
+   - Card rico para exibição de conta
+   - Borda colorida com cor da conta
+   - Exibe: ícone, nome, tipo, saldo, favorita, dados bancários
+   - Ações rápidas: Ver Dashboard, Editar, Ativar/Desativar
+   - Responsivo e touch-friendly
+
+### Componentes Atualizados
+1. **src/components/bank-accounts/BankAccountDialog.tsx**
+   - Adicionados campos: cor, ícone, descrição, limite de crédito, dados bancários, favorita
+   - Preview ao vivo da conta durante edição
+   - Validações para todos os novos campos
+   - Seção colapsável para dados bancários
+   - Toggle de conta favorita com estrela
+   - Auto-atualização de ícone/cor ao mudar tipo
+
+2. **src/app/(app)/contas/page.tsx**
+   - Substituída tabela por grid de cards
+   - Adicionados 3 cards de resumo financeiro
+   - Gráfico de pizza para distribuição de saldos
+   - Filtros: Todas/Ativas/Inativas
+   - Busca por nome ou banco
+   - Estado vazio amigável
+   - Skeleton loading
+
+### Domain Models Expandidos
+1. **src/core/domain/BankAccount.ts**
+   - Adicionados campos de personalização: color, icon, description
+   - Adicionados campos bancários: creditLimit, bankName, agency, accountNumber
+   - Adicionados campos de organização: isFavorite, displayOrder
+   - Novas interfaces: BankAccountWithStats, AccountDashboardData, BalancePoint, InOutData, DistributionData
+
+### Repository Interfaces Expandidas
+1. **src/core/repositories/BankAccountRepository.ts**
+   - CreateBankAccountInput: adicionados 9 novos campos opcionais
+   - UpdateBankAccountInput: adicionados 9 novos campos opcionais
+   - Novos métodos: listWithStats(), setFavorite(), updateOrder(), getDashboard()
+   - Nova interface: GetDashboardFilters
+
+### Repository Implementation
+1. **src/infrastructure/repositories/supabase/SupabaseBankAccountRepository.ts**
+   - Implementados métodos getDefaultColor() e getDefaultIcon()
+   - Atualizado create() para aceitar todos os novos campos
+   - Atualizado update() para aceitar todos os novos campos
+   - Atualizado list() para ordenar por: favorita → ordem customizada → nome
+   - Implementado listWithStats() com cálculos de totalIn, totalOut, movementCount
+   - Implementado setFavorite() para marcar conta principal
+   - Implementado updateOrder() para reordenação customizada
+   - Implementado getDashboard() com geração de dados para gráficos
+   - Métodos auxiliares: generateBalanceEvolution(), generateInOutComparison(), generateDistribution(), calculateStats()
+   - Atualizado mapFromDb() para incluir todos os novos campos
+
+### Use Cases Atualizados
+1. **src/core/usecases/bank-accounts/CreateBankAccount.ts**
+   - Importa CreateBankAccountInput do repository
+   - Validação de limite de crédito
+   - Passa todos os campos para o repository
+
+2. **src/core/usecases/bank-accounts/UpdateBankAccount.ts**
+   - Importa UpdateBankAccountInput do repository
+   - Validação de limite de crédito
+   - Passa todos os campos para o repository
+
+### Migrações de Banco de Dados
+1. **Migration: add_bank_account_enhanced_fields**
+   - Adicionados 9 novos campos em bank_accounts
+   - Criados índices em display_order e is_favorite
+   - Auto-população de contas existentes com cores/ícones baseados no tipo
+   - Valores padrão apropriados para cada campo
+
+2. **Migration: fix_bank_accounts_rls_policies**
+   - Corrigidas policies RLS para usar get_my_tenant_id()
+   - Substituídas policies incorretas que usavam JWT metadata
+   - Garantida isolação correta entre tenants
+
+### Bibliotecas Utilizadas
+- recharts: Gráficos (PieChart para distribuição de saldos)
+- lucide-react: Ícones (Search, TrendingUp, TrendingDown, Wallet, Star, Eye, Edit, Power)
+- date-fns: Manipulação de datas para gráficos
+
+### Melhorias de UX/UI
+- Design glassmorphism consistente com página de caixa
+- Cores semânticas: verde para positivo, vermelho para negativo
+- Skeleton loading para melhor perceived performance
+- Animações suaves em hover e transições
+- Grid responsivo: 3 colunas (desktop) → 2 (tablet) → 1 (mobile)
+- Touch targets otimizados para mobile (mínimo 44px)
+- Estados vazios com mensagens úteis e CTAs
+- Preview ao vivo no formulário
+
+### Dados de Teste Atualizados
+- Caixa Geral: cor #F59E0B (amber), ícone 💰, favorita, ordem 0
+- Nubank: cor #820AD1 (roxo), ícone 💜, ordem 1
+- Banco Bradesco: cor #CC092F (vermelho), ícone 🏦, ordem 2
+- PicPay: cor #11C76F (verde), ícone 💚, ordem 3
+- Cartão Crédito: cor #EF4444 (vermelho), ícone 💳, ordem 4
+
+### Próximas Implementações Planejadas
+1. Dashboard individual da conta (Fase 2)
+   - Gráficos de evolução de saldo
+   - Gráficos de entradas vs saídas
+   - Gráfico de distribuição por origem
+   - Estatísticas rápidas
+   - Extrato detalhado melhorado
+
+2. Transferências entre contas (Fase 4)
+   - Dialog de transferência
+   - Vinculação de movimentações
+   - Histórico de transferências
+
+3. Exportação e relatórios (Fase 5)
+   - Exportar extrato em PDF/Excel/CSV
+   - Relatório comparativo de contas
+
+4. Metas e alertas (Fase 6)
+   - Definir metas de saldo
+   - Alertas de saldo baixo
+   - Notificações
+
+5. Seletores melhorados (Fase 3)
+   - AccountSelector com saldo e sugestões
+   - Validação de saldo em tempo real
+   - Integração em vendas/compras
+
+### Arquivos de Especificação
+- `.kiro/specs/bank-accounts-improvements/requirements.md`: Requisitos completos das 8 fases
+- `.kiro/specs/bank-accounts-improvements/design.md`: Design técnico detalhado
+- `.kiro/specs/bank-accounts-improvements/tasks.md`: Lista de tasks organizadas por fase

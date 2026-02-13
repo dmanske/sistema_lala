@@ -497,3 +497,93 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 **Bug Fixes:**
 - Fixed payment summary showing incorrect totals from duplicate payments
 - Corrected initial value formatting in payment dialog (was showing 5000 instead of 50,00)
+
+
+### Version 2.2 (2026-02-12) - Bank Accounts System Enhancements
+
+**Enhanced Bank Account Management:**
+- Added visual customization: color picker and icon/emoji selector
+- Implemented account favoriting system with star indicator
+- Added custom display ordering for accounts
+- Extended account fields: description, credit limit, bank details (name, agency, account number)
+- Created rich card-based UI replacing simple table view
+- Added comprehensive filtering: active/inactive status and search by name/bank
+
+**Visual Improvements:**
+- Color-coded account cards with customizable hex colors
+- Emoji/icon support for quick visual identification
+- Preview of account appearance while editing
+- Glassmorphism design with backdrop blur effects
+- Responsive grid layout (3 columns desktop, 2 tablet, 1 mobile)
+- Skeleton loading states for better perceived performance
+
+**Financial Overview Dashboard:**
+- Summary cards showing total balance, positive balances, and negative balances
+- Pie chart visualization of balance distribution across accounts
+- Real-time balance calculations
+- Account count indicators per category
+- Color-coded positive (green) and negative (red) balances
+
+**Database Schema Updates:**
+- Added `color` field (VARCHAR(7), default '#3B82F6') for visual customization
+- Added `icon` field (VARCHAR(50), default '🏦') for emoji/icon storage
+- Added `description` field (TEXT) for account notes
+- Added `credit_limit` field (DECIMAL(10,2)) for credit cards
+- Added `bank_name`, `agency`, `account_number` fields for banking details
+- Added `is_favorite` field (BOOLEAN, default FALSE) for primary account marking
+- Added `display_order` field (INTEGER, default 0) for custom sorting
+- Created performance indexes on `display_order` and `is_favorite`
+- Auto-populated existing accounts with type-appropriate colors and icons
+
+**Account Form Enhancements:**
+- Interactive color picker with preset palette and custom color input
+- Icon picker with 15 preset emojis (banks, cards, wallets, money symbols)
+- Live preview of account appearance during creation/editing
+- Conditional credit limit field (only for CARD type)
+- Collapsible banking details section
+- Favorite toggle with visual star indicator
+- Form validation for all new fields
+
+**List View Features:**
+- Card-based layout with account color as border accent
+- Prominent display of current balance with color coding
+- Quick actions: View Dashboard, Edit, Activate/Deactivate
+- Favorite indicator (star) on cards
+- Bank details display when available
+- Empty state with helpful messaging
+- Search across account name and bank name
+- Filter buttons for All/Active/Inactive accounts
+
+**Technical Implementation:**
+- Created `ColorPicker` component with preset colors and custom input
+- Created `IconPicker` component with emoji grid selection
+- Created `BankAccountCard` component for rich card display
+- Updated domain models to include all new fields
+- Extended repository interfaces with new methods
+- Updated use cases to handle extended input data
+- Implemented smart defaults based on account type
+- Added RLS policy fixes for proper tenant isolation
+
+**User Experience:**
+- Accounts sorted by: favorite first, then custom order, then name
+- Visual consistency with existing cash page design
+- Intuitive color and icon selection
+- Immediate visual feedback on all interactions
+- Mobile-optimized touch targets and layouts
+- Accessible color contrast and keyboard navigation
+
+**Migration & Data Integrity:**
+- Safe migration with IF NOT EXISTS clauses
+- Preserved all existing account data
+- Auto-assigned colors based on account type (Bank=blue, Card=red, Wallet=green)
+- Auto-assigned icons based on account type (Bank=🏦, Card=💳, Wallet=💰)
+- Set "Caixa Geral" as default favorite account
+- Established logical display order for existing accounts
+
+**Next Steps (Planned):**
+- Dashboard individual por conta com gráficos e estatísticas
+- Transferências entre contas
+- Exportação de extratos (PDF, Excel, CSV)
+- Metas e alertas de saldo
+- Conciliação bancária
+- Integração melhorada em vendas e compras

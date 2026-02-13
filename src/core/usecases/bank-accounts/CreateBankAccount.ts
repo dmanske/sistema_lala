@@ -1,11 +1,5 @@
 import { BankAccount, BankAccountType } from '@/core/domain/BankAccount'
-import { BankAccountRepository } from '@/core/repositories/BankAccountRepository'
-
-export interface CreateBankAccountInput {
-    name: string
-    type: BankAccountType
-    initialBalance?: number
-}
+import { BankAccountRepository, CreateBankAccountInput } from '@/core/repositories/BankAccountRepository'
 
 export class CreateBankAccount {
     constructor(private repo: BankAccountRepository) {}
@@ -26,12 +20,17 @@ export class CreateBankAccount {
             throw new Error('Invalid account type. Must be BANK, CARD, or WALLET')
         }
 
+        // Validate credit limit if provided
+        if (input.creditLimit !== undefined && input.creditLimit < 0) {
+            throw new Error('Credit limit cannot be negative')
+        }
+
         // Default initial balance to 0
         const initialBalance = input.initialBalance ?? 0
 
         return this.repo.create({
+            ...input,
             name: trimmedName,
-            type: input.type,
             initialBalance
         })
     }

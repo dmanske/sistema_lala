@@ -1,10 +1,5 @@
 import { BankAccount, BankAccountType } from '@/core/domain/BankAccount'
-import { BankAccountRepository } from '@/core/repositories/BankAccountRepository'
-
-export interface UpdateBankAccountInput {
-    name?: string
-    type?: BankAccountType
-}
+import { BankAccountRepository, UpdateBankAccountInput } from '@/core/repositories/BankAccountRepository'
 
 export class UpdateBankAccount {
     constructor(private repo: BankAccountRepository) {}
@@ -28,6 +23,11 @@ export class UpdateBankAccount {
             if (!validTypes.includes(input.type)) {
                 throw new Error('Invalid account type. Must be BANK, CARD, or WALLET')
             }
+        }
+
+        // Validate credit limit if provided
+        if (input.creditLimit !== undefined && input.creditLimit < 0) {
+            throw new Error('Credit limit cannot be negative')
         }
 
         return this.repo.update(id, input)
