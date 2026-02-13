@@ -219,7 +219,7 @@ export function BirthdayCard() {
                                         onClick={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
-                                            window.open(`https://wa.me/55${client.whatsapp.replace(/\D/g, '')}`, '_blank');
+                                            window.open(`https://wa.me/55${client.whatsapp?.replace(/\D/g, '') || ''}`, '_blank');
                                         }}
                                     >
                                         <MessageCircle className="h-5 w-5" />
