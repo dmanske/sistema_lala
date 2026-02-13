@@ -128,20 +128,20 @@ Lala System is a production-ready SaaS management platform for beauty salons, de
 
 ### 3.8. Dashboard & Analytics
 **User Story:** As a User, I want comprehensive business insights and performance metrics across all areas of the business.
-- **Acceptance Criteria 1:** Revenue statistics: total revenue, average ticket, estimated profit.
-- **Acceptance Criteria 2:** Critical stock alerts for products at or below minimum stock.
-- **Acceptance Criteria 3:** Top services by revenue and frequency.
-- **Acceptance Criteria 4:** Product revenue and profit tracking.
-- **Acceptance Criteria 5:** Period filtering: current month, previous month, all time.
-- **Acceptance Criteria 6:** Real-time data updates from sales and inventory.
-- **Acceptance Criteria 7:** Client metrics: active clients, new clients, clients with debt (Fiado).
-- **Acceptance Criteria 8:** Agenda metrics: occupancy rate, cancellation rate, future appointments.
-- **Acceptance Criteria 9:** Cash flow overview: total in, total out, net balance.
-- **Acceptance Criteria 10:** Professional ranking by revenue and productivity.
-- **Acceptance Criteria 11:** Payment method distribution visualization.
-- **Acceptance Criteria 12:** Comparison with previous period (trend indicators).
-- **Acceptance Criteria 13:** Multiple tabs: Overview, Financial, Services, Stock, Team, Clients.
-- **Acceptance Criteria 14:** Visual charts: bar charts, pie charts, line charts for trends.
+- **Acceptance Criteria 1:** Revenue statistics: total revenue, average ticket, estimated profit. ✅
+- **Acceptance Criteria 2:** Critical stock alerts for products at or below minimum stock. ✅
+- **Acceptance Criteria 3:** Top services by revenue and frequency. ✅
+- **Acceptance Criteria 4:** Product revenue and profit tracking. ✅
+- **Acceptance Criteria 5:** Period filtering: current month, previous month, all time. ✅
+- **Acceptance Criteria 6:** Real-time data updates from sales and inventory. ✅
+- **Acceptance Criteria 7:** Client metrics: active clients, new clients, clients with debt (Fiado). ✅ IMPLEMENTED
+- **Acceptance Criteria 8:** Agenda metrics: occupancy rate, cancellation rate, future appointments. ✅ IMPLEMENTED (occupancy + future)
+- **Acceptance Criteria 9:** Cash flow overview: total in, total out, net balance. ✅ IMPLEMENTED
+- **Acceptance Criteria 10:** Professional ranking by revenue and productivity. ✅ IMPLEMENTED
+- **Acceptance Criteria 11:** Payment method distribution visualization. ⏳ PENDING
+- **Acceptance Criteria 12:** Comparison with previous period (trend indicators). ⏳ PENDING
+- **Acceptance Criteria 13:** Multiple tabs: Overview, Financial, Services, Stock, Team, Clients. ⏳ PENDING (only Overview, Services, Stock)
+- **Acceptance Criteria 14:** Visual charts: bar charts, pie charts, line charts for trends. ⏳ PENDING (only bar charts)
 
 ## 4. Functional Requirements
 
@@ -299,13 +299,23 @@ Lala System is a production-ready SaaS management platform for beauty salons, de
 - Movement reference tracking
 - Unit cost tracking
 
-### 7.6. Purchases & Suppliers ✅
+### 7.6. Purchases & Suppliers ✅ Funcional → 🔄 Melhorias Propostas
 - Supplier CRUD with contact/fiscal info
 - Purchase master-detail
 - Multiple items per purchase
 - Automatic stock IN movements
 - Purchase history by supplier
 - Deletion validation
+- **Immediate payment registration** ✅ IMPLEMENTED
+- **Bank account selection for payments** ✅ IMPLEMENTED
+- **Automatic cash OUT movements** ✅ IMPLEMENTED
+- **Partial payments and payment history** ❌ NOT IMPLEMENTED (Proposed - Phase 1)
+- **Payment status tracking (PENDING, PARTIAL, PAID)** ❌ NOT IMPLEMENTED (Proposed - Phase 1)
+- **Edit purchases** ❌ NOT IMPLEMENTED (Proposed - Phase 2)
+- **Delete purchases** ❌ NOT IMPLEMENTED (Proposed - Phase 2)
+- **Advanced filters (period, status, supplier, value)** ❌ NOT IMPLEMENTED (Proposed - Phase 3)
+- **Purchase statistics and analytics** ❌ NOT IMPLEMENTED (Proposed - Phase 3)
+- **Replenishment forecasting** ❌ NOT IMPLEMENTED (Proposed - Phase 4)
 
 ### 7.7. Services & Professionals ✅
 - Service CRUD (name, duration, cost, price, commission)
@@ -352,12 +362,18 @@ Lala System is a production-ready SaaS management platform for beauty salons, de
 - Origin tracking (CASH, PIX, CARD, WALLET)
 - Debt (Fiado) tracking
 
-### 7.12. Dashboard ✅
+### 7.12. Dashboard ✅ Melhorado (Fase 1 Completa)
 - Revenue statistics (total, average, profit)
 - Critical stock alerts
 - Top services (revenue, frequency)
 - Product revenue/profit
 - Period filtering
+- **Client metrics (active clients, new clients, clients with debt)** ✅ NOVO
+- **Agenda metrics (occupancy rate, future appointments)** ✅ NOVO
+- **Cash flow overview (total in, total out, net balance)** ✅ NOVO
+- **Professional ranking by revenue and productivity** ✅ NOVO
+- **8 metric cards in 2 rows** ✅ NOVO
+- **Enhanced overview tab with cash flow and professional ranking** ✅ NOVO
 
 ### 7.13. Multi-Tenant Infrastructure ✅
 - Tenant creation on signup
@@ -383,6 +399,40 @@ The following features were initially planned but have been removed from the pro
 - Reason: Core settings integrated into existing modules, advanced configuration deferred
 
 ## 9. Not Implemented (Future Enhancements)
+
+### Purchases Module Improvements (Proposed)
+**Status:** Analysis Complete - Awaiting Approval  
+**Documentation:** `.kiro/specs/purchases-improvements/ANALISE_E_PROPOSTAS.md`
+
+**Phase 1: Financial Management (3 days) - RECOMMENDED:**
+- Partial payment management
+- Payment status tracking (PENDING, PARTIAL, PAID)
+- Multiple payments per purchase
+- Payment history
+- Accounts payable dashboard card
+- "Register Payment" action on pending purchases
+
+**Phase 2: Operational (2 days) - RECOMMENDED:**
+- Edit purchases (with stock adjustment)
+- Delete purchases (with reversals)
+
+**Phase 3: Filters and Analytics (2 days) - OPTIONAL:**
+- Advanced filters (period, supplier, status, value)
+- Purchase statistics and charts
+- Spending analysis by supplier
+- Temporal evolution
+
+**Phase 4: Intelligence (3 days) - OPTIONAL:**
+- Replenishment forecasting
+- Average consumption calculation
+- Reorder point per product
+- "Products to Reorder" list
+
+**Total Recommended (Phase 1+2):** 5 days of development
+
+---
+
+### Other Future Enhancements
 
 - Service detail page/profile
 - Recurring appointments (series)
@@ -608,7 +658,101 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 - Corrected initial value formatting in payment dialog (was showing 5000 instead of 50,00)
 
 
-### Version 2.3.2 (2026-02-12) - Account Statement Improvements ✅ COMPLETED
+### Version 2.3.3 (2026-02-12) - Dashboard Improvements Phase 1 ✅ COMPLETED
+
+**Enhanced Dashboard Metrics:**
+- Implemented comprehensive business metrics across all key areas
+- Added 8 metric cards organized in 2 rows for better overview
+- Integrated real-time data from clients, appointments, cash movements, and professionals
+- Period filtering now affects all metrics consistently
+
+**New Metric Cards (Row 1):**
+1. Faturamento Total - Total revenue with appointment count
+2. Ticket Médio - Average ticket per appointment
+3. Lucro Estimado - Estimated profit with margin percentage
+4. Agendamentos Futuros - Count of confirmed and pending future appointments
+
+**New Metric Cards (Row 2):**
+1. Clientes Ativos - Active client count with new clients in period
+2. Taxa de Ocupação - Agenda occupancy rate percentage
+3. Fluxo de Caixa - Net cash flow with total entries
+4. Estoque Crítico - Products below minimum stock
+
+**Enhanced Overview Tab:**
+- Added Cash Flow card with detailed breakdown:
+  - Total entries (green highlight)
+  - Total exits (red highlight)
+  - Net balance (color-coded based on positive/negative)
+- Added Top Professionals ranking card:
+  - Top 5 professionals by revenue
+  - Shows appointment count per professional
+  - Medal-style ranking (1st gold, 2nd silver, 3rd bronze)
+  - Empty state when no appointments in period
+- Reorganized layout with cash flow and professionals above service charts
+
+**Client Metrics:**
+- Active clients count (status = ACTIVE)
+- New clients in selected period (filtered by creation date)
+- Clients with debt (negative credit balance)
+
+**Agenda Metrics:**
+- Future appointments count (PENDING + CONFIRMED status, date >= today)
+- Occupancy rate calculation (done appointments vs estimated total slots)
+- Simplified calculation: assumes 600 slots per month baseline
+
+**Cash Flow Integration:**
+- Total entries (IN movements) in period
+- Total exits (OUT movements) in period
+- Net cash flow (entries - exits)
+- Period-aware filtering matching appointment period
+
+**Professional Ranking:**
+- Revenue calculation per professional
+- Appointment count per professional
+- Top 5 ranking sorted by revenue
+- Visual ranking indicators (position badges)
+- Responsive card layout
+
+**Technical Implementation:**
+- Added repository imports: ClientRepository, CashMovementRepository, ProfessionalRepository
+- Extended state management with clients, cashMovements, professionals
+- Updated useEffect to load all data in parallel
+- Period filter now triggers cash movement reload
+- Enhanced useMemo to calculate all new metrics
+- Maintained performance with efficient filtering and calculations
+
+**UI/UX Improvements:**
+- Reduced header spacing (p-6 → p-4, space-y-8 → space-y-4, pb-6 → pb-4)
+- Color-coded metrics (green for positive, red for negative/critical)
+- Trend indicators on relevant cards
+- Consistent glassmorphism design
+- Responsive grid layouts (2 cols mobile, 4 cols desktop)
+- Empty states for professional ranking
+
+**Data Flow:**
+- All metrics respect selected period filter
+- Real-time calculations based on filtered data
+- Consistent date filtering across appointments and cash movements
+- Efficient parallel data loading
+
+**Build Status:**
+- ✅ TypeScript compilation successful
+- ✅ No linting errors
+- ✅ Production build passed
+- ✅ All routes generated successfully
+
+**Next Steps (Optional - Phase 2):**
+- Payment method distribution chart (pie chart)
+- Period comparison with trend indicators
+- Additional tabs: Financial, Team, Clients
+- Cancellation rate calculation
+- Line charts for temporal evolution
+- Export functionality
+
+**Documentation Updated:**
+- ✅ PRD acceptance criteria marked as implemented
+- ✅ Inventory updated with Phase 1 completion status
+- ✅ Dashboard section expanded with new features
 
 **Enhanced Account Statement View:**
 - Implemented comprehensive filtering system with 6 filter types

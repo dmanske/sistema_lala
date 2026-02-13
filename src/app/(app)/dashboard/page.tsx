@@ -21,10 +21,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-import { getAppointmentRepository, getProductRepository, getServiceRepository } from "@/infrastructure/repositories/factory";
+import { getAppointmentRepository, getProductRepository, getServiceRepository, getClientRepository, getCashMovementRepository, getProfessionalRepository } from "@/infrastructure/repositories/factory";
 import { Appointment } from "@/core/domain/Appointment";
 import { Product } from "@/core/domain/Product";
 import { Service } from "@/core/domain/Service";
+import { Client } from "@/core/domain/Client";
+import { CashMovement } from "@/core/domain/CashMovement";
+import { Professional } from "@/core/domain/Professional";
 
 // Helper Components
 const StatCard = ({ title, value, subtext, icon: Icon, trend, color = "blue" }: any) => {
@@ -81,6 +84,9 @@ export default function DashboardPage() {
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [services, setServices] = useState<Service[]>([]);
+    const [clients, setClients] = useState<Client[]>([]);
+    const [cashMovements, setCashMovements] = useState<CashMovement[]>([]);
+    const [professionals, setProfessionals] = useState<Professional[]>([]);
     const [loading, setLoading] = useState(true);
     const [period, setPeriod] = useState("current_month");
 
@@ -89,10 +95,12 @@ export default function DashboardPage() {
             setLoading(true);
             try {
                 // Parallel fetch
-                const [apptData, prodData, servData] = await Promise.all([
+                const [apptData, prodData, servData, clientData, profData] = await Promise.all([
                     getAppointmentRepository().getAll(),
                     getProductRepository().getAll(),
-                    getServiceRepository().getAll()
+                    getServiceRepository().getAll(),
+                    getClientRepository().getAll(),
+                    getProfessionalRepository().getAll()
                 ]);
 
                 // Filter only DONE for financial stats
@@ -100,6 +108,27 @@ export default function DashboardPage() {
                 setAppointments(doneAppts);
                 setProducts(prodData);
                 setServices(servData);
+                setClients(clientData);
+                setProfessionals(profData);
+
+                // Load cash movements for the period
+                const now = new Date();
+                let startDate = startOfMonth(now);
+                let endDate = now;
+
+                if (period === "last_month") {
+                    const lastMonth = subMonths(now, 1);
+                    startDate = startOfMonth(lastMonth);
+                    endDate = endOfMonth(lastMonth);
+                } else if (period === "all_time") {
+                    startDate = new Date(2020, 0, 1); // Far past date
+                }
+
+                const cashData = await getCashMovementRepository().list({
+                    startDate,
+                    endDate
+                });
+                setCashMovements(cashData);
             } catch (error) {
                 console.error(error);
             } finally {
@@ -107,7 +136,7 @@ export default function DashboardPage() {
             }
         }
         loadData();
-    }, []);
+    }, [period]);
 
     // Memoized Stats
     const stats = useMemo(() => {
@@ -182,6 +211,62 @@ export default function DashboardPage() {
         // Ticket Médio
         const ticketMedio = filteredAppts.length > 0 ? totalRevenue / filteredAppts.length : 0;
 
+        // NEW METRICS - Client Stats
+        const activeClients = clients.filter(c => c.status === 'ACTIVE').length;
+        
+        // New clients in period
+        let newClients = 0;
+        if (period === "current_month") {
+            newClients = clients.filter(c => isSameMonth(new Date(c.createdAt), now)).length;
+        } else if (period === "last_month") {
+            const lastMonth = subMonths(now, 1);
+            newClients = clients.filter(c => isSameMonth(new Date(c.createdAt), lastMonth)).length;
+        } else {
+            newClients = clients.length; // All time
+        }
+
+        // Clients with debt (negative balance)
+        const clientsWithDebt = clients.filter(c => c.creditBalance < 0).length;
+
+        // NEW METRICS - Agenda Stats
+        // Future appointments (PENDING or CONFIRMED)
+        const futureAppointments = appointments.filter(a => 
+            (a.status === 'PENDING' || a.status === 'CONFIRMED') && 
+            new Date(a.date) >= now
+        ).length;
+
+        // Occupancy rate (simplified - based on done appointments vs total slots)
+        // Assuming 10 hours/day * 2 slots/hour * 30 days = 600 slots per month
+        const totalSlotsPerMonth = 600;
+        const occupancyRate = filteredAppts.length > 0 
+            ? Math.min(100, (filteredAppts.length / totalSlotsPerMonth) * 100) 
+            : 0;
+
+        // NEW METRICS - Cash Flow
+        const totalIn = cashMovements
+            .filter(m => m.type === 'IN')
+            .reduce((sum, m) => sum + m.amount, 0);
+        
+        const totalOut = cashMovements
+            .filter(m => m.type === 'OUT')
+            .reduce((sum, m) => sum + m.amount, 0);
+        
+        const netCashFlow = totalIn - totalOut;
+
+        // NEW METRICS - Professional Ranking
+        const professionalStats = professionals.map(prof => {
+            const profAppts = filteredAppts.filter(a => a.professionalId === prof.id);
+            const revenue = profAppts.reduce((sum, a) => 
+                sum + (a.totalServiceValue || 0) + (a.totalProductValue || 0), 0
+            );
+            return { 
+                id: prof.id,
+                name: prof.name, 
+                appointments: profAppts.length, 
+                revenue 
+            };
+        }).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+
         return {
             totalRevenue,
             totalServiceRevenue,
@@ -192,16 +277,26 @@ export default function DashboardPage() {
             topServices,
             topRevenueServices,
             criticalStock,
-            appointmentsCount: filteredAppts.length
+            appointmentsCount: filteredAppts.length,
+            // New metrics
+            activeClients,
+            newClients,
+            clientsWithDebt,
+            futureAppointments,
+            occupancyRate,
+            totalIn,
+            totalOut,
+            netCashFlow,
+            professionalStats
         };
-    }, [appointments, products, services, period]);
+    }, [appointments, products, services, clients, cashMovements, professionals, period]);
 
     const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
     return (
-        <div className="container mx-auto p-6 space-y-8 bg-slate-50/50 min-h-screen">
+        <div className="container mx-auto p-4 space-y-4 bg-slate-50/50 min-h-screen">
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">Visão Geral</h1>
                     <p className="text-muted-foreground mt-1">Acompanhe métricas, resultados e alertas do seu negócio.</p>
@@ -246,6 +341,41 @@ export default function DashboardPage() {
                     color="purple"
                 />
                 <StatCard
+                    title="Agendamentos Futuros"
+                    value={stats.futureAppointments}
+                    subtext="Confirmados e pendentes"
+                    icon={Calendar}
+                    color="blue"
+                />
+            </div>
+
+            {/* Second Row - New Metrics */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                    title="Clientes Ativos"
+                    value={stats.activeClients}
+                    subtext={`${stats.newClients} novos no período`}
+                    icon={Users}
+                    trend={stats.newClients > 0 ? "up" : undefined}
+                    color="blue"
+                />
+                <StatCard
+                    title="Taxa de Ocupação"
+                    value={`${stats.occupancyRate.toFixed(1)}%`}
+                    subtext="Da agenda no período"
+                    icon={Activity}
+                    trend={stats.occupancyRate > 50 ? "up" : "down"}
+                    color={stats.occupancyRate > 50 ? "green" : "rose"}
+                />
+                <StatCard
+                    title="Fluxo de Caixa"
+                    value={formatCurrency(stats.netCashFlow)}
+                    subtext={`Entradas: ${formatCurrency(stats.totalIn)}`}
+                    icon={TrendingUp}
+                    trend={stats.netCashFlow > 0 ? "up" : "down"}
+                    color={stats.netCashFlow > 0 ? "green" : "rose"}
+                />
+                <StatCard
                     title="Estoque Crítico"
                     value={stats.criticalStock.length}
                     subtext="Produtos abaixo do mínimo"
@@ -265,6 +395,92 @@ export default function DashboardPage() {
 
                 {/* VISÃO GERAL TAB */}
                 <TabsContent value="overview" className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                        {/* Cash Flow Card */}
+                        <Card className="col-span-3 border-none shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <TrendingUp className="h-5 w-5 text-emerald-500" />
+                                    Fluxo de Caixa
+                                </CardTitle>
+                                <CardDescription>Entradas e saídas do período selecionado.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center bg-emerald-50 p-4 rounded-lg border border-emerald-100">
+                                        <span className="font-medium text-slate-700">Entradas</span>
+                                        <span className="font-bold text-emerald-600 text-lg">{formatCurrency(stats.totalIn)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center bg-rose-50 p-4 rounded-lg border border-rose-100">
+                                        <span className="font-medium text-slate-700">Saídas</span>
+                                        <span className="font-bold text-rose-600 text-lg">{formatCurrency(stats.totalOut)}</span>
+                                    </div>
+                                    <div className={cn(
+                                        "flex justify-between items-center p-4 rounded-lg border-2",
+                                        stats.netCashFlow >= 0 
+                                            ? "bg-emerald-50 border-emerald-200" 
+                                            : "bg-rose-50 border-rose-200"
+                                    )}>
+                                        <span className="font-semibold text-slate-800">Saldo Líquido</span>
+                                        <span className={cn(
+                                            "font-bold text-xl",
+                                            stats.netCashFlow >= 0 ? "text-emerald-600" : "text-rose-600"
+                                        )}>
+                                            {formatCurrency(stats.netCashFlow)}
+                                        </span>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Top Professionals Card */}
+                        <Card className="col-span-4 border-none shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Users className="h-5 w-5 text-purple-500" />
+                                    Top Profissionais
+                                </CardTitle>
+                                <CardDescription>Ranking por faturamento no período.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {stats.professionalStats.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center h-48 text-muted-foreground bg-slate-50 rounded-lg border">
+                                        <Users className="h-10 w-10 text-slate-300 mb-2" />
+                                        <p className="font-medium text-slate-600">Nenhum atendimento no período</p>
+                                        <p className="text-xs">Finalize atendimentos para ver o ranking</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {stats.professionalStats.map((prof, idx) => (
+                                            <div key={prof.id} className="flex items-center justify-between p-3 bg-white border rounded-lg hover:border-purple-200 transition-colors shadow-sm">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={cn(
+                                                        "flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm",
+                                                        idx === 0 ? "bg-yellow-100 text-yellow-700" :
+                                                        idx === 1 ? "bg-slate-100 text-slate-700" :
+                                                        idx === 2 ? "bg-orange-100 text-orange-700" :
+                                                        "bg-purple-50 text-purple-600"
+                                                    )}>
+                                                        {idx + 1}º
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-medium text-slate-800">{prof.name}</div>
+                                                        <div className="text-xs text-muted-foreground">
+                                                            {prof.appointments} atendimento{prof.appointments !== 1 ? 's' : ''}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="font-bold text-slate-900">{formatCurrency(prof.revenue)}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                         <Card className="col-span-4 border-none shadow-sm">
                             <CardHeader>

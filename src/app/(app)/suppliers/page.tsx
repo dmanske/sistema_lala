@@ -41,7 +41,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 import { Supplier } from "@/core/domain/Supplier";
 import { getSupplierRepository } from "@/infrastructure/repositories/factory";
@@ -113,28 +112,21 @@ export default function SuppliersPage() {
         }
     };
 
-    const getInitials = (name: string) => {
-        return name
-            .split(' ')
-            .map(n => n[0])
-            .slice(0, 2)
-            .join('')
-            .toUpperCase();
-    };
+
 
     const formatCNPJ = (value: string) => {
         return value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
     }
 
     return (
-        <div className="container mx-auto p-0 space-y-8 min-h-screen">
+        <div className="space-y-6">
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="hidden md:flex justify-between items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">Fornecedores</h1>
-                    <p className="text-muted-foreground mt-1">Gerencie seus fornecedores e parceiros de negócio.</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground font-heading">Fornecedores</h1>
+                    <p className="text-muted-foreground">Gerencie seus fornecedores e parceiros de negócio.</p>
                 </div>
-                <Button asChild className="rounded-xl bg-primary shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all px-6">
+                <Button asChild className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 transition-all">
                     <Link href="/suppliers/new">
                         <Plus className="mr-2 h-4 w-4" />
                         Novo Fornecedor
@@ -142,8 +134,18 @@ export default function SuppliersPage() {
                 </Button>
             </div>
 
+            {/* Mobile Header */}
+            <div className="md:hidden flex justify-between items-center">
+                <h1 className="text-2xl font-bold font-heading">Fornecedores</h1>
+                <Button asChild size="sm" className="bg-orange-600 rounded-lg">
+                    <Link href="/suppliers/new">
+                        <Plus className="h-4 w-4" />
+                    </Link>
+                </Button>
+            </div>
+
             {/* Filters/Toolbar */}
-            <div className="bg-white/60 backdrop-blur-xl p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-stretch md:items-center">
+            <div className="bg-card/50 backdrop-blur-xl p-4 sm:p-6 rounded-2xl border border-white/20 shadow-lg shadow-orange-500/5 flex flex-col md:flex-row gap-4 items-stretch md:items-center transition-all hover:shadow-orange-500/10">
                 <div className="relative flex-1">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -228,18 +230,27 @@ export default function SuppliersPage() {
                                     >
                                         <TableCell className="font-medium py-4">
                                             <div className="flex items-center gap-3">
-                                                <Avatar className="h-9 w-9">
-                                                    <AvatarFallback className="bg-orange-50 text-orange-600 text-xs font-bold">
-                                                        {getInitials(supplier.name)}
-                                                    </AvatarFallback>
-                                                </Avatar>
+                                                <div className={cn(
+                                                    "p-2 rounded-lg",
+                                                    supplier.status === 'ACTIVE' ? "bg-orange-50 text-orange-600" : "bg-slate-50 text-slate-500"
+                                                )}>
+                                                    <Truck className="h-4 w-4" />
+                                                </div>
                                                 <span className="text-slate-900">{supplier.name}</span>
                                             </div>
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex flex-col text-sm">
-                                                <span className="text-slate-700 font-medium">{supplier.phone ? formatPhone(supplier.phone) : "-"}</span>
-                                                {supplier.email && <span className="text-xs text-muted-foreground">{supplier.email}</span>}
+                                                <div className="flex items-center gap-1.5">
+                                                    <Phone className="h-3 w-3 text-slate-400" />
+                                                    <span className="text-slate-700 font-medium">{supplier.phone ? formatPhone(supplier.phone) : "-"}</span>
+                                                </div>
+                                                {supplier.email && (
+                                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                                        <Mail className="h-3 w-3 text-slate-400" />
+                                                        <span className="text-xs text-muted-foreground">{supplier.email}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </TableCell>
                                         <TableCell>
@@ -268,11 +279,9 @@ export default function SuppliersPage() {
             )}
 
             {/* Grid View */}
-            {(viewMode === "grid" || (viewMode === "table" && paginatedSuppliers.length > 0)) && (
-                <div className={cn(
-                    "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20",
-                    viewMode === "grid" ? "block" : "md:hidden"
-                )}>
+            {viewMode === "grid" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
+
                     {isLoading ? (
                         Array.from({ length: 4 }).map((_, i) => (
                             <Skeleton key={i} className="h-[200px] rounded-2xl" />

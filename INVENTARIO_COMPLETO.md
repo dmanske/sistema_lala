@@ -306,12 +306,12 @@ Os seguintes módulos foram removidos da estrutura do sistema:
 
 ---
 
-### 5. **COMPRAS** ✅ Completo
-**Status:** Implementado e funcional
+### 5. **COMPRAS** ✅ Funcional → 🔄 Melhorias Propostas
+**Status:** Implementado e operacional, com melhorias identificadas  
 **Localização:** `/purchases`
 
 #### O que está implementado:
-- ✅ Listagem de compras (tabela) com filtro por fornecedor
+- ✅ Listagem de compras (tabela) com filtro por fornecedor/ID
 - ✅ Registro de nova compra (Master-Detail):
   - Seleção de fornecedor
   - Adição dinâmica de múltiplos produtos
@@ -320,6 +320,14 @@ Os seguintes módulos foram removidos da estrutura do sistema:
 - ✅ Visualização de detalhes da compra (read-only)
 - ✅ **Integração com Estoque:** Criação automática de movimentações de entrada (IN) ao registrar compra
 - ✅ Link reverso de movimentação de produto para detalhes da compra
+- ✅ **Registro de Pagamento Imediato:**
+  - Checkbox "Registrar Pagamento"
+  - Seleção de forma de pagamento
+  - Seleção de conta bancária de origem
+  - Gera saída automática no caixa
+- ✅ Observações opcionais
+- ✅ Avatar do fornecedor com iniciais
+- ✅ Loading states e empty states
 
 #### Campos do cadastro:
 ```typescript
@@ -328,8 +336,14 @@ Os seguintes módulos foram removidos da estrutura do sistema:
   supplierId: string
   date: string (YYYY-MM-DD)
   items: PurchaseItem[]
-  total: number
+  total: number (calculado)
   notes?: string
+  
+  // Payment info
+  paymentMethod?: "CASH" | "PIX" | "CARD" | "TRANSFER" | "WALLET"
+  paidAmount?: number
+  paidAt?: string (ISO)
+  
   createdAt: string
   updatedAt: string
 }
@@ -340,6 +354,81 @@ PurchaseItem {
   unitCost: number
 }
 ```
+
+#### O que NÃO está implementado (Gaps Identificados):
+
+**PRIORIDADE ALTA (Essencial):**
+- ❌ **Gestão de Pagamentos Parciais:**
+  - Status de pagamento (PENDING, PARTIAL, PAID)
+  - Múltiplos pagamentos para mesma compra
+  - Histórico de pagamentos
+  - Filtro por status de pagamento
+  - Card "Contas a Pagar" no dashboard
+  - Ação "Registrar Pagamento" em compras pendentes
+- ❌ **Edição de Compras:**
+  - Botão "Editar" na página de detalhes
+  - Permitir alterar data, observações, itens
+  - Ajuste automático de estoque ao editar
+  - Validações de integridade
+- ❌ **Exclusão de Compras:**
+  - Botão "Excluir" com confirmação
+  - Reversão de movimentações de estoque
+  - Reversão de pagamentos no caixa
+  - Soft delete
+
+**PRIORIDADE MÉDIA (Melhoria de Experiência):**
+- ❌ **Filtros Avançados:**
+  - Filtro por período (date range)
+  - Filtro por fornecedor (dropdown)
+  - Filtro por status de pagamento
+  - Filtro por faixa de valor
+  - Ordenação customizável
+- ❌ **Estatísticas e Análises:**
+  - Cards de resumo (total gasto, quantidade, ticket médio)
+  - Gráfico de gastos por fornecedor
+  - Gráfico de evolução temporal
+  - Comparação entre períodos
+- ❌ **Previsão de Reposição:**
+  - Cálculo de consumo médio
+  - Ponto de pedido por produto
+  - Sugestão de quantidade a comprar
+  - Lista de "Produtos para Repor"
+
+**PRIORIDADE BAIXA (Nice to Have):**
+- ❌ Comparação de preços entre fornecedores
+- ❌ Templates de compras recorrentes
+- ❌ Importação de NF-e (XML)
+- ❌ Anexos e documentos
+
+#### Melhorias Propostas (Roadmap):
+
+**Fase 1: Gestão Financeira (3 dias) - RECOMENDADO:**
+1. Gestão de Pagamentos Parciais
+   - Tabela `purchase_payments`
+   - Status de pagamento
+   - Múltiplos pagamentos
+   - Histórico completo
+   - Integração com dashboard
+
+**Fase 2: Operacional (2 dias) - RECOMENDADO:**
+1. Edição de Compras (com ajuste de estoque)
+2. Exclusão de Compras (com reversões)
+
+**Fase 3: Filtros e Análises (2 dias) - OPCIONAL:**
+1. Filtros avançados na listagem
+2. Estatísticas e gráficos
+
+**Fase 4: Inteligência (3 dias) - OPCIONAL:**
+1. Previsão de reposição
+2. Análise de consumo
+
+**Total Recomendado (Fase 1+2):** 5 dias de desenvolvimento
+
+**Documentação Completa:**
+- `.kiro/specs/purchases-improvements/ANALISE_E_PROPOSTAS.md`
+- Análise detalhada com 10 propostas priorizadas
+- Roadmap de implementação em 4 fases
+- Comparação antes/depois
 
 ---
 
@@ -481,80 +570,119 @@ SalePayment {
 
 ---
 
-### 8. **DASHBOARD** ⚠️ Parcial → 🚧 EM MELHORIA
-**Status:** Implementado mas necessita expansão para MVP completo  
+### 8. **DASHBOARD** ✅ Fase 1 Completa → Pronto para MVP
+**Status:** Implementado com métricas essenciais completas  
 **Localização:** `/dashboard`
 
 #### O que está implementado:
-- ✅ Cards de estatísticas (4 cards):
-  - Faturamento total (serviços + produtos)
-  - Ticket médio por atendimento
-  - Lucro estimado (com cálculo de custos e comissões)
-  - Estoque crítico (produtos abaixo do mínimo)
+- ✅ Cards de estatísticas (8 cards em 2 linhas):
+  - **Linha 1:** Faturamento total, Ticket médio, Lucro estimado, Agendamentos futuros
+  - **Linha 2:** Clientes ativos, Taxa de ocupação, Fluxo de caixa, Estoque crítico
 - ✅ Filtro por período (mês atual, mês anterior, todo período)
 - ✅ Abas de visualização (3 abas):
-  - **Visão Geral:** Top serviços por receita e popularidade
+  - **Visão Geral:** Fluxo de caixa, Top profissionais, Top serviços (receita e popularidade)
   - **Serviços:** Detalhamento de receita (serviços vs produtos)
   - **Estoque:** Alertas de reposição + economia de produtos
+- ✅ **Métricas de Clientes (NOVO):**
+  - Total de clientes ativos
+  - Novos clientes no período
+  - Clientes com dívida (Fiado)
+- ✅ **Métricas de Agenda (NOVO):**
+  - Taxa de ocupação (% de horários preenchidos)
+  - Agendamentos futuros (confirmados + pendentes)
+- ✅ **Fluxo de Caixa (NOVO):**
+  - Card dedicado com entradas, saídas e saldo líquido
+  - Cores semânticas (verde/vermelho)
+  - Integração com movimentações de caixa
+- ✅ **Ranking de Profissionais (NOVO):**
+  - Top 5 profissionais por faturamento
+  - Total de atendimentos por profissional
+  - Indicadores visuais de posição (medalhas)
+  - Empty state quando sem dados
 - ✅ Gráficos simples:
   - Gráfico de barras horizontal (top 5 serviços)
   - Lista de produtos críticos com destaque visual
   - Cards de resumo financeiro
 - ✅ Cálculo de margem de lucro
 - ✅ Design glassmorphism consistente
+- ✅ Espaçamento reduzido (header compacto)
 
-#### O que NÃO está implementado (Gaps Críticos):
-- ❌ **Métricas de Clientes:**
-  - Total de clientes ativos
-  - Novos clientes no período
-  - Taxa de retorno
-  - Clientes com dívida (Fiado)
-- ❌ **Métricas de Agenda:**
-  - Taxa de ocupação
-  - Taxa de cancelamento/no-show
-  - Horários mais populares
-  - Agendamentos futuros
-- ❌ **Métricas Financeiras Avançadas:**
-  - Fluxo de caixa (entradas vs saídas)
-  - Contas a receber (Fiado)
-  - Distribuição por método de pagamento
-  - Comparação com período anterior
-- ❌ **Métricas de Profissionais:**
-  - Ranking de profissionais por faturamento
-  - Comissões a pagar
-  - Produtividade por profissional
+#### Métricas Calculadas:
+**Financeiras:**
+- Faturamento total (serviços + produtos)
+- Ticket médio por atendimento
+- Lucro estimado (com custos e comissões)
+- Margem de lucro percentual
+- Fluxo de caixa (entradas, saídas, saldo)
+
+**Clientes:**
+- Clientes ativos (status ACTIVE)
+- Novos clientes no período (filtrado por data de criação)
+- Clientes com dívida (creditBalance < 0)
+
+**Agenda:**
+- Taxa de ocupação (atendimentos / slots estimados)
+- Agendamentos futuros (PENDING + CONFIRMED, data >= hoje)
+- Total de atendimentos no período
+
+**Profissionais:**
+- Faturamento por profissional
+- Atendimentos por profissional
+- Ranking top 5
+
+**Estoque:**
+- Produtos críticos (currentStock <= minStock)
+- Receita de produtos
+- Lucro de produtos
+- Margem de produtos
+
+#### O que NÃO está implementado (Fase 2 - Opcional):
 - ❌ **Gráficos de Evolução Temporal:**
   - Gráfico de linha (evolução de faturamento)
   - Gráfico de área (fluxo de caixa)
   - Comparativo mensal
+- ❌ **Distribuição de Pagamentos:**
+  - Gráfico de pizza por método
+  - Percentuais por método
+- ❌ **Comparação com Período Anterior:**
+  - Indicadores de variação (↑↓)
+  - Percentual de crescimento/queda
 - ❌ **Abas Adicionais:**
   - Aba "Financeiro" com detalhamento completo
-  - Aba "Equipe" com ranking de profissionais
+  - Aba "Equipe" com ranking expandido
   - Aba "Clientes" com métricas de relacionamento
+- ❌ **Taxa de Cancelamento:**
+  - Cálculo de CANCELED + NO_SHOW
+  - Percentual sobre total de agendamentos
+- ❌ **Exportação:**
+  - PDF com relatório completo
+  - Excel com dados detalhados
 
-#### Melhorias Propostas (Prioridade ALTA):
-**Fase 1 - Métricas Essenciais (1 dia):**
-1. Adicionar 4 novos cards:
-   - Clientes Ativos
-   - Novos Clientes
-   - Taxa de Ocupação da Agenda
-   - Agendamentos Futuros
-2. Adicionar seção de Fluxo de Caixa:
-   - Card com entradas, saídas e saldo líquido
-   - Gráfico de barras comparativo
-3. Adicionar Ranking de Profissionais:
-   - Top 5 profissionais por faturamento
-   - Total de atendimentos por profissional
+#### Melhorias Implementadas (Fase 1):
+**Data:** 12/02/2026  
+**Prioridade:** ALTA - Finalização do MVP  
+**Status:** ✅ COMPLETO
 
-**Fase 2 - Visualizações Avançadas (2 dias):**
-1. Gráfico de evolução de faturamento (linha)
-2. Gráfico de distribuição de pagamentos (pizza)
-3. Comparação com período anterior (indicadores ↑↓)
-4. Novas abas: Financeiro, Equipe, Clientes
+**Implementação:**
+1. ✅ Adicionados 4 novos cards de métricas
+2. ✅ Reorganizado layout em 2 linhas de 4 cards
+3. ✅ Criado card de Fluxo de Caixa com breakdown detalhado
+4. ✅ Criado card de Ranking de Profissionais top 5
+5. ✅ Integrado repositórios de clientes, caixa e profissionais
+6. ✅ Implementado cálculo de métricas de clientes
+7. ✅ Implementado cálculo de métricas de agenda
+8. ✅ Implementado cálculo de fluxo de caixa
+9. ✅ Implementado ranking de profissionais
+10. ✅ Filtro de período agora afeta todas as métricas
+11. ✅ Reduzido espaçamento do header
+12. ✅ Build passou sem erros
+13. ✅ Documentação atualizada (PRD + Inventário)
 
 **Documentação Completa:**
 - `.kiro/specs/dashboard-improvements/ANALISE_E_MELHORIAS_FINAIS.md`
 - Proposta detalhada com layout, implementação e timeline
+- Fase 1: 100% COMPLETA ✅
+- Fase 2: Opcional (melhorias avançadas)
 
 ---
 
@@ -1083,6 +1211,220 @@ Todas as 27 referências diretas a `new LocalStorage*Repository()` foram substit
 **Versão Final:** V2.5.2
 **Data:** 12/02/2026
 **Status:** OFICIAL E AUDITADO — EXTRATO DE CONTA MELHORADO (FASE 1 COMPLETA) + UPLOAD DE FOTO DO CLIENTE + INLINE CLIENT CREATION + CHECKOUT IMPROVEMENTS + AGENDA INDICATORS + PAYMENT DIALOG ENHANCEMENTS + CORREÇÃO CRÍTICA DE VALIDAÇÃO DE PAGAMENTO
+
+---
+
+## 🆕 ATUALIZAÇÕES RECENTES (V2.5.3 - 12/02/2026)
+
+### ✅ DASHBOARD - FASE 1 COMPLETA (Métricas Essenciais)
+
+**Status:** Implementado e testado  
+**Data:** 12/02/2026  
+**Prioridade:** ALTA - Finalização do MVP  
+**Impacto:** Dashboard agora oferece visão 360° do negócio
+
+#### Funcionalidades Implementadas:
+
+**1. Novos Cards de Métricas (8 cards em 2 linhas):**
+
+**Linha 1 - Métricas Financeiras e Operacionais:**
+- ✅ **Faturamento Total**
+  - Soma de serviços + produtos
+  - Contador de atendimentos
+  - Trend indicator (up)
+  - Cor verde
+- ✅ **Ticket Médio**
+  - Valor médio por atendimento
+  - Calculado: faturamento / atendimentos
+  - Cor azul
+- ✅ **Lucro Estimado**
+  - Lucro de serviços + produtos
+  - Margem percentual
+  - Cor roxa
+- ✅ **Agendamentos Futuros** (NOVO)
+  - Contagem de PENDING + CONFIRMED
+  - Apenas datas >= hoje
+  - Cor azul
+
+**Linha 2 - Métricas de Clientes, Agenda e Caixa:**
+- ✅ **Clientes Ativos** (NOVO)
+  - Total com status ACTIVE
+  - Subtexto: novos no período
+  - Trend indicator quando há novos
+  - Cor azul
+- ✅ **Taxa de Ocupação** (NOVO)
+  - Percentual de ocupação da agenda
+  - Calculado: atendimentos / slots estimados
+  - Trend indicator (up se > 50%, down se <= 50%)
+  - Cor verde/vermelho baseado em performance
+- ✅ **Fluxo de Caixa** (NOVO)
+  - Saldo líquido (entradas - saídas)
+  - Subtexto: total de entradas
+  - Trend indicator baseado em saldo
+  - Cor verde/vermelho baseado em saldo
+- ✅ **Estoque Crítico**
+  - Produtos abaixo do mínimo
+  - Trend indicator (down se > 0)
+  - Cor vermelha
+
+**2. Card de Fluxo de Caixa Detalhado (NOVO):**
+- ✅ Seção dedicada na aba Visão Geral
+- ✅ 3 linhas de informação:
+  - **Entradas:** Total de movimentos IN
+    - Background verde claro
+    - Borda verde
+    - Valor em verde escuro
+  - **Saídas:** Total de movimentos OUT
+    - Background vermelho claro
+    - Borda vermelha
+    - Valor em vermelho escuro
+  - **Saldo Líquido:** Entradas - Saídas
+    - Background verde/vermelho baseado em sinal
+    - Borda dupla destacada
+    - Valor grande e bold
+    - Cor baseada em positivo/negativo
+- ✅ Integração com CashMovementRepository
+- ✅ Filtrado por período selecionado
+- ✅ Formatação monetária brasileira
+
+**3. Card de Ranking de Profissionais (NOVO):**
+- ✅ Top 5 profissionais por faturamento
+- ✅ Cada linha mostra:
+  - **Posição:** Badge numerado
+    - 1º: Fundo amarelo (ouro)
+    - 2º: Fundo cinza (prata)
+    - 3º: Fundo laranja (bronze)
+    - 4º-5º: Fundo roxo
+  - **Nome do profissional**
+  - **Total de atendimentos**
+  - **Faturamento total** (destaque)
+- ✅ Ordenação por receita (maior primeiro)
+- ✅ Empty state quando sem atendimentos:
+  - Ícone de usuários
+  - Mensagem amigável
+  - Sugestão de ação
+- ✅ Hover effects nos cards
+- ✅ Design responsivo
+
+**4. Cálculos de Métricas:**
+
+**Clientes:**
+```typescript
+activeClients = clients.filter(c => c.status === 'ACTIVE').length
+newClients = clients.filter(c => isSameMonth(c.createdAt, periodDate)).length
+clientsWithDebt = clients.filter(c => c.creditBalance < 0).length
+```
+
+**Agenda:**
+```typescript
+futureAppointments = appointments.filter(a => 
+  (a.status === 'PENDING' || a.status === 'CONFIRMED') && 
+  new Date(a.date) >= now
+).length
+
+occupancyRate = (doneAppointments / estimatedTotalSlots) * 100
+// Estimativa: 600 slots/mês (10h/dia * 2 slots/h * 30 dias)
+```
+
+**Fluxo de Caixa:**
+```typescript
+totalIn = cashMovements.filter(m => m.type === 'IN')
+  .reduce((sum, m) => sum + m.amount, 0)
+
+totalOut = cashMovements.filter(m => m.type === 'OUT')
+  .reduce((sum, m) => sum + m.amount, 0)
+
+netCashFlow = totalIn - totalOut
+```
+
+**Profissionais:**
+```typescript
+professionalStats = professionals.map(prof => {
+  const profAppts = filteredAppts.filter(a => a.professionalId === prof.id)
+  const revenue = profAppts.reduce((sum, a) => 
+    sum + (a.totalServiceValue || 0) + (a.totalProductValue || 0), 0
+  )
+  return { name: prof.name, appointments: profAppts.length, revenue }
+}).sort((a, b) => b.revenue - a.revenue).slice(0, 5)
+```
+
+**5. Integração de Dados:**
+- ✅ Adicionados 3 novos repositórios:
+  - `ClientRepository` - dados de clientes
+  - `CashMovementRepository` - movimentações financeiras
+  - `ProfessionalRepository` - dados de profissionais
+- ✅ Carregamento paralelo de todos os dados
+- ✅ Filtro de período agora afeta:
+  - Atendimentos (já existia)
+  - Clientes novos (novo)
+  - Movimentações de caixa (novo)
+- ✅ useEffect atualizado para recarregar ao mudar período
+- ✅ useMemo expandido com todos os novos cálculos
+
+**6. Layout e UX:**
+- ✅ Header compacto (p-6 → p-4, space-y-8 → space-y-4)
+- ✅ Grid de 2 linhas x 4 colunas (responsivo)
+- ✅ Aba Visão Geral reorganizada:
+  - Fluxo de Caixa (col-span-3)
+  - Top Profissionais (col-span-4)
+  - Top Serviços por Receita (col-span-4)
+  - Mais Populares (col-span-3)
+- ✅ Cores semânticas consistentes:
+  - Verde: positivo, entradas, lucro
+  - Vermelho: negativo, saídas, crítico
+  - Azul: neutro, informativo
+  - Roxo: destaque, ranking
+- ✅ Trend indicators visuais (↑↓)
+- ✅ Empty states informativos
+- ✅ Hover effects e transições suaves
+
+**7. Performance:**
+- ✅ Cálculos otimizados com useMemo
+- ✅ Carregamento paralelo de dados
+- ✅ Filtros aplicados de forma eficiente
+- ✅ Sem re-renders desnecessários
+
+#### Arquivos Modificados:
+- `src/app/(app)/dashboard/page.tsx`
+  - Adicionados imports de repositórios
+  - Expandido estado com clients, cashMovements, professionals
+  - Atualizado useEffect para carregar novos dados
+  - Expandido useMemo com novos cálculos
+  - Adicionada segunda linha de cards
+  - Reorganizada aba Visão Geral
+  - Reduzido espaçamento do header
+
+#### Build e Testes:
+- ✅ Build passou sem erros (0 errors)
+- ✅ TypeScript compilation successful
+- ✅ Todas as rotas geradas corretamente
+- ✅ Cálculos validados
+- ✅ Layout responsivo testado
+
+#### Documentação Atualizada:
+- ✅ PRD: Acceptance criteria marcados como implementados
+- ✅ PRD: Adicionado changelog da versão 2.3.3
+- ✅ Inventário: Seção Dashboard expandida
+- ✅ Inventário: Status atualizado para "Fase 1 Completa"
+
+#### Impacto:
+- **Antes:** Dashboard básico com 4 cards e foco apenas em vendas/estoque
+- **Depois:**
+  - 8 cards de métricas cobrindo todas as áreas
+  - Visão completa de clientes (ativos, novos, com dívida)
+  - Visão completa de agenda (ocupação, futuros)
+  - Visão completa de caixa (entradas, saídas, saldo)
+  - Ranking de profissionais por performance
+  - Layout organizado e intuitivo
+  - Todas as métricas respeitam filtro de período
+
+#### Próximos Passos (Fase 2 - Opcional):
+- Gráfico de evolução temporal (linha)
+- Gráfico de distribuição de pagamentos (pizza)
+- Comparação com período anterior (% variação)
+- Novas abas: Financeiro, Equipe, Clientes
+- Taxa de cancelamento
+- Exportação de relatórios
 
 ---
 
