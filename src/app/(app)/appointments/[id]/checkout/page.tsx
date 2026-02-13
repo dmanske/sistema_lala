@@ -12,12 +12,14 @@ import { Sale } from "@/core/domain/sales/types"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, ChevronRight, Home } from "lucide-react"
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
 
-// Initialize
+// Initialize repositories
 const saleRepo = getSaleRepository()
 const apptRepo = getAppointmentRepository()
 const serviceRepo = getServiceRepository()
 const createSale = new CreateSale(saleRepo, apptRepo, serviceRepo)
+
 
 export default function AppointmentCheckoutPage() {
     const params = useParams()
@@ -31,10 +33,31 @@ export default function AppointmentCheckoutPage() {
     useEffect(() => {
         const initSale = async () => {
             try {
+                // First, check if the ID is actually a sale ID instead of appointment ID
+                const supabase = createClient()
+                
+                // Try to find if this ID is a sale ID
+                const { data: saleCheck } = await supabase
+                    .from('sales')
+                    .select('id, appointment_id')
+                    .eq('id', appointmentId)
+                    .single()
+                
+                let actualAppointmentId = appointmentId
+                
+                // If we found a sale with this ID, redirect to the correct appointment
+                if (saleCheck && saleCheck.appointment_id) {
+                    console.log('Detected sale ID instead of appointment ID, redirecting...')
+                    actualAppointmentId = saleCheck.appointment_id
+                    // Redirect to correct URL
+                    router.replace(`/appointments/${actualAppointmentId}/checkout`)
+                    return
+                }
+                
                 // Creates or gets existing sale for this appointment
                 const sale = await createSale.execute({
                     tenantId: 'default-tenant', // Using default
-                    appointmentId: appointmentId,
+                    appointmentId: actualAppointmentId,
                     createdBy: 'system'
                 })
                 setSaleId(sale.id)
