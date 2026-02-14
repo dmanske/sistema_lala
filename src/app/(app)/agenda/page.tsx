@@ -481,13 +481,15 @@ export default function AgendaPage() {
         // Cada hora tem 2 slots de 30min, então altura por hora = GRID_HOUR_HEIGHT
         const scrollPosition = (TARGET_HOUR - START_HOUR) * GRID_HOUR_HEIGHT;
         
-        // Usar setTimeout para garantir que o DOM foi renderizado
-        setTimeout(() => {
+        // Usar setTimeout maior para garantir que o DOM foi completamente renderizado
+        const timer = setTimeout(() => {
             if (gridRef.current) {
                 gridRef.current.scrollTop = scrollPosition;
             }
-        }, 100);
-    }, [viewMode, currentDate, isLoading]);
+        }, 300);
+        
+        return () => clearTimeout(timer);
+    }, [viewMode, currentDate, appointments.length]);
 
     // Filtros e buscas
     const getAppointmentsForDay = (date: Date): Appointment[] => {
@@ -1184,6 +1186,10 @@ export default function AgendaPage() {
                                                 "flex-1 custom-scrollbar",
                                                 (viewMode === "day-compact" || viewMode === "week-compact") ? "overflow-y-hidden" : "overflow-y-auto"
                                             )}
+                                            style={{
+                                                scrollbarWidth: 'thin',
+                                                scrollbarColor: 'rgba(100, 116, 139, 0.6) rgba(241, 245, 249, 0.5)'
+                                            }}
                                             onMouseMove={handleDragMove}
                                             onMouseUp={handleDragEnd}
                                             onMouseLeave={() => { if (isDragging) handleDragEnd(); }}

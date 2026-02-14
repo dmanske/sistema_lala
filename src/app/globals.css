@@ -196,4 +196,31 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* Custom Scrollbar - Estilo moderno e discreto */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 10px !important;
+    height: 10px !important;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(241, 245, 249, 0.5) !important;
+    border-radius: 10px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.6) !important;
+    border-radius: 10px;
+    border: 2px solid rgba(241, 245, 249, 0.5);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.8) !important;
+  }
+
+  /* Firefox */
+  .custom-scrollbar {
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(100, 116, 139, 0.6) rgba(241, 245, 249, 0.5) !important;
+  }
 }
