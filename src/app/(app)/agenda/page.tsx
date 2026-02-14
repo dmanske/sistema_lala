@@ -488,7 +488,7 @@ export default function AgendaPage() {
 
     // Helpers visuais
     const GRID_HOUR_HEIGHT = 55; // Altura fixa por hora em pixels (reduzido para mostrar mais horas)
-    const GRID_HOUR_HEIGHT_COMPACT = 30; // Altura compacta para visualização completa
+    const GRID_HOUR_HEIGHT_COMPACT = 25; // Altura compacta para visualização completa (ainda menor para caber em telas menores)
     const START_HOUR = 5; // Hora inicial do grid
 
     const getTopOffsetPx = (startTime: string): number => {
@@ -572,7 +572,7 @@ export default function AgendaPage() {
         const style = getCardStyle(apt.status, index);
         const topPx = getTopOffsetPx(apt.startTime);
         const isCompactMode = viewMode === "day-compact" || viewMode === "week-compact";
-        const minHeight = isCompactMode ? 20 : 50; // Ajustado para 50px
+        const minHeight = isCompactMode ? 15 : 50; // Ajustado para 15px no modo compacto
         const heightPx = Math.max(getHeightPx(apt.durationMinutes), minHeight);
 
         const width = totalInSlot > 1 ? `${100 / totalInSlot}%` : '100%';
