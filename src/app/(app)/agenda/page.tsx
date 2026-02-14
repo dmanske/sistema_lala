@@ -466,6 +466,28 @@ export default function AgendaPage() {
         return () => window.removeEventListener('mouseup', onMouseUp);
     }, [isDragging, handleDragEnd]);
 
+    // Auto-scroll para mostrar horário de trabalho (8h-18h) na primeira visualização
+    useEffect(() => {
+        if (!gridRef.current) return;
+        
+        // Apenas aplicar scroll nos modos day e week (não nos compactos que já mostram tudo)
+        if (viewMode === "day-compact" || viewMode === "week-compact") return;
+        
+        // Scroll para começar às 7h30 (dá contexto visual antes das 8h)
+        const START_HOUR = 5;
+        const TARGET_HOUR = 7.5; // 7h30
+        const GRID_HOUR_HEIGHT = 55;
+        
+        const scrollPosition = (TARGET_HOUR - START_HOUR) * GRID_HOUR_HEIGHT;
+        
+        // Usar setTimeout para garantir que o DOM foi renderizado
+        setTimeout(() => {
+            if (gridRef.current) {
+                gridRef.current.scrollTop = scrollPosition;
+            }
+        }, 100);
+    }, [viewMode, currentDate, isLoading]);
+
     // Filtros e buscas
     const getAppointmentsForDay = (date: Date): Appointment[] => {
         const dateStr = format(date, 'yyyy-MM-dd');
