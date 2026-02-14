@@ -473,11 +473,12 @@ export default function AgendaPage() {
         // Apenas aplicar scroll nos modos day e week (não nos compactos que já mostram tudo)
         if (viewMode === "day-compact" || viewMode === "week-compact") return;
         
-        // Scroll para começar às 7h30 (dá contexto visual antes das 8h)
+        // Scroll para começar às 8h (horário de trabalho)
         const START_HOUR = 5;
-        const TARGET_HOUR = 7.5; // 7h30
+        const TARGET_HOUR = 8; // 8h00
         const GRID_HOUR_HEIGHT = 55;
         
+        // Cada hora tem 2 slots de 30min, então altura por hora = GRID_HOUR_HEIGHT
         const scrollPosition = (TARGET_HOUR - START_HOUR) * GRID_HOUR_HEIGHT;
         
         // Usar setTimeout para garantir que o DOM foi renderizado
@@ -1002,7 +1003,7 @@ export default function AgendaPage() {
 
     return (
         <>
-            <div className="relative h-[calc(100vh-65px)] flex flex-col p-4 overflow-hidden bg-slate-50/50">
+            <div className="relative h-[calc(100vh-65px)] flex flex-col p-2 overflow-hidden bg-slate-50/50">
                 {/* Ambient Background - Animated Mesh Gradient */}
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
                     <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-purple-200/30 blur-[100px] animate-pulse" />
@@ -1010,39 +1011,39 @@ export default function AgendaPage() {
                     <div className="absolute bottom-[-10%] left-[20%] w-[50%] h-[50%] rounded-full bg-indigo-200/20 blur-[120px] animate-pulse delay-1000" />
                 </div>
 
-                <div className="space-y-6 pb-4 h-full flex flex-col relative z-10">
-                    {/* Header Moderno */}
-                    <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 pb-2">
-                        <div className="flex flex-col gap-1">
-                            <h1 className="text-4xl font-extrabold tracking-tight text-slate-800 font-heading capitalize flex items-center gap-3 drop-shadow-sm">
+                <div className="space-y-3 pb-2 h-full flex flex-col relative z-10">
+                    {/* Header Moderno - Compacto */}
+                    <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-3 pb-1">
+                        <div className="flex flex-col gap-0.5">
+                            <h1 className="text-2xl font-extrabold tracking-tight text-slate-800 font-heading capitalize flex items-center gap-2 drop-shadow-sm">
                                 {format(currentDate, "MMMM", { locale: ptBR })}
-                                <span className="text-slate-400/80 font-normal">{format(currentDate, "yyyy")}</span>
+                                <span className="text-slate-400/80 font-normal text-xl">{format(currentDate, "yyyy")}</span>
                             </h1>
-                            <p className="text-slate-500 font-medium ml-1">
+                            <p className="text-slate-500 font-medium text-xs ml-1">
                                 Gerencie seus agendamentos com facilidade.
                             </p>
                         </div>
 
-                        <div className="flex items-center gap-4 flex-wrap w-full xl:w-auto">
+                        <div className="flex items-center gap-3 flex-wrap w-full xl:w-auto">
                             {/* Busca rápida */}
-                            <div className="relative group md:w-64 w-full">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                            <div className="relative group md:w-56 w-full">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                                 <Input
                                     placeholder="Buscar cliente ou serviço..."
-                                    className="pl-9 pr-4 h-11 rounded-2xl bg-white/70 backdrop-blur-md border-white/40 focus:bg-white focus:border-indigo-500/30 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm hover:bg-white/90"
+                                    className="pl-9 pr-3 h-9 text-sm rounded-xl bg-white/70 backdrop-blur-md border-white/40 focus:bg-white focus:border-indigo-500/30 focus:ring-2 focus:ring-indigo-500/10 transition-all shadow-sm hover:bg-white/90"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
 
                             {/* View Toggle - Pill Design */}
-                            <div className="flex items-center bg-white/40 backdrop-blur-md p-1.5 rounded-2xl border border-white/40 shadow-sm">
+                            <div className="flex items-center bg-white/40 backdrop-blur-md p-1 rounded-xl border border-white/40 shadow-sm">
                                 <Button
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => setViewMode("day")}
                                     className={cn(
-                                        "rounded-xl h-9 px-5 font-medium transition-all duration-300",
+                                        "rounded-lg h-7 px-3 text-xs font-medium transition-all duration-300",
                                         viewMode === "day" ? "bg-white text-indigo-600 shadow-md scale-105 font-bold" : "text-slate-500 hover:bg-white/40 hover:text-slate-700"
                                     )}
                                 >
@@ -1053,7 +1054,7 @@ export default function AgendaPage() {
                                     size="sm"
                                     onClick={() => setViewMode("day-compact")}
                                     className={cn(
-                                        "rounded-xl h-9 px-3 font-medium transition-all duration-300 text-xs",
+                                        "rounded-lg h-7 px-2 text-[10px] font-medium transition-all duration-300",
                                         viewMode === "day-compact" ? "bg-white text-indigo-600 shadow-md scale-105 font-bold" : "text-slate-500 hover:bg-white/40 hover:text-slate-700"
                                     )}
                                 >
@@ -1064,7 +1065,7 @@ export default function AgendaPage() {
                                     size="sm"
                                     onClick={() => setViewMode("week")}
                                     className={cn(
-                                        "rounded-xl h-9 px-5 font-medium transition-all duration-300",
+                                        "rounded-lg h-7 px-3 text-xs font-medium transition-all duration-300",
                                         viewMode === "week" ? "bg-white text-indigo-600 shadow-md scale-105 font-bold" : "text-slate-500 hover:bg-white/40 hover:text-slate-700"
                                     )}
                                 >
@@ -1075,7 +1076,7 @@ export default function AgendaPage() {
                                     size="sm"
                                     onClick={() => setViewMode("week-compact")}
                                     className={cn(
-                                        "rounded-xl h-9 px-3 font-medium transition-all duration-300 text-xs",
+                                        "rounded-lg h-7 px-2 text-[10px] font-medium transition-all duration-300",
                                         viewMode === "week-compact" ? "bg-white text-indigo-600 shadow-md scale-105 font-bold" : "text-slate-500 hover:bg-white/40 hover:text-slate-700"
                                     )}
                                 >
@@ -1086,7 +1087,7 @@ export default function AgendaPage() {
                                     size="sm"
                                     onClick={() => setViewMode("month")}
                                     className={cn(
-                                        "rounded-xl h-9 px-5 font-medium transition-all duration-300",
+                                        "rounded-lg h-7 px-3 text-xs font-medium transition-all duration-300",
                                         viewMode === "month" ? "bg-white text-indigo-600 shadow-md scale-105 font-bold" : "text-slate-500 hover:bg-white/40 hover:text-slate-700"
                                     )}
                                 >
@@ -1100,9 +1101,9 @@ export default function AgendaPage() {
                                     setSelectedSlot(null);
                                     setIsFormOpen(true);
                                 }}
-                                className="h-12 px-6 rounded-2xl shadow-xl shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold border border-white/10"
+                                className="h-9 px-4 text-sm rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold border border-white/10"
                             >
-                                <Plus className="mr-2 h-5 w-5" />
+                                <Plus className="mr-1.5 h-4 w-4" />
                                 <span className="hidden sm:inline">Novo Agendamento</span>
                                 <span className="sm:hidden">Novo</span>
                             </Button>
@@ -1110,30 +1111,30 @@ export default function AgendaPage() {
                     </div>
 
                     {/* Calendar Container */}
-                    <Card className="border border-white/40 bg-white/60 backdrop-blur-xl shadow-2xl shadow-slate-200/40 rounded-[32px] overflow-hidden flex-1 flex flex-col ring-1 ring-white/60">
+                    <Card className="border border-white/40 bg-white/60 backdrop-blur-xl shadow-2xl shadow-slate-200/40 rounded-2xl overflow-hidden flex-1 flex flex-col ring-1 ring-white/60">
                         <CardContent className="p-0 flex flex-col h-full relative">
                             {/* Subtle Grain Overlay (Optional, enhances premium feel) */}
                             <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] pointer-events-none mix-blend-overlay z-0" />
 
-                            {/* Navigation Bar */}
-                            <div className="flex items-center justify-between px-6 py-4 border-b border-indigo-100/30 bg-white/40 backdrop-blur-sm relative z-10">
-                                <Button variant="outline" size="sm" onClick={handleToday} className="rounded-xl border-slate-200 text-slate-600 hover:bg-white hover:text-primary font-medium px-4">
+                            {/* Navigation Bar - Compacta */}
+                            <div className="flex items-center justify-between px-4 py-2 border-b border-indigo-100/30 bg-white/40 backdrop-blur-sm relative z-10">
+                                <Button variant="outline" size="sm" onClick={handleToday} className="rounded-lg border-slate-200 text-slate-600 hover:bg-white hover:text-primary font-medium px-3 h-7 text-xs">
                                     Hoje
                                 </Button>
 
-                                <div className="flex items-center bg-white rounded-full border border-slate-100 shadow-sm px-1 py-0.5">
-                                    <Button variant="ghost" size="icon" onClick={handlePrev} className="h-8 w-8 rounded-full hover:bg-slate-50 text-slate-400 hover:text-primary transition-colors">
-                                        <ChevronLeft className="h-5 w-5" />
+                                <div className="flex items-center bg-white rounded-full border border-slate-100 shadow-sm px-0.5 py-0.5">
+                                    <Button variant="ghost" size="icon" onClick={handlePrev} className="h-6 w-6 rounded-full hover:bg-slate-50 text-slate-400 hover:text-primary transition-colors">
+                                        <ChevronLeft className="h-4 w-4" />
                                     </Button>
-                                    <span className="text-sm font-semibold min-w-[220px] text-center text-slate-700 px-2 select-none uppercase tracking-wide">
+                                    <span className="text-xs font-semibold min-w-[180px] text-center text-slate-700 px-2 select-none uppercase tracking-wide">
                                         {getNavigationText()}
                                     </span>
-                                    <Button variant="ghost" size="icon" onClick={handleNext} className="h-8 w-8 rounded-full hover:bg-slate-50 text-slate-400 hover:text-primary transition-colors">
-                                        <ChevronRight className="h-5 w-5" />
+                                    <Button variant="ghost" size="icon" onClick={handleNext} className="h-6 w-6 rounded-full hover:bg-slate-50 text-slate-400 hover:text-primary transition-colors">
+                                        <ChevronRight className="h-4 w-4" />
                                     </Button>
                                 </div>
 
-                                <div className="w-[74px]" />
+                                <div className="w-[60px]" />
                             </div>
 
                             {/* Content */}
@@ -1141,10 +1142,10 @@ export default function AgendaPage() {
                                 {/* Day/Week View */}
                                 {(viewMode === "day" || viewMode === "week" || viewMode === "day-compact" || viewMode === "week-compact") && (
                                     <div className="flex flex-col h-full">
-                                        {/* Week Header - Sticky */}
+                                        {/* Week Header - Sticky - Compacto */}
                                         <div className={cn("grid border-b border-slate-100 bg-white z-20 shrink-0 shadow-sm", gridCols)}>
-                                            <div className="p-2 text-center border-r border-slate-50 bg-slate-50/50">
-                                                <Clock className="w-4 h-4 mx-auto text-slate-300" />
+                                            <div className="p-1 text-center border-r border-slate-50 bg-slate-50/50">
+                                                <Clock className="w-3 h-3 mx-auto text-slate-300" />
                                             </div>
                                             {displayDays.map((day, idx) => {
                                                 const isToday = isSameDay(day, new Date());
@@ -1152,22 +1153,22 @@ export default function AgendaPage() {
                                                     <div
                                                         key={idx}
                                                         className={cn(
-                                                            "py-2 px-2 text-center border-r border-slate-50 last:border-r-0 relative transition-colors duration-300",
+                                                            "py-1 px-1 text-center border-r border-slate-50 last:border-r-0 relative transition-colors duration-300",
                                                             isToday ? "bg-primary/5" : "hover:bg-slate-50"
                                                         )}
                                                     >
                                                         {isToday && (
-                                                            <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
+                                                            <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary" />
                                                         )}
                                                         <div className={cn(
-                                                            "text-[10px] font-bold uppercase tracking-widest mb-0.5",
+                                                            "text-[9px] font-bold uppercase tracking-wider mb-0.5",
                                                             isToday ? "text-primary" : "text-slate-400"
                                                         )}>
                                                             {format(day, "EEE", { locale: ptBR })}
                                                         </div>
                                                         <div className={cn(
-                                                            "w-8 h-8 mx-auto flex items-center justify-center rounded-full text-base font-bold transition-all",
-                                                            isToday ? "bg-primary text-white shadow-lg shadow-primary/30 scale-110" : "text-slate-700 hover:bg-slate-100"
+                                                            "w-6 h-6 mx-auto flex items-center justify-center rounded-full text-xs font-bold transition-all",
+                                                            isToday ? "bg-primary text-white shadow-md shadow-primary/30 scale-105" : "text-slate-700 hover:bg-slate-100"
                                                         )}>
                                                             {format(day, "dd")}
                                                         </div>
