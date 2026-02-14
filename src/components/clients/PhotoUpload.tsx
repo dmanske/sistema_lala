@@ -10,9 +10,11 @@ interface PhotoUploadProps {
   value?: string;
   onChange: (url: string) => void;
   disabled?: boolean;
+  onUploadStart?: () => void;
+  onUploadEnd?: () => void;
 }
 
-export function PhotoUpload({ value, onChange, disabled }: PhotoUploadProps) {
+export function PhotoUpload({ value, onChange, disabled, onUploadStart, onUploadEnd }: PhotoUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(value || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -34,6 +36,7 @@ export function PhotoUpload({ value, onChange, disabled }: PhotoUploadProps) {
     }
 
     setIsUploading(true);
+    onUploadStart?.();
 
     try {
       // Criar preview local
@@ -65,6 +68,7 @@ export function PhotoUpload({ value, onChange, disabled }: PhotoUploadProps) {
       setPreview(null);
     } finally {
       setIsUploading(false);
+      onUploadEnd?.();
     }
   };
 
@@ -85,7 +89,7 @@ export function PhotoUpload({ value, onChange, disabled }: PhotoUploadProps) {
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/png, image/jpeg, image/jpg, image/webp"
         onChange={handleFileSelect}
         className="hidden"
         disabled={disabled || isUploading}

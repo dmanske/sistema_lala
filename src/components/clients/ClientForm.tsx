@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -65,7 +66,13 @@ export function ClientForm({ initialData, mode }: ClientFormProps) {
     const repo = getClientRepository();
     const service = new ClientService(repo);
 
+    const [isUploadingPhoto, setIsUploadingPhoto] = useState(false); // Add state
+
     async function onSubmit(data: z.infer<typeof FormSchema>) {
+        if (isUploadingPhoto) {
+            toast.error("Aguarde o upload da foto terminar");
+            return;
+        }
         try {
             const cleanData = {
                 ...data,
@@ -219,6 +226,8 @@ export function ClientForm({ initialData, mode }: ClientFormProps) {
                                     value={field.value}
                                     onChange={field.onChange}
                                     disabled={form.formState.isSubmitting}
+                                    onUploadStart={() => setIsUploadingPhoto(true)}
+                                    onUploadEnd={() => setIsUploadingPhoto(false)}
                                 />
                             </FormControl>
                             <FormMessage />
@@ -230,11 +239,11 @@ export function ClientForm({ initialData, mode }: ClientFormProps) {
                     <Button variant="ghost" type="button" onClick={() => router.back()} className="h-11 rounded-xl order-2 sm:order-1">
                         Cancelar
                     </Button>
-                    <Button type="submit" disabled={form.formState.isSubmitting} className="h-11 rounded-xl shadow-lg shadow-primary/20 order-1 sm:order-2">
-                        {form.formState.isSubmitting && (
+                    <Button type="submit" disabled={form.formState.isSubmitting || isUploadingPhoto} className="h-11 rounded-xl shadow-lg shadow-primary/20 order-1 sm:order-2">
+                        {(form.formState.isSubmitting || isUploadingPhoto) && (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         )}
-                        {mode === "create" ? "Cadastrar Cliente" : "Salvar Alterações"}
+                        {isUploadingPhoto ? "Enviando foto..." : (mode === "create" ? "Cadastrar Cliente" : "Salvar Alterações")}
                     </Button>
                 </div>
             </form>

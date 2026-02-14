@@ -44,6 +44,8 @@ import { formatName } from "@/core/formatters/name";
 import { AppointmentForm } from "@/components/agenda/AppointmentForm";
 import { formatPhone } from "@/core/formatters/phone";
 import { formatDate } from "@/core/formatters/date";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import Image from "next/image";
 
 // Tabs
 import { ClientSummaryTab } from "@/components/clients/tabs/ClientSummaryTab";
@@ -145,12 +147,36 @@ export default function ClientProfilePage() {
                 <CardContent className="relative pt-0 px-6 sm:px-10 pb-8">
                     <div className="flex flex-col sm:flex-row items-center sm:items-end justify-between gap-6 w-full -mt-16">
                         <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 text-center sm:text-left">
-                            <Avatar className="h-32 w-32 border-4 border-white shadow-2xl">
-                                <AvatarImage src={client.photoUrl} alt={client.name} />
-                                <AvatarFallback className="text-4xl bg-white text-primary font-bold">
-                                    {getInitials(client.name)}
-                                </AvatarFallback>
-                            </Avatar>
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Avatar className="h-32 w-32 border-4 border-white shadow-2xl cursor-pointer hover:opacity-90 transition-opacity">
+                                        <AvatarImage src={client.photoUrl} alt={client.name} />
+                                        <AvatarFallback className="text-4xl bg-white text-primary font-bold">
+                                            {getInitials(client.name)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-transparent border-none shadow-none">
+                                    <div className="relative aspect-square w-full">
+                                        {client.photoUrl ? (
+                                            <Image
+                                                src={client.photoUrl}
+                                                alt={client.name}
+                                                fill
+                                                className="object-contain rounded-lg"
+                                                priority
+                                                sizes="(max-width: 768px) 100vw, 500px"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-white rounded-lg">
+                                                <span className="text-6xl font-bold text-primary opacity-20">
+                                                    {getInitials(client.name)}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
 
                             <div className="space-y-2 mb-2">
                                 <div className="flex flex-col sm:flex-row items-center gap-3">
