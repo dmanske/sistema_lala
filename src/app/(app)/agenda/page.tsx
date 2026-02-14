@@ -469,25 +469,25 @@ export default function AgendaPage() {
     // Auto-scroll para mostrar horário de trabalho (8h-18h) na primeira visualização
     useEffect(() => {
         if (!gridRef.current) return;
-        
+
         // Apenas aplicar scroll nos modos day e week (não nos compactos que já mostram tudo)
         if (viewMode === "day-compact" || viewMode === "week-compact") return;
-        
+
         // Scroll para começar às 8h (horário de trabalho)
         const START_HOUR = 5;
         const TARGET_HOUR = 8; // 8h00
         const GRID_HOUR_HEIGHT = 55;
-        
+
         // Cada hora tem 2 slots de 30min, então altura por hora = GRID_HOUR_HEIGHT
         const scrollPosition = (TARGET_HOUR - START_HOUR) * GRID_HOUR_HEIGHT;
-        
+
         // Usar setTimeout maior para garantir que o DOM foi completamente renderizado
         const timer = setTimeout(() => {
             if (gridRef.current) {
                 gridRef.current.scrollTop = scrollPosition;
             }
         }, 300);
-        
+
         return () => clearTimeout(timer);
     }, [viewMode, currentDate, appointments.length]);
 
@@ -1183,8 +1183,7 @@ export default function AgendaPage() {
                                         <div
                                             ref={gridRef}
                                             className={cn(
-                                                "flex-1 custom-scrollbar",
-                                                (viewMode === "day-compact" || viewMode === "week-compact") ? "overflow-y-hidden" : "overflow-y-auto"
+                                                "flex-1 overflow-y-auto custom-scrollbar"
                                             )}
                                             style={{
                                                 scrollbarWidth: 'thin',
