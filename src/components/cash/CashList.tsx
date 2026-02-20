@@ -122,7 +122,7 @@ export function CashList({ movements }: CashListProps) {
                         const batch = saleIdsArray.slice(i, i + batchSize)
                         const { data: sales, error } = await supabase
                             .from('sales')
-                            .select('id, client_id, clients(name)')
+                            .select('id, customer_id, clients(name)')
                             .in('id', batch)
 
                         if (error) {
