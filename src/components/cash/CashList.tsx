@@ -112,34 +112,81 @@ export function CashList({ movements }: CashListProps) {
 
             // Fetch customer names from sales
             if (saleIds.size > 0) {
-                const { data: sales } = await supabase
-                    .from('sales')
-                    .select('id, client_id, clients(name)')
-                    .in('id', Array.from(saleIds))
+                try {
+                    // Limitar a 50 IDs por vez para evitar URLs muito longas
+                    const saleIdsArray = Array.from(saleIds)
+                    const batchSize = 50
+                    const customerMap: Record<string, string> = {}
 
-                const customerMap: Record<string, string> = {}
-                sales?.forEach((sale: any) => {
-                    if (sales && sale.clients?.name) { // Fixed potential undefined access
-                        customerMap[sale.id] = sale.clients.name
+                    for (let i = 0; i < saleIdsArray.length; i += batchSize) {
+                        const batch = saleIdsArray.slice(i, i + batchSize)
+                        const { data: sales, error } = await supabase
+                            .from('sales')
+                            .select('id, client_id, clients(name)')
+                            .in('id', batch)
+
+                        if (error) {
+                            console.error('Erro ao buscar vendas:', error)
+                            // Se der erro de autenticação, tenta refresh
+                            if (error.message.includes('JWT') || error.message.includes('auth')) {
+                                const { error: refreshError } = await supabase.auth.refreshSession()
+                                if (refreshError) {
+                                    console.error('Erro ao fazer refresh da sessão:', refreshError)
+                                }
+                            }
+                            continue
+                        }
+
+                        sales?.forEach((sale: any) => {
+                            if (sale && sale.clients?.name) {
+                                customerMap[sale.id] = sale.clients.name
+                            }
+                        })
                     }
-                })
-                setCustomerNames(customerMap)
+                    setCustomerNames(customerMap)
+                } catch (error) {
+                    console.error('Erro ao carregar nomes de clientes:', error)
+                }
             }
 
             // Fetch supplier names from purchases
             if (purchaseIds.size > 0) {
-                const { data: purchases } = await supabase
-                    .from('purchases')
-                    .select('id, supplier_id, suppliers(name)')
-                    .in('id', Array.from(purchaseIds))
+                try {
+                    // Limitar a 50 IDs por vez para evitar URLs muito longas
+                    const purchaseIdsArray = Array.from(purchaseIds)
+                    const batchSize = 50
+                    const supplierMap: Record<string, string> = {}
 
-                const supplierMap: Record<string, string> = {}
-                purchases?.forEach((purchase: any) => {
-                    if (purchases && purchase.suppliers?.name) { // Fixed potential undefined access
-                        supplierMap[purchase.id] = purchase.suppliers.name
+                    for (let i = 0; i < purchaseIdsArray.length; i += batchSize) {
+                        const batch = purchaseIdsArray.slice(i, i + batchSize)
+                        const { data: purchases, error } = await supabase
+                            .from('purchases')
+                            .select('id, supplier_id, suppliers(name)')
+                            .in('id', batch)
+
+                        if (error) {
+                            console.error('Erro ao buscar compras:', error)
+                            // Se der erro de autenticação, tenta refresh
+                            if (error.message.includes('JWT') || error.message.includes('auth')) {
+                                const { error: refreshError } = await supabase.auth.refreshSession()
+                                if (refreshError) {
+                                    console.error('Erro ao fazer refresh da sessão:', refreshError)
+                                }
+                            }
+                            continue
+                        }
+
+                        purchases?.forEach((purchase: any) => {
+                            if (purchase && purchase.suppliers?.name) {
+                                supplierMap[purchase.id] = purchase.suppliers.name
+                            }
+                        })
                     }
-                })
-                setSupplierNames(supplierMap)
+                    setSupplierNames(supplierMap)
+                } catch (error) {
+                    console.error('Erro ao carregar nomes de fornecedores:', error)
+                }
+            }
             }
         }
 

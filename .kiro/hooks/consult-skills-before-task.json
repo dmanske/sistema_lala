@@ -1,0 +1,12 @@
+{
+  "name": "Consultar Skills Antes de Tarefas",
+  "version": "1.0.0",
+  "description": "Lembra o Kiro de consultar skills relevantes antes de iniciar qualquer tarefa de código",
+  "when": {
+    "type": "promptSubmit"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "IMPORTANTE: Antes de executar esta tarefa, você DEVE consultar a biblioteca de skills em ~/.agent/skills/ para encontrar padrões e melhores práticas relevantes. Identifique o tema da tarefa (React, API, segurança, testes, etc), busque skills relacionadas com 'ls ~/.agent/skills/ | grep -i <tema>', leia a skill encontrada, e então execute a tarefa aplicando as práticas recomendadas."
+  }
+}

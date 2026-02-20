@@ -2,6 +2,22 @@
 
 Sistema de gestão para salão de beleza, focado em UX premium e arquitetura escalável.
 
+## 🚀 Setup Rápido (PC Novo)
+
+**⭐ Primeiro acesso ou PC novo? Clique aqui: [`PCNOVO/`](PCNOVO/)**
+
+```bash
+bash PCNOVO/setup-completo.sh
+```
+
+Este comando configura **tudo automaticamente** em 3-5 minutos:
+- ✅ Dependências do projeto
+- ✅ 864+ skills globais (Kiro, Antigravity, Claude Code, Cursor)
+- ✅ Regras do projeto (banco de dados, isolamento, etc)
+- ✅ Ambiente (.env.local)
+
+📖 [Como usar](PCNOVO/COMO_USAR.md) | [Regras importantes](PCNOVO/REGRAS_PROJETO.md) | [Docs técnicas](docs/KIRO_SETUP.md)
+
 ## Tech Stack
 - **Framework**: Next.js 14+ (App Router)
 - **Language**: TypeScript

@@ -70,14 +70,30 @@ export async function getProductSuppliers(productId: string): Promise<ProductSup
 
   // Buscar nomes dos fornecedores
   const supplierIds = Array.from(supplierMap.keys());
-  const { data: suppliers } = await supabase
-    .from('suppliers')
-    .select('id, name')
-    .in('id', supplierIds);
+  
+  const supplierNameMap = new Map<string, string>();
+  try {
+    const batchSize = 50;
+    for (let i = 0; i < supplierIds.length; i += batchSize) {
+      const batch = supplierIds.slice(i, i + batchSize);
+      const { data: suppliers, error } = await supabase
+        .from('suppliers')
+        .select('id, name')
+        .in('id', batch);
 
-  const supplierNameMap = new Map(
-    suppliers?.map((s) => [s.id, s.name]) || []
-  );
+      if (error) {
+        console.error('Erro ao buscar fornecedores:', error);
+        if (error.message.includes('JWT') || error.message.includes('auth')) {
+          await supabase.auth.refreshSession();
+        }
+        continue;
+      }
+
+      suppliers?.forEach((s) => supplierNameMap.set(s.id, s.name));
+    }
+  } catch (error) {
+    console.error('Erro ao carregar fornecedores:', error);
+  }
 
   // Montar resultado
   const result: ProductSupplierInfo[] = [];

@@ -43,19 +43,43 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
             if (saleIds.length === 0) return
 
             const supabase = createClient()
-            const { data } = await supabase
-                .from('sales')
-                .select('id, appointment_id')
-                .in('id', saleIds)
-
-            if (data) {
+            
+            try {
+                // Limitar a 50 IDs por vez para evitar URLs muito longas
+                const batchSize = 50
                 const map: SaleAppointmentMap = {}
-                data.forEach(sale => {
-                    if (sale.appointment_id) {
-                        map[sale.id] = sale.appointment_id
+
+                for (let i = 0; i < saleIds.length; i += batchSize) {
+                    const batch = saleIds.slice(i, i + batchSize)
+                    const { data, error } = await supabase
+                        .from('sales')
+                        .select('id, appointment_id')
+                        .in('id', batch)
+
+                    if (error) {
+                        console.error('Erro ao buscar vendas:', error)
+                        // Se der erro de autenticação, tenta refresh
+                        if (error.message.includes('JWT') || error.message.includes('auth')) {
+                            const { error: refreshError } = await supabase.auth.refreshSession()
+                            if (refreshError) {
+                                console.error('Erro ao fazer refresh da sessão:', refreshError)
+                            }
+                        }
+                        continue
                     }
-                })
+
+                    if (data) {
+                        data.forEach(sale => {
+                            if (sale.appointment_id) {
+                                map[sale.id] = sale.appointment_id
+                            }
+                        })
+                    }
+                }
+                
                 setSaleAppointments(map)
+            } catch (error) {
+                console.error('Erro ao carregar appointments de vendas:', error)
             }
         }
 

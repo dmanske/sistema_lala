@@ -2,27 +2,54 @@
 description: Always consult the skills library before starting any task to find relevant best practices and patterns
 ---
 
-# Consultar Skills Antes de Qualquer Tarefa
+# ⚡ REGRA OBRIGATÓRIA: Consultar Skills Antes de Qualquer Tarefa
 
-**Regra Global:** Antes de iniciar qualquer tarefa de codificação, design, debugging, deploy ou arquitetura, SEMPRE consulte a biblioteca de skills instalada para encontrar padrões, boas práticas e guias relevantes.
+**ATENÇÃO KIRO:** Esta é uma regra OBRIGATÓRIA que você DEVE seguir em TODAS as interações neste projeto.
 
-## Passos
+## 🎯 Regra Principal
 
-1. Identifique o tema/tecnologia da tarefa solicitada pelo usuário (ex: React, Next.js, API, CSS, testes, deploy, segurança, etc.)
+Antes de iniciar QUALQUER tarefa (codificação, design, debugging, refatoração, arquitetura, testes, etc), você DEVE:
 
-2. Procure skills relevantes no diretório `~/.agent/skills/skills/` usando `find_by_name` ou `list_dir`:
-   ```
-   ls ~/.agent/skills/skills/ | grep -i <tema>
-   ```
+1. **IDENTIFICAR** o tema/tecnologia da tarefa
+2. **BUSCAR** skills relevantes em `~/.agent/skills/`
+3. **LER** a skill encontrada
+4. **APLICAR** as melhores práticas ao executar a tarefa
 
-3. Se encontrar uma skill relevante, leia o arquivo `SKILL.md` dentro da pasta da skill:
-   ```
-   cat ~/.agent/skills/skills/<nome-da-skill>/SKILL.md
-   ```
+**Não pule esta etapa. Não assuma que sabe tudo. Sempre consulte as skills primeiro.**
 
-4. Siga as instruções e boas práticas documentadas na skill ao executar a tarefa.
+## 📋 Processo Obrigatório (Siga Sempre)
 
-5. Se existirem scripts auxiliares na skill (pasta `scripts/`), considere utilizá-los.
+### Passo 1: Identifique o Tema
+Analise a solicitação do usuário e identifique:
+- Tecnologia principal (React, TypeScript, Python, etc)
+- Tipo de tarefa (componente, API, teste, deploy, etc)
+- Área (frontend, backend, segurança, performance, etc)
+
+### Passo 2: Busque Skills Relevantes
+```bash
+# Exemplo: usuário pediu para criar um componente React
+ls ~/.agent/skills/ | grep -i "react"
+
+# Exemplo: usuário pediu para revisar segurança de API
+ls ~/.agent/skills/ | grep -i "security\|api"
+
+# Exemplo: usuário pediu para criar testes
+ls ~/.agent/skills/ | grep -i "test"
+```
+
+### Passo 3: Leia a Skill
+```bash
+# Leia o SKILL.md da skill encontrada
+cat ~/.agent/skills/<nome-da-skill>/SKILL.md
+```
+
+### Passo 4: Aplique as Práticas
+- Siga as instruções da skill
+- Use os padrões recomendados
+- Considere scripts auxiliares (se houver)
+
+### Passo 5: Execute a Tarefa
+Agora sim, execute a tarefa aplicando o conhecimento da skill.
 
 ## Exemplos de Busca
 
@@ -41,8 +68,8 @@ description: Always consult the skills library before starting any task to find 
 
 ## Notas
 
-- O diretório de skills está em: `~/.agent/skills/skills/`
+- O diretório de skills está em: `~/.agent/skills/`
 - Cada skill tem um `SKILL.md` com instruções detalhadas
 - Algumas skills têm pastas `scripts/`, `examples/` e `resources/` adicionais
-- São 710+ skills cobrindo diversas tecnologias e padrões
+- São 864+ skills cobrindo diversas tecnologias e padrões
 - Para atualizar as skills: `cd ~/.agent/skills && git pull`
