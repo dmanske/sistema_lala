@@ -187,7 +187,6 @@ export function CashList({ movements }: CashListProps) {
                     console.error('Erro ao carregar nomes de fornecedores:', error)
                 }
             }
-            }
         }
 
         if (movements.length > 0) {
