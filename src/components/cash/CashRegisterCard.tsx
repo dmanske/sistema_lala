@@ -92,6 +92,16 @@ export function CashRegisterCard({ summary, onUpdate }: CashRegisterCardProps) {
                         </div>
                     </div>
 
+                    {/* Conta Bancária */}
+                    {summary.cashRegister.bankAccountName && (
+                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                            <p className="text-xs text-blue-600 mb-1">Conta Bancária</p>
+                            <p className="text-sm font-semibold text-blue-900">
+                                {summary.cashRegister.bankAccountName}
+                            </p>
+                        </div>
+                    )}
+
                     {/* Saldo Atual */}
                     <div className="bg-white/50 p-4 rounded-lg border border-purple-200">
                         <div className="flex items-center justify-between mb-2">

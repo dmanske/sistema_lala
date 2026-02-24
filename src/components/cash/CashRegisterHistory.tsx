@@ -49,6 +49,7 @@ export function CashRegisterHistory({ cashRegisters }: CashRegisterHistoryProps)
                         <TableRow>
                             <TableHead>Data</TableHead>
                             <TableHead>Responsável</TableHead>
+                            <TableHead>Conta</TableHead>
                             <TableHead className="text-right">Inicial</TableHead>
                             <TableHead className="text-right">Final</TableHead>
                             <TableHead className="text-right">Diferença</TableHead>
@@ -85,6 +86,11 @@ export function CashRegisterHistory({ cashRegisters }: CashRegisterHistoryProps)
                                                 </p>
                                             )}
                                         </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <p className="text-sm font-medium text-blue-700">
+                                            {cashRegister.bankAccountName || "N/A"}
+                                        </p>
                                     </TableCell>
                                     <TableCell className="text-right font-medium">
                                         R$ {cashRegister.initialBalance.toFixed(2)}

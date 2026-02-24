@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -25,15 +25,29 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { useAuth } from "@/contexts/AuthProvider"
 import { AbrirCaixa } from "@/core/usecases/cash-register/AbrirCaixa"
 import { SupabaseCashRegisterRepository } from "@/infrastructure/repositories/supabase/SupabaseCashRegisterRepository"
 import { createClient } from "@/lib/supabase/client"
 
 const FormSchema = z.object({
+    bankAccountId: z.string().min(1, "Selecione uma conta bancária"),
     initialBalance: z.number().min(0, "Saldo inicial não pode ser negativo"),
     notes: z.string().optional(),
 })
+
+interface BankAccount {
+    id: string
+    name: string
+    type: string
+}
 
 interface CashRegisterDialogProps {
     isOpen: boolean
@@ -47,15 +61,54 @@ export function CashRegisterDialog({
     onSuccess,
 }: CashRegisterDialogProps) {
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
+    const [isLoadingAccounts, setIsLoadingAccounts] = useState(true)
     const { user } = useAuth()
 
     const form = useForm<z.infer<typeof FormSchema>>({
         resolver: zodResolver(FormSchema),
         defaultValues: {
+            bankAccountId: "",
             initialBalance: 0,
             notes: "",
         },
     })
+
+    useEffect(() => {
+        if (isOpen) {
+            loadBankAccounts()
+        }
+    }, [isOpen])
+
+    async function loadBankAccounts() {
+        setIsLoadingAccounts(true)
+        try {
+            const supabase = createClient()
+            const { data, error } = await supabase
+                .from('bank_accounts')
+                .select('id, name, type')
+                .eq('is_active', true)
+                .order('name')
+
+            if (error) throw error
+
+            setBankAccounts(data || [])
+
+            // Auto-select "Caixa Geral" if exists
+            const caixaGeral = data?.find(acc => 
+                acc.name.toLowerCase().includes('caixa') && 
+                acc.name.toLowerCase().includes('geral')
+            )
+            if (caixaGeral) {
+                form.setValue('bankAccountId', caixaGeral.id)
+            }
+        } catch (error) {
+            console.error('Error loading bank accounts:', error)
+            toast.error('Erro ao carregar contas bancárias')
+        } finally {
+            setIsLoadingAccounts(false)
+        }
+    }
 
     async function onSubmit(data: z.infer<typeof FormSchema>) {
         if (!user) {
@@ -71,6 +124,7 @@ export function CashRegisterDialog({
 
             await useCase.execute({
                 initialBalance: data.initialBalance,
+                bankAccountId: data.bankAccountId,
                 openedBy: user.id,
                 notes: data.notes,
             })
@@ -97,7 +151,7 @@ export function CashRegisterDialog({
                         Abrir Caixa
                     </DialogTitle>
                     <DialogDescription>
-                        Informe o saldo inicial para abrir um novo turno de caixa.
+                        Selecione a conta bancária e informe o saldo inicial para abrir um novo turno de caixa.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -112,6 +166,39 @@ export function CashRegisterDialog({
                                 Este valor será usado como referência para o fechamento.
                             </p>
                         </div>
+
+                        <FormField
+                            control={form.control}
+                            name="bankAccountId"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Conta Bancária *</FormLabel>
+                                    <Select
+                                        onValueChange={field.onChange}
+                                        value={field.value}
+                                        disabled={isLoadingAccounts}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={
+                                                    isLoadingAccounts 
+                                                        ? "Carregando..." 
+                                                        : "Selecione a conta"
+                                                } />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {bankAccounts.map((account) => (
+                                                <SelectItem key={account.id} value={account.id}>
+                                                    {account.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
 
                         <FormField
                             control={form.control}

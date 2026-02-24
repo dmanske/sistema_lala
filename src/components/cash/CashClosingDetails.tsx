@@ -105,6 +105,15 @@ export function CashClosingDetails({
                                 </div>
                             </div>
                         </div>
+
+                        {cashRegister.bankAccountName && (
+                            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                <p className="text-xs text-blue-600 mb-1">Conta Bancária</p>
+                                <p className="text-sm font-semibold text-blue-900">
+                                    {cashRegister.bankAccountName}
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     <Separator />

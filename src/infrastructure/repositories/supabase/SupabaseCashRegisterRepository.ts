@@ -200,10 +200,23 @@ export class SupabaseCashRegisterRepository implements CashRegisterRepository {
         // Get user name for opened_by
         const openedByName = await this.getUserName(cashRegister.openedBy)
 
+        // Get bank account name if exists
+        let bankAccountName: string | undefined
+        if (cashRegister.bankAccountId) {
+            const { data: bankAccount } = await this.supabase
+                .from('bank_accounts')
+                .select('name')
+                .eq('id', cashRegister.bankAccountId)
+                .maybeSingle()
+            
+            bankAccountName = bankAccount?.name
+        }
+
         // Create CashRegisterWithUser
         const cashRegisterWithUser: CashRegisterWithUser = {
             ...cashRegister,
-            openedByName
+            openedByName,
+            bankAccountName
         }
 
         return {
@@ -221,6 +234,7 @@ export class SupabaseCashRegisterRepository implements CashRegisterRepository {
         const { data, error } = await this.supabase
             .rpc('abrir_caixa_rpc', {
                 p_initial_balance: input.initialBalance,
+                p_bank_account_id: input.bankAccountId,
                 p_opened_by: input.openedBy
             })
 
@@ -325,6 +339,7 @@ export class SupabaseCashRegisterRepository implements CashRegisterRepository {
             openedBy: row.opened_by,
             openedAt: new Date(row.opened_at),
             initialBalance: row.initial_balance,
+            bankAccountId: row.bank_account_id,
             status: row.status,
             closedBy: row.closed_by,
             closedAt: row.closed_at ? new Date(row.closed_at) : null,

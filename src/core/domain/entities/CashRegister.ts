@@ -6,6 +6,7 @@ export interface CashRegister {
     openedBy: string
     openedAt: Date
     initialBalance: number
+    bankAccountId?: string
     status: CashRegisterStatus
     closedBy?: string | null
     closedAt?: Date | null
@@ -20,6 +21,7 @@ export interface CashRegister {
 export interface CashRegisterWithUser extends CashRegister {
     openedByName?: string
     closedByName?: string
+    bankAccountName?: string
 }
 
 export interface CashRegisterSummary {

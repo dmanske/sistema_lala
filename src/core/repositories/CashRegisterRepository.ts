@@ -4,6 +4,7 @@ import { CashRegisterMovement, CashRegisterMovementWithUser } from '../domain/en
 export interface CreateCashRegisterInput {
     openedBy: string
     initialBalance: number
+    bankAccountId: string
     notes?: string
 }
 
