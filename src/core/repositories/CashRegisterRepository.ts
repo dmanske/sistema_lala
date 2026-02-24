@@ -1,4 +1,4 @@
-import { CashRegister, CashRegisterWithUser, CashRegisterSummary } from '../domain/entities/CashRegister'
+import { CashRegister, CashRegisterWithUser, CashRegisterSummary, CashRegisterSummaryWithUser } from '../domain/entities/CashRegister'
 import { CashRegisterMovement, CashRegisterMovementWithUser } from '../domain/entities/CashRegisterMovement'
 
 export interface CreateCashRegisterInput {
@@ -34,7 +34,7 @@ export interface CashRegisterRepository {
     getById(id: string): Promise<CashRegister | null>
     getByIdWithUser(id: string): Promise<CashRegisterWithUser | null>
     getHistory(filters?: GetHistoryFilters): Promise<CashRegisterWithUser[]>
-    getSummary(id: string): Promise<CashRegisterSummary | null>
+    getSummary(id: string): Promise<CashRegisterSummaryWithUser | null>
     create(input: CreateCashRegisterInput): Promise<CashRegister>
     getMovements(cashRegisterId: string): Promise<CashRegisterMovementWithUser[]>
     createMovement(input: CreateMovementInput): Promise<CashRegisterMovement>

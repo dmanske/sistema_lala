@@ -13,14 +13,14 @@ import {
     User,
     DollarSign
 } from "lucide-react"
-import { CashRegisterSummary } from "@/core/domain/entities/CashRegister"
+import { CashRegisterSummaryWithUser } from "@/core/domain/entities/CashRegister"
 import { CashMovementDialog } from "./CashMovementDialog"
 import { CashClosingDialog } from "./CashClosingDialog"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
 interface CashRegisterCardProps {
-    summary: CashRegisterSummary | null
+    summary: CashRegisterSummaryWithUser | null
     onUpdate: () => void
 }
 
@@ -86,7 +86,7 @@ export function CashRegisterCard({ summary, onUpdate }: CashRegisterCardProps) {
                             <div>
                                 <p className="text-xs text-gray-500">Responsável</p>
                                 <p className="font-medium truncate">
-                                    {summary.cashRegister.openedBy}
+                                    {summary.cashRegister.openedByName || 'Não informado'}
                                 </p>
                             </div>
                         </div>

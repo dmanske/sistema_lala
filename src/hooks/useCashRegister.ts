@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from "react"
-import { CashRegisterSummary, CashRegisterWithUser } from "@/core/domain/entities/CashRegister"
+import { CashRegisterSummary, CashRegisterSummaryWithUser, CashRegisterWithUser } from "@/core/domain/entities/CashRegister"
 import { ObterCaixaAtual } from "@/core/usecases/cash-register/ObterCaixaAtual"
 import { ObterHistoricoFechamentos } from "@/core/usecases/cash-register/ObterHistoricoFechamentos"
 import { createClient } from "@/lib/supabase/client"
 
 export function useCashRegister() {
-    const [currentCashRegister, setCurrentCashRegister] = useState<CashRegisterSummary | null>(null)
+    const [currentCashRegister, setCurrentCashRegister] = useState<CashRegisterSummaryWithUser | null>(null)
     const [history, setHistory] = useState<CashRegisterWithUser[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)

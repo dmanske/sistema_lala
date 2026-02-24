@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import { CashRegister, CashRegisterWithUser, CashRegisterSummary } from '@/core/domain/entities/CashRegister'
+import { CashRegister, CashRegisterWithUser, CashRegisterSummary, CashRegisterSummaryWithUser } from '@/core/domain/entities/CashRegister'
 import { CashRegisterMovement, CashRegisterMovementWithUser } from '@/core/domain/entities/CashRegisterMovement'
 import { 
     CashRegisterRepository, 
@@ -73,11 +73,7 @@ export class SupabaseCashRegisterRepository implements CashRegisterRepository {
 
         const { data, error } = await this.supabase
             .from('cash_registers')
-            .select(`
-                *,
-                opened_by_profile:profiles!cash_registers_opened_by_fkey(name),
-                closed_by_profile:profiles!cash_registers_closed_by_fkey(name)
-            `)
+            .select('*')
             .eq('tenant_id', tenantId)
             .eq('id', id)
             .maybeSingle()
@@ -85,7 +81,15 @@ export class SupabaseCashRegisterRepository implements CashRegisterRepository {
         if (error) throw new Error(`Failed to get cash register with user: ${error.message}`)
         if (!data) return null
 
-        return this.mapFromDbWithUser(data)
+        // Fetch user names separately
+        const openedByProfile = data.opened_by ? await this.getUserName(data.opened_by) : undefined
+        const closedByProfile = data.closed_by ? await this.getUserName(data.closed_by) : undefined
+
+        return {
+            ...this.mapFromDb(data),
+            openedByName: openedByProfile,
+            closedByName: closedByProfile
+        }
     }
 
     async getHistory(filters?: GetHistoryFilters): Promise<CashRegisterWithUser[]> {
@@ -93,11 +97,7 @@ export class SupabaseCashRegisterRepository implements CashRegisterRepository {
 
         let query = this.supabase
             .from('cash_registers')
-            .select(`
-                *,
-                opened_by_profile:profiles!cash_registers_opened_by_fkey(name),
-                closed_by_profile:profiles!cash_registers_closed_by_fkey(name)
-            `)
+            .select('*')
             .eq('tenant_id', tenantId)
 
         if (filters?.status) {
@@ -123,10 +123,39 @@ export class SupabaseCashRegisterRepository implements CashRegisterRepository {
         if (error) throw new Error(`Failed to get cash register history: ${error.message}`)
         if (!data) return []
 
-        return data.map(row => this.mapFromDbWithUser(row))
+        // Fetch user names for all records
+        const results = await Promise.all(
+            data.map(async (row) => {
+                const openedByProfile = row.opened_by ? await this.getUserName(row.opened_by) : undefined
+                const closedByProfile = row.closed_by ? await this.getUserName(row.closed_by) : undefined
+
+                return {
+                    ...this.mapFromDb(row),
+                    openedByName: openedByProfile,
+                    closedByName: closedByProfile
+                }
+            })
+        )
+
+        return results
     }
 
-    async getSummary(id: string): Promise<CashRegisterSummary | null> {
+    private async getUserName(userId: string): Promise<string | undefined> {
+        try {
+            const { data, error } = await this.supabase
+                .from('profiles')
+                .select('full_name')
+                .eq('id', userId)
+                .maybeSingle()
+
+            if (error || !data) return undefined
+            return data.full_name
+        } catch {
+            return undefined
+        }
+    }
+
+    async getSummary(id: string): Promise<CashRegisterSummaryWithUser | null> {
         const cashRegister = await this.getById(id)
         if (!cashRegister) return null
 
@@ -150,18 +179,10 @@ export class SupabaseCashRegisterRepository implements CashRegisterRepository {
             .reduce((sum, m) => sum + m.amount, 0) || 0
 
         // Get sales count and total
-        // Note: This assumes sales are linked to cash register via a field or through cash_movements
-        // Adjust the query based on your actual schema
-        const { data: sales, error: salesError } = await this.supabase
-            .from('sales')
-            .select('total_amount')
-            .eq('tenant_id', tenantId)
-            .gte('created_at', cashRegister.openedAt.toISOString())
-
         // If cash register is closed, filter sales up to closed_at
         let salesQuery = this.supabase
             .from('sales')
-            .select('total_amount')
+            .select('total')
             .eq('tenant_id', tenantId)
             .gte('created_at', cashRegister.openedAt.toISOString())
 
@@ -174,10 +195,19 @@ export class SupabaseCashRegisterRepository implements CashRegisterRepository {
         if (salesQueryError) throw new Error(`Failed to get sales: ${salesQueryError.message}`)
 
         const salesCount = salesData?.length || 0
-        const totalSales = salesData?.reduce((sum, s) => sum + s.total_amount, 0) || 0
+        const totalSales = salesData?.reduce((sum, s) => sum + s.total, 0) || 0
+
+        // Get user name for opened_by
+        const openedByName = await this.getUserName(cashRegister.openedBy)
+
+        // Create CashRegisterWithUser
+        const cashRegisterWithUser: CashRegisterWithUser = {
+            ...cashRegister,
+            openedByName
+        }
 
         return {
-            cashRegister,
+            cashRegister: cashRegisterWithUser,
             movementsCount,
             totalSangria,
             totalSuprimento,
@@ -187,15 +217,11 @@ export class SupabaseCashRegisterRepository implements CashRegisterRepository {
     }
 
     async create(input: CreateCashRegisterInput): Promise<CashRegister> {
-        const tenantId = await this.getTenantId()
-
         // Call the RPC function to open cash register
         const { data, error } = await this.supabase
             .rpc('abrir_caixa_rpc', {
-                p_tenant_id: tenantId,
-                p_opened_by: input.openedBy,
                 p_initial_balance: input.initialBalance,
-                p_notes: input.notes || null
+                p_opened_by: input.openedBy
             })
 
         if (error) throw new Error(`Failed to create cash register: ${error.message}`)
@@ -215,7 +241,7 @@ export class SupabaseCashRegisterRepository implements CashRegisterRepository {
             .from('cash_register_movements')
             .select(`
                 *,
-                created_by_profile:profiles!cash_register_movements_created_by_fkey(name)
+                created_by_profile:profiles!cash_register_movements_created_by_fkey(full_name)
             `)
             .eq('tenant_id', tenantId)
             .eq('cash_register_id', cashRegisterId)
@@ -288,7 +314,7 @@ export class SupabaseCashRegisterRepository implements CashRegisterRepository {
     private mapMovementFromDbWithUser(row: any): CashRegisterMovementWithUser {
         return {
             ...this.mapMovementFromDb(row),
-            createdByName: row.created_by_profile?.name
+            createdByName: row.created_by_profile?.full_name
         }
     }
 
@@ -311,11 +337,5 @@ export class SupabaseCashRegisterRepository implements CashRegisterRepository {
         }
     }
 
-    private mapFromDbWithUser(row: any): CashRegisterWithUser {
-        return {
-            ...this.mapFromDb(row),
-            openedByName: row.opened_by_profile?.name,
-            closedByName: row.closed_by_profile?.name
-        }
-    }
+
 }

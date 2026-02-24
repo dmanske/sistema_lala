@@ -1,4 +1,4 @@
-import { CashRegisterSummary } from '@/core/domain/entities/CashRegister'
+import { CashRegisterSummary, CashRegisterSummaryWithUser } from '@/core/domain/entities/CashRegister'
 import { CashRegisterRepository } from '@/core/repositories/CashRegisterRepository'
 import { SupabaseCashRegisterRepository } from '@/infrastructure/repositories/supabase/SupabaseCashRegisterRepository'
 import { SupabaseClient } from '@supabase/supabase-js'
@@ -10,7 +10,7 @@ export class ObterCaixaAtual {
         this.repository = new SupabaseCashRegisterRepository(client)
     }
 
-    async execute(): Promise<CashRegisterSummary | null> {
+    async execute(): Promise<CashRegisterSummaryWithUser | null> {
         // Get the currently open cash register
         const currentCashRegister = await this.repository.getCurrentOpen()
         

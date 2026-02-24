@@ -30,3 +30,12 @@ export interface CashRegisterSummary {
     salesCount: number
     totalSales: number
 }
+
+export interface CashRegisterSummaryWithUser {
+    cashRegister: CashRegisterWithUser
+    movementsCount: number
+    totalSangria: number
+    totalSuprimento: number
+    salesCount: number
+    totalSales: number
+}
