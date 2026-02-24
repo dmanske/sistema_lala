@@ -97,7 +97,7 @@ export default function Aniversarios() {
       const startTime = performance.now();
       
       // Timeout de 8 segundos (mais agressivo)
-      const timeoutPromise = new Promise((_, reject) => 
+      const timeoutPromise = new Promise<never>((_, reject) => 
         setTimeout(() => reject(new Error('Timeout: Query demorou mais de 8 segundos')), 8000)
       );
       
@@ -109,7 +109,7 @@ export default function Aniversarios() {
         .order('name')
         .abortSignal(signal!);
 
-      const { data: clientes, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+      const { data: clientes, error } = await Promise.race([queryPromise, timeoutPromise]);
 
       // Verificar se foi cancelado
       if (signal?.aborted) {
