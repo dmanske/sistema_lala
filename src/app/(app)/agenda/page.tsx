@@ -244,8 +244,8 @@ export default function AgendaPage() {
             console.log('[AGENDA] 📡 Buscando dados em paralelo...');
             const startTime = performance.now();
             
-            // Timeout de 8 segundos para cada query
-            const withTimeout = <T,>(promise: Promise<T>, timeoutMs = 8000): Promise<T> => {
+            // Timeout de 15 segundos para cada query (mais realista para conexões lentas)
+            const withTimeout = <T,>(promise: Promise<T>, timeoutMs = 15000): Promise<T> => {
                 return Promise.race([
                     promise,
                     new Promise<T>((_, reject) => 

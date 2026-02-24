@@ -461,3 +461,111 @@ Se aparecer `⚠️ Query cancelada` ou `❌ Timeout`, significa que há um prob
 
 **Última atualização:** 24/02/2026 - 18:00  
 **Próxima verificação:** 01/03/2026
+
+
+---
+
+## 🔧 Solução Final: Singleton do Cliente Supabase (24/02/2026 - 18:30)
+
+### Problema Identificado (Causa Raiz)
+
+Após investigação sistemática usando a skill `systematic-debugging`, descobri que:
+
+1. **Cada `createClient()` criava uma nova instância** do Supabase
+2. **Múltiplas autenticações** - Cada instância verificava auth novamente
+3. **RLS overhead** - Cada query precisava revalidar permissões
+4. **Pool de conexões não otimizado** - 10 conexões idle no banco
+
+**Evidência:**
+```sql
+-- Configuração do banco
+statement_timeout = 120000ms (120s)
+max_connections = 60
+work_mem = 3.5MB (baixo)
+
+-- Conexões ativas
+total: 20, active: 1, idle: 10
+```
+
+**Queries eram rápidas** (0.145ms), mas o **overhead de autenticação/RLS** causava timeout.
+
+### Solução Implementada
+
+**Arquivo:** `src/lib/supabase/client.ts`
+
+#### 1. Singleton Pattern
+- Reutiliza mesma instância do cliente
+- Evita múltiplas autenticações
+- Reduz overhead de RLS
+
+#### 2. Timeout Configurável
+- 30 segundos (mais generoso que 8s)
+- AbortController para cancelamento limpo
+- Fallback gracioso em caso de timeout
+
+```typescript
+let client: SupabaseClient | null = null
+
+export function createClient() {
+    // Singleton: reutilizar mesma instância
+    if (client) {
+        return client
+    }
+
+    client = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            auth: {
+                autoRefreshToken: true,
+                persistSession: true,
+                detectSessionInUrl: true
+            },
+            global: {
+                fetch: (url, options = {}) => {
+                    // Timeout de 30 segundos
+                    const controller = new AbortController()
+                    const timeoutId = setTimeout(() => controller.abort(), 30000)
+                    
+                    return fetch(url, {
+                        ...options,
+                        signal: controller.signal
+                    }).finally(() => clearTimeout(timeoutId))
+                }
+            }
+        }
+    )
+    
+    return client
+}
+```
+
+### Benefícios
+
+- ✅ **Reduz overhead de autenticação** - Instância única
+- ✅ **Melhora performance de RLS** - Menos validações
+- ✅ **Pool de conexões otimizado** - Reutiliza conexões
+- ✅ **Timeout configurável** - 30s em vez de 8s
+- ✅ **Cancelamento limpo** - AbortController
+
+### Resultados Esperados
+
+- Queries completam em < 2 segundos
+- Sem timeouts em operações normais
+- Troca de menu instantânea
+- Sistema responsivo
+
+### Monitoramento
+
+Observe os logs no console:
+```
+[ANIVERSARIOS] ✅ Clientes carregados { total: 12, timeMs: "145.23" }
+[AGENDA] ✅ Dados básicos carregados { timeMs: "1234.56" }
+```
+
+Se ainda aparecer `❌ Timeout`, significa que há um problema mais profundo (rede, Supabase, etc.).
+
+---
+
+**Última atualização:** 24/02/2026 - 18:30  
+**Status:** Solução implementada, aguardando teste do usuário

@@ -96,9 +96,9 @@ export default function Aniversarios() {
       console.log('[ANIVERSARIOS] 📡 Buscando clientes...');
       const startTime = performance.now();
       
-      // Timeout de 8 segundos (mais agressivo)
+      // Timeout de 15 segundos (mais realista para conexões lentas)
       const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout: Query demorou mais de 8 segundos')), 8000)
+        setTimeout(() => reject(new Error('Timeout: Query demorou mais de 15 segundos')), 15000)
       );
       
       // Query com AbortSignal
