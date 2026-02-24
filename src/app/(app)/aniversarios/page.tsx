@@ -55,10 +55,11 @@ export default function Aniversarios() {
     const now = Date.now();
     const shouldFetch = now - lastFetch > CACHE_DURATION;
     
-    if (shouldFetch) {
+    if (shouldFetch || lastFetch === 0) {
       buscarDadosAniversarios();
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Roda apenas na montagem do componente
 
   useEffect(() => {
     filtrarClientes();
