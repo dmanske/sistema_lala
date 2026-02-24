@@ -329,19 +329,22 @@ export function CashList({ movements }: CashListProps) {
                                                     <span className="text-sm text-muted-foreground ml-8">{movement.description || "Pagamento parcial"}</span>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge variant="outline" className="font-normal capitalize text-xs">
-                                                        {movement.method === 'WALLET' ? 'Carteira' :
-                                                            movement.method === 'CASH' ? 'Dinheiro' :
-                                                                movement.method === 'CARD' ? 'Cartão' :
-                                                                    movement.method === 'PIX' ? 'Pix' :
-                                                                        movement.method === 'TRANSFER' ? 'Transf.' :
-                                                                            movement.method?.toUpperCase() === 'FIADO' ? (
-                                                                                <span className="flex items-center gap-1 text-red-600 font-medium">
-                                                                                    <HandCoins className="h-3 w-3" />
-                                                                                    Fiado
-                                                                                </span>
-                                                                            ) : movement.method}
-                                                    </Badge>
+                                                    {movement.method?.toLowerCase() === 'fiado' ? (
+                                                        <Badge variant="outline" className="font-normal text-xs">
+                                                            <span className="flex items-center gap-1 text-red-600 font-medium">
+                                                                <HandCoins className="h-3 w-3" />
+                                                                Fiado
+                                                            </span>
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="outline" className="font-normal capitalize text-xs">
+                                                            {movement.method === 'WALLET' ? 'Carteira' :
+                                                                movement.method === 'CASH' ? 'Dinheiro' :
+                                                                    movement.method === 'CARD' ? 'Cartão' :
+                                                                        movement.method === 'PIX' ? 'Pix' :
+                                                                            movement.method === 'TRANSFER' ? 'Transf.' : movement.method}
+                                                        </Badge>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell></TableCell>
                                                 <TableCell>
@@ -385,19 +388,22 @@ export function CashList({ movements }: CashListProps) {
                                             <span className="text-sm font-medium">{movement.description || "-"}</span>
                                         </TableCell>
                                         <TableCell>
-                                            <Badge variant="secondary" className="font-normal capitalize bg-muted text-muted-foreground hover:bg-muted">
-                                                {movement.method === 'WALLET' ? 'Carteira' :
-                                                    movement.method === 'CASH' ? 'Dinheiro' :
-                                                        movement.method === 'CARD' ? 'Cartão' :
-                                                            movement.method === 'PIX' ? 'Pix' :
-                                                                movement.method === 'TRANSFER' ? 'Transf.' :
-                                                                    movement.method?.toUpperCase() === 'FIADO' ? (
-                                                                        <span className="flex items-center gap-1 text-red-600 font-medium">
-                                                                            <HandCoins className="h-3 w-3" />
-                                                                            Fiado
-                                                                        </span>
-                                                                    ) : movement.method}
-                                            </Badge>
+                                            {movement.method?.toLowerCase() === 'fiado' ? (
+                                                <Badge variant="secondary" className="font-normal bg-muted text-muted-foreground hover:bg-muted">
+                                                    <span className="flex items-center gap-1 text-red-600 font-medium">
+                                                        <HandCoins className="h-3 w-3" />
+                                                        Fiado
+                                                    </span>
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="secondary" className="font-normal capitalize bg-muted text-muted-foreground hover:bg-muted">
+                                                    {movement.method === 'WALLET' ? 'Carteira' :
+                                                        movement.method === 'CASH' ? 'Dinheiro' :
+                                                            movement.method === 'CARD' ? 'Cartão' :
+                                                                movement.method === 'PIX' ? 'Pix' :
+                                                                    movement.method === 'TRANSFER' ? 'Transf.' : movement.method}
+                                                </Badge>
+                                            )}
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2">
