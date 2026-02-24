@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Trash2, Plus, ShoppingBag } from "lucide-react"
+import { Trash2, Plus, ShoppingBag, Pencil } from "lucide-react"
 import { AddProductDialog } from "./AddProductDialog"
+import { AddServiceDialog } from "./AddServiceDialog"
 import { PaymentDialog } from "./PaymentDialog"
 import { SaleSummaryCard } from "./SaleSummaryCard"
 import { CheckoutHeader } from "./CheckoutHeader"
@@ -39,6 +40,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 // Initialize specialized repos
 const saleRepo = getSaleRepository()
@@ -63,6 +65,7 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
     const [sale, setSale] = useState<Sale | null>(null)
     const [loading, setLoading] = useState(true)
     const [addProductOpen, setAddProductOpen] = useState(false)
+    const [addServiceOpen, setAddServiceOpen] = useState(false)
     const [paymentOpen, setPaymentOpen] = useState(false)
     const [paymentConfirming, setPaymentConfirming] = useState(false)
     const [refundConfirming, setRefundConfirming] = useState(false)
@@ -78,6 +81,24 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
         try {
             const result = await getSaleUseCase.execute(saleId)
             if (result) {
+                console.log('📦 Sale fetched - ID:', result.id);
+                console.log('📦 Sale status:', result.status);
+                console.log('📦 Items count:', result.items?.length || 0);
+                console.log('📦 Items array:', result.items);
+                if (result.items && result.items.length > 0) {
+                    result.items.forEach((item, idx) => {
+                        console.log(`   Item ${idx + 1}:`, {
+                            name: item.name,
+                            type: item.itemType,
+                            serviceId: item.serviceId,
+                            productId: item.productId,
+                            price: item.unitPrice,
+                            qty: item.qty
+                        });
+                    });
+                } else {
+                    console.log('⚠️ NO ITEMS IN SALE!');
+                }
                 setSale(result)
                 // Load notes if they exist
                 if (result.notes) {
@@ -184,6 +205,45 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
         handleUpdateItems(newItems)
     }
 
+    const addService = (service: { id: string; name: string; price: number }, qty: number, price: number) => {
+        if (!sale) return
+
+        // Check if service already exists
+        const existingItem = sale.items?.find(i => i.itemType === 'service' && i.serviceId === service.id)
+        
+        let newItems: SaleItem[] = [...(sale.items || [])]
+
+        if (existingItem) {
+            // Update quantity
+            newItems = newItems.map(i => {
+                if (i.id === existingItem.id) {
+                    const newQty = i.qty + qty
+                    return {
+                        ...i,
+                        qty: newQty,
+                        totalPrice: newQty * price
+                    }
+                }
+                return i
+            })
+        } else {
+            // Add new service
+            const newItem: SaleItem = {
+                id: crypto.randomUUID(),
+                saleId: saleId,
+                itemType: 'service',
+                name: service.name,
+                serviceId: service.id,
+                qty,
+                unitPrice: price,
+                totalPrice: price * qty
+            }
+            newItems.push(newItem)
+        }
+
+        handleUpdateItems(newItems)
+    }
+
     const updateItemQty = (itemId: string, newQty: number) => {
         if (!sale || !sale.items) return
         if (newQty < 1) return
@@ -209,6 +269,7 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
             return item
         })
         handleUpdateItems(newItems)
+        setEditingQty(null)
     }
 
     const updateItemPrice = (itemId: string, newPrice: number) => {
@@ -223,12 +284,18 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
             return item
         })
         handleUpdateItems(newItems)
+        setEditingPrice(null)
     }
+
+    const [itemToDelete, setItemToDelete] = useState<string | null>(null)
+    const [editingPrice, setEditingPrice] = useState<{ itemId: string; price: number } | null>(null)
+    const [editingQty, setEditingQty] = useState<{ itemId: string; qty: number } | null>(null)
 
     const removeItem = (itemId: string) => {
         if (!sale || !sale.items) return
         const newItems = sale.items.filter((item: SaleItem) => item.id !== itemId)
         handleUpdateItems(newItems)
+        setItemToDelete(null)
     }
 
     const handleNotesChange = async (newNotes: string) => {
@@ -331,9 +398,14 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
                         {isRefunded && <Badge variant="destructive" className="ml-2">ESTORNADO</Badge>}
                     </h2>
                     {!isPaid && !isRefunded && (
-                        <Button onClick={() => setAddProductOpen(true)} variant="outline" size="sm">
-                            <Plus className="mr-2 h-4 w-4" /> Adicionar Produto
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button onClick={() => setAddServiceOpen(true)} variant="outline" size="sm">
+                                <Plus className="mr-2 h-4 w-4" /> Adicionar Serviço
+                            </Button>
+                            <Button onClick={() => setAddProductOpen(true)} variant="outline" size="sm">
+                                <Plus className="mr-2 h-4 w-4" /> Adicionar Produto
+                            </Button>
+                        </div>
                     )}
                 </div>
 
@@ -393,13 +465,68 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
                                         {isPaid || isRefunded ? (
                                             item.qty
                                         ) : (
-                                            <Input
-                                                type="number"
-                                                min={1}
-                                                className="h-8 w-16 text-center mx-auto"
-                                                value={item.qty ?? 1}
-                                                onChange={(e) => updateItemQty(item.id, Number(e.target.value))}
-                                            />
+                                            <Popover 
+                                                open={editingQty?.itemId === item.id} 
+                                                onOpenChange={(open) => {
+                                                    if (!open) setEditingQty(null)
+                                                }}
+                                            >
+                                                <PopoverTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="h-8 w-16 mx-auto justify-center hover:bg-gray-100"
+                                                        onClick={() => setEditingQty({ itemId: item.id, qty: item.qty })}
+                                                    >
+                                                        <span className="text-sm font-medium">{item.qty}</span>
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-64" align="center">
+                                                    <div className="space-y-3">
+                                                        <div className="space-y-1">
+                                                            <h4 className="font-medium text-sm">Editar Quantidade</h4>
+                                                            <p className="text-xs text-gray-500">{item.name}</p>
+                                                            {item.itemType === 'product' && product && (
+                                                                <p className="text-xs text-amber-600">
+                                                                    Estoque disponível: {product.currentStock}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs text-gray-600">Quantidade</label>
+                                                            <Input
+                                                                type="number"
+                                                                min={1}
+                                                                max={item.itemType === 'product' && product ? product.currentStock : undefined}
+                                                                className="text-center"
+                                                                value={editingQty?.itemId === item.id ? editingQty.qty : item.qty}
+                                                                onChange={(e) => setEditingQty({ itemId: item.id, qty: Number(e.target.value) })}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === 'Enter') {
+                                                                        updateItemQty(item.id, editingQty?.qty ?? item.qty)
+                                                                    }
+                                                                }}
+                                                                autoFocus
+                                                            />
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <Button
+                                                                size="sm"
+                                                                className="flex-1"
+                                                                onClick={() => updateItemQty(item.id, editingQty?.qty ?? item.qty)}
+                                                            >
+                                                                Salvar
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => setEditingQty(null)}
+                                                            >
+                                                                Cancelar
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </PopoverContent>
+                                            </Popover>
                                         )}
                                     </TableCell>
                                     <TableCell className="text-center">
@@ -427,25 +554,105 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
                                         {isPaid || isRefunded ? (
                                             `R$ ${(item.unitPrice ?? 0).toFixed(2)}`
                                         ) : (
-                                            <div className="relative">
-                                                <span className="absolute left-2 top-1.5 text-xs text-muted-foreground">R$</span>
-                                                <Input
-                                                    type="number"
-                                                    min={0}
-                                                    step="0.01"
-                                                    className="h-8 w-24 text-right pl-6 ml-auto"
-                                                    value={item.unitPrice}
-                                                    onChange={(e) => updateItemPrice(item.id, Number(e.target.value))}
-                                                />
-                                            </div>
+                                            <Popover 
+                                                open={editingPrice?.itemId === item.id} 
+                                                onOpenChange={(open) => {
+                                                    if (!open) setEditingPrice(null)
+                                                }}
+                                            >
+                                                <PopoverTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="h-8 w-full justify-between px-2 hover:bg-gray-100"
+                                                        onClick={() => setEditingPrice({ itemId: item.id, price: item.unitPrice })}
+                                                    >
+                                                        <span className="text-sm">R$ {(item.unitPrice ?? 0).toFixed(2)}</span>
+                                                        <Pencil className="h-3 w-3 ml-2 text-gray-400" />
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-64" align="end">
+                                                    <div className="space-y-3">
+                                                        <div className="space-y-1">
+                                                            <h4 className="font-medium text-sm">Editar Preço</h4>
+                                                            <p className="text-xs text-gray-500">{item.name}</p>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs text-gray-600">Valor Unitário</label>
+                                                            <div className="relative">
+                                                                <span className="absolute left-3 top-2 text-sm text-gray-500">R$</span>
+                                                                <Input
+                                                                    type="number"
+                                                                    min={0}
+                                                                    step="0.01"
+                                                                    className="pl-9"
+                                                                    value={editingPrice?.itemId === item.id ? editingPrice.price : item.unitPrice}
+                                                                    onChange={(e) => setEditingPrice({ itemId: item.id, price: Number(e.target.value) })}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter') {
+                                                                            updateItemPrice(item.id, editingPrice?.price ?? item.unitPrice)
+                                                                        }
+                                                                    }}
+                                                                    autoFocus
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <Button
+                                                                size="sm"
+                                                                className="flex-1"
+                                                                onClick={() => updateItemPrice(item.id, editingPrice?.price ?? item.unitPrice)}
+                                                            >
+                                                                Salvar
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => setEditingPrice(null)}
+                                                            >
+                                                                Cancelar
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </PopoverContent>
+                                            </Popover>
                                         )}
                                     </TableCell>
                                     <TableCell className="text-right font-bold">R$ {(item.totalPrice ?? 0).toFixed(2)}</TableCell>
                                     {!isPaid && !isRefunded && (
                                         <TableCell>
-                                            <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)}>
-                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                            </Button>
+                                            <AlertDialog open={itemToDelete === item.id} onOpenChange={(open) => !open && setItemToDelete(null)}>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="icon" 
+                                                        onClick={() => setItemToDelete(item.id)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Remover item?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Tem certeza que deseja remover <span className="font-semibold">{item.name}</span> do atendimento?
+                                                            {item.itemType === 'service' && (
+                                                                <span className="block mt-2 text-amber-600">
+                                                                    ⚠️ Este é um serviço do agendamento.
+                                                                </span>
+                                                            )}
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                        <AlertDialogAction 
+                                                            onClick={() => removeItem(item.id)}
+                                                            className="bg-red-600 hover:bg-red-700"
+                                                        >
+                                                            Sim, Remover
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
                                         </TableCell>
                                     )}
                                 </TableRow>
@@ -501,6 +708,7 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
                     total={sale.total}
                     totalPaid={totalPaid}
                     items={sale.items}
+                    payments={sale.payments}
                     onPay={() => {
                         setPaymentOpen(true)
                         if (onPaymentStart) onPaymentStart()
@@ -540,6 +748,12 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
                 open={addProductOpen}
                 onOpenChange={setAddProductOpen}
                 onAdd={addItem}
+            />
+
+            <AddServiceDialog
+                open={addServiceOpen}
+                onOpenChange={setAddServiceOpen}
+                onAdd={addService}
             />
 
             <PaymentDialog

@@ -33,7 +33,8 @@ import {
     ChevronRight,
     Package,
     ShoppingCart,
-    Wallet
+    Wallet,
+    HandCoins
 } from 'lucide-react'
 
 const SOURCE_ICONS: Record<string, React.ReactNode> = {
@@ -62,6 +63,10 @@ export function CashList({ movements }: CashListProps) {
     const [supplierNames, setSupplierNames] = useState<Record<string, string>>({})
     const [selectedMovement, setSelectedMovement] = useState<CashMovement | null>(null)
     const [detailsOpen, setDetailsOpen] = useState(false)
+    const [salesWithFiado, setSalesWithFiado] = useState<Set<string>>(new Set())
+    const [fiadoAmounts, setFiadoAmounts] = useState<Record<string, number>>({})
+    const [salesWithCredit, setSalesWithCredit] = useState<Set<string>>(new Set())
+    const [creditAmounts, setCreditAmounts] = useState<Record<string, number>>({})
 
     // State to track expanded groups
     const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
@@ -110,13 +115,14 @@ export function CashList({ movements }: CashListProps) {
                 }
             })
 
-            // Fetch customer names from sales
+            // Fetch customer names from sales AND check for fiado payments
             if (saleIds.size > 0) {
                 try {
                     // Limitar a 50 IDs por vez para evitar URLs muito longas
                     const saleIdsArray = Array.from(saleIds)
                     const batchSize = 50
                     const customerMap: Record<string, string> = {}
+                    const fiadoSet = new Set<string>()
 
                     for (let i = 0; i < saleIdsArray.length; i += batchSize) {
                         const batch = saleIdsArray.slice(i, i + batchSize)
@@ -142,8 +148,33 @@ export function CashList({ movements }: CashListProps) {
                                 customerMap[sale.id] = sale.clients.name
                             }
                         })
+
+                        // Check for fiado payments in these sales
+                        const { data: payments } = await supabase
+                            .from('sale_payments')
+                            .select('sale_id, method, amount')
+                            .in('sale_id', batch)
+
+                        const fiadoMap: Record<string, number> = {}
+                        const creditMap: Record<string, number> = {}
+                        const creditSet = new Set<string>()
+                        
+                        payments?.forEach((payment: any) => {
+                            if (payment.method?.toLowerCase() === 'fiado') {
+                                fiadoSet.add(payment.sale_id)
+                                fiadoMap[payment.sale_id] = (fiadoMap[payment.sale_id] || 0) + parseFloat(payment.amount)
+                            } else if (payment.method?.toLowerCase() === 'credit' || payment.method?.toLowerCase() === 'wallet') {
+                                creditSet.add(payment.sale_id)
+                                creditMap[payment.sale_id] = (creditMap[payment.sale_id] || 0) + parseFloat(payment.amount)
+                            }
+                        })
+                        
+                        setFiadoAmounts(prev => ({ ...prev, ...fiadoMap }))
+                        setCreditAmounts(prev => ({ ...prev, ...creditMap }))
+                        setSalesWithCredit(prev => new Set([...prev, ...creditSet]))
                     }
                     setCustomerNames(customerMap)
+                    setSalesWithFiado(fiadoSet)
                 } catch (error) {
                     console.error('Erro ao carregar nomes de clientes:', error)
                 }
@@ -224,6 +255,10 @@ export function CashList({ movements }: CashListProps) {
                                     ? (customerNames[item.sourceId] || 'Cliente')
                                     : (supplierNames[item.sourceId] || 'Fornecedor')
                                 const Icon = isSale ? ShoppingCart : Package
+                                const hasFiado = isSale && salesWithFiado.has(item.sourceId)
+                                const fiadoAmount = hasFiado ? fiadoAmounts[item.sourceId] : 0
+                                const hasCredit = isSale && salesWithCredit.has(item.sourceId)
+                                const creditAmount = hasCredit ? creditAmounts[item.sourceId] : 0
 
                                 return (
                                     <Fragment key={`group-${item.sourceId}`}>
@@ -249,6 +284,18 @@ export function CashList({ movements }: CashListProps) {
                                                     <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal">
                                                         {item.movements.length} itens
                                                     </Badge>
+                                                    {hasFiado && (
+                                                        <Badge variant="destructive" className="text-[10px] h-5 px-1.5 font-medium gap-1">
+                                                            <HandCoins className="h-2.5 w-2.5" />
+                                                            Fiado: {formatCurrency(fiadoAmount)}
+                                                        </Badge>
+                                                    )}
+                                                    {hasCredit && (
+                                                        <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-medium gap-1 bg-purple-100 text-purple-700 hover:bg-purple-100">
+                                                            <Wallet className="h-2.5 w-2.5" />
+                                                            Crédito: {formatCurrency(creditAmount)}
+                                                        </Badge>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                             <TableCell>
@@ -287,7 +334,13 @@ export function CashList({ movements }: CashListProps) {
                                                             movement.method === 'CASH' ? 'Dinheiro' :
                                                                 movement.method === 'CARD' ? 'Cartão' :
                                                                     movement.method === 'PIX' ? 'Pix' :
-                                                                        movement.method === 'TRANSFER' ? 'Transf.' : movement.method}
+                                                                        movement.method === 'TRANSFER' ? 'Transf.' :
+                                                                            movement.method?.toUpperCase() === 'FIADO' ? (
+                                                                                <span className="flex items-center gap-1 text-red-600 font-medium">
+                                                                                    <HandCoins className="h-3 w-3" />
+                                                                                    Fiado
+                                                                                </span>
+                                                                            ) : movement.method}
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell></TableCell>
@@ -337,7 +390,13 @@ export function CashList({ movements }: CashListProps) {
                                                     movement.method === 'CASH' ? 'Dinheiro' :
                                                         movement.method === 'CARD' ? 'Cartão' :
                                                             movement.method === 'PIX' ? 'Pix' :
-                                                                movement.method === 'TRANSFER' ? 'Transf.' : movement.method}
+                                                                movement.method === 'TRANSFER' ? 'Transf.' :
+                                                                    movement.method?.toUpperCase() === 'FIADO' ? (
+                                                                        <span className="flex items-center gap-1 text-red-600 font-medium">
+                                                                            <HandCoins className="h-3 w-3" />
+                                                                            Fiado
+                                                                        </span>
+                                                                    ) : movement.method}
                                             </Badge>
                                         </TableCell>
                                         <TableCell>

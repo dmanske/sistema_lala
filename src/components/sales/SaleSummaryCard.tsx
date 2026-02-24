@@ -1,7 +1,9 @@
 
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { SaleItem } from "@/core/domain/sales/types"
+import { Badge } from "@/components/ui/badge"
+import { SaleItem, SalePayment } from "@/core/domain/sales/types"
+import { HandCoins, AlertTriangle } from "lucide-react"
 
 interface SaleSummaryProps {
     subtotal: number
@@ -12,17 +14,30 @@ interface SaleSummaryProps {
     paid?: boolean
     totalPaid?: number
     items?: SaleItem[]
+    payments?: SalePayment[]
 }
 
-export function SaleSummaryCard({ subtotal, discount, total, onPay, loading, paid, totalPaid, items }: SaleSummaryProps) {
+export function SaleSummaryCard({ subtotal, discount, total, onPay, loading, paid, totalPaid, items, payments }: SaleSummaryProps) {
     // Calculate subtotals
     const servicesSubtotal = items?.filter(i => i.itemType === 'service').reduce((acc, i) => acc + (i.totalPrice || 0), 0) || 0
     const productsSubtotal = items?.filter(i => i.itemType === 'product').reduce((acc, i) => acc + (i.totalPrice || 0), 0) || 0
     
+    // Check if there's any "fiado" payment
+    const hasFiadoPayment = payments?.some(p => p.method === 'fiado') || false
+    const fiadoAmount = payments?.filter(p => p.method === 'fiado').reduce((acc, p) => acc + p.amount, 0) || 0
+    
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Resumo do Pedido</CardTitle>
+                <div className="flex items-center justify-between">
+                    <CardTitle>Resumo do Pedido</CardTitle>
+                    {hasFiadoPayment && (
+                        <Badge variant="destructive" className="gap-1.5 animate-pulse">
+                            <HandCoins className="h-3.5 w-3.5" />
+                            Ficou Devendo
+                        </Badge>
+                    )}
+                </div>
             </CardHeader>
             <CardContent className="space-y-2">
                 {servicesSubtotal > 0 && (
@@ -62,6 +77,19 @@ export function SaleSummaryCard({ subtotal, discount, total, onPay, loading, pai
                             <span>R$ {((total ?? 0) - (totalPaid ?? 0)).toFixed(2)}</span>
                         </div>
                     </>
+                )}
+                {hasFiadoPayment && (
+                    <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg -mx-2 mt-2">
+                        <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 space-y-1">
+                            <p className="text-sm font-medium text-red-900">
+                                Cliente ficou devendo
+                            </p>
+                            <p className="text-xs text-red-700">
+                                Valor fiado: R$ {fiadoAmount.toFixed(2)}
+                            </p>
+                        </div>
+                    </div>
                 )}
             </CardContent>
             <CardFooter>
