@@ -101,54 +101,80 @@ export default function Aniversarios() {
         setTimeout(() => reject(new Error('Timeout: Query demorou mais de 15 segundos')), 15000)
       );
       
-      // Query com AbortSignal
-      const queryPromise = supabase
-        .from('clients')
-        .select('id, name, birth_date, phone, whatsapp, photo_url')
-        .not('birth_date', 'is', null)
-        .order('name')
-        .abortSignal(signal!);
-
-      const { data: clientes, error } = await Promise.race([queryPromise, timeoutPromise]);
-
-      // Verificar se foi cancelado
-      if (signal?.aborted) {
-        console.log('[ANIVERSARIOS] ⚠️ Query cancelada (componente desmontado)');
-        return;
-      }
-
-      if (error) {
-        console.error('[ANIVERSARIOS] ❌ Erro na query:', error);
-        throw error;
-      }
-
-      const fetchTime = performance.now() - startTime;
-      console.log('[ANIVERSARIOS] ✅ Clientes carregados', {
-        total: clientes?.length || 0,
-        timeMs: fetchTime.toFixed(2)
-      });
-
-      const clientesValidos = (clientes || []).filter(c => c.birth_date);
-      setTodosClientes(clientesValidos);
-
-      const hoje = clientesValidos.filter(c => isAniversarioHoje(c.birth_date!));
-      setAniversariantesHoje(hoje);
-      console.log('[ANIVERSARIOS] 🎂 Aniversariantes hoje:', hoje.length);
-
-      const clientesComDias = clientesValidos
-        .map(c => ({
-          ...c,
-          diasRestantes: diasParaProximoAniversario(c.birth_date!) || 999,
-          idade: calcularIdade(c.birth_date || '')
-        }))
-        .filter(c => c.diasRestantes <= 60 && c.diasRestantes > 0)
-        .sort((a, b) => a.diasRestantes - b.diasRestantes);
-
-      setProximosAniversarios(clientesComDias);
-      console.log('[ANIVERSARIOS] 📅 Próximos aniversários (60 dias):', clientesComDias.length);
+      // Query com AbortSignal e retry logic
+      let retries = 0;
+      const maxRetries = 2;
+      let lastError: Error | null = null;
       
-      setLastFetch(Date.now());
-      console.log('[ANIVERSARIOS] 🎉 Concluído! Cache atualizado.');
+      while (retries <= maxRetries) {
+        try {
+          const queryPromise = supabase
+            .from('clients')
+            .select('id, name, birth_date, phone, whatsapp, photo_url')
+            .not('birth_date', 'is', null)
+            .order('name')
+            .abortSignal(signal!);
+
+          const { data: clientes, error } = await Promise.race([queryPromise, timeoutPromise]);
+
+          // Verificar se foi cancelado
+          if (signal?.aborted) {
+            console.log('[ANIVERSARIOS] ⚠️ Query cancelada (componente desmontado)');
+            return;
+          }
+
+          if (error) {
+            console.error('[ANIVERSARIOS] ❌ Erro na query:', error);
+            throw error;
+          }
+
+          const fetchTime = performance.now() - startTime;
+          console.log('[ANIVERSARIOS] ✅ Clientes carregados', {
+            total: clientes?.length || 0,
+            timeMs: fetchTime.toFixed(2),
+            retries
+          });
+
+          const clientesValidos = (clientes || []).filter(c => c.birth_date);
+          setTodosClientes(clientesValidos);
+
+          const hoje = clientesValidos.filter(c => isAniversarioHoje(c.birth_date!));
+          setAniversariantesHoje(hoje);
+          console.log('[ANIVERSARIOS] 🎂 Aniversariantes hoje:', hoje.length);
+
+          const clientesComDias = clientesValidos
+            .map(c => ({
+              ...c,
+              diasRestantes: diasParaProximoAniversario(c.birth_date!) || 999,
+              idade: calcularIdade(c.birth_date || '')
+            }))
+            .filter(c => c.diasRestantes <= 60 && c.diasRestantes > 0)
+            .sort((a, b) => a.diasRestantes - b.diasRestantes);
+
+          setProximosAniversarios(clientesComDias);
+          console.log('[ANIVERSARIOS] 📅 Próximos aniversários (60 dias):', clientesComDias.length);
+          
+          setLastFetch(Date.now());
+          console.log('[ANIVERSARIOS] 🎉 Concluído! Cache atualizado.');
+          break; // Sucesso - sair do loop
+          
+        } catch (err) {
+          lastError = err as Error;
+          retries++;
+          
+          if (retries <= maxRetries) {
+            console.warn(`[ANIVERSARIOS] ⚠️ Tentativa ${retries} falhou. Tentando novamente...`, err);
+            // Aguardar 1 segundo antes de tentar novamente
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+      }
+      
+      // Se todas as tentativas falharam, lançar erro
+      if (lastError && retries > maxRetries) {
+        throw lastError;
+      }
+      
     } catch (error) {
       // Ignorar erros de abort
       if (error instanceof Error && error.name === 'AbortError') {
@@ -156,7 +182,7 @@ export default function Aniversarios() {
         return;
       }
       console.error('[ANIVERSARIOS] ❌ Erro fatal:', error);
-      toast.error('Erro ao carregar dados de aniversários: ' + (error as Error).message);
+      toast.error('Erro ao carregar dados de aniversários. Tente recarregar a página.');
     } finally {
       setLoading(false);
       console.log('[ANIVERSARIOS] 🏁 Loading finalizado');

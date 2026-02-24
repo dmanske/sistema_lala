@@ -240,98 +240,120 @@ export default function AgendaPage() {
         });
         
         setIsLoading(true);
-        try {
-            console.log('[AGENDA] 📡 Buscando dados em paralelo...');
-            const startTime = performance.now();
-            
-            // Timeout de 15 segundos para cada query (mais realista para conexões lentas)
-            const withTimeout = <T,>(promise: Promise<T>, timeoutMs = 15000): Promise<T> => {
-                return Promise.race([
-                    promise,
-                    new Promise<T>((_, reject) => 
-                        setTimeout(() => reject(new Error(`Timeout após ${timeoutMs}ms`)), timeoutMs)
-                    )
+        
+        // Retry logic para lidar com conexões expiradas
+        let retries = 0;
+        const maxRetries = 2;
+        let lastError: Error | null = null;
+        
+        while (retries <= maxRetries) {
+            try {
+                console.log('[AGENDA] 📡 Buscando dados em paralelo... (tentativa', retries + 1, ')');
+                const startTime = performance.now();
+                
+                // Timeout de 15 segundos para cada query (mais realista para conexões lentas)
+                const withTimeout = <T,>(promise: Promise<T>, timeoutMs = 15000): Promise<T> => {
+                    return Promise.race([
+                        promise,
+                        new Promise<T>((_, reject) => 
+                            setTimeout(() => reject(new Error(`Timeout após ${timeoutMs}ms`)), timeoutMs)
+                        )
+                    ]);
+                };
+                
+                const [appointmentsData, clientsData, servicesData, professionalsData] = await Promise.all([
+                    withTimeout(service.getAll({
+                        startDate: format(dateRange.start, 'yyyy-MM-dd'),
+                        endDate: format(dateRange.end, 'yyyy-MM-dd')
+                    })),
+                    withTimeout(clientRepo.getAll()),
+                    withTimeout(serviceRepo.getAll()),
+                    withTimeout(professionalRepo.getAll())
                 ]);
-            };
-            
-            const [appointmentsData, clientsData, servicesData, professionalsData] = await Promise.all([
-                withTimeout(service.getAll({
-                    startDate: format(dateRange.start, 'yyyy-MM-dd'),
-                    endDate: format(dateRange.end, 'yyyy-MM-dd')
-                })),
-                withTimeout(clientRepo.getAll()),
-                withTimeout(serviceRepo.getAll()),
-                withTimeout(professionalRepo.getAll())
-            ]);
-            
-            // Verificar se foi cancelado
-            if (signal?.aborted) {
-                console.log('[AGENDA] ⚠️ fetchData cancelado (componente desmontado)');
-                return;
-            }
-            
-            const fetchTime = performance.now() - startTime;
-            console.log('[AGENDA] ✅ Dados básicos carregados', {
-                appointments: appointmentsData.length,
-                clients: clientsData.length,
-                services: servicesData.length,
-                professionals: professionalsData.length,
-                timeMs: fetchTime.toFixed(2)
-            });
-            
-            setAppointments(appointmentsData);
-            setClients(clientsData);
-            setServices(servicesData);
-            setProfessionals(professionalsData);
+                
+                // Verificar se foi cancelado
+                if (signal?.aborted) {
+                    console.log('[AGENDA] ⚠️ fetchData cancelado (componente desmontado)');
+                    return;
+                }
+                
+                const fetchTime = performance.now() - startTime;
+                console.log('[AGENDA] ✅ Dados básicos carregados', {
+                    appointments: appointmentsData.length,
+                    clients: clientsData.length,
+                    services: servicesData.length,
+                    professionals: professionalsData.length,
+                    timeMs: fetchTime.toFixed(2),
+                    retries
+                });
+                
+                setAppointments(appointmentsData);
+                setClients(clientsData);
+                setServices(servicesData);
+                setProfessionals(professionalsData);
 
-            // Otimização: Buscar todas as vendas pagas de uma vez
-            console.log('[AGENDA] 💰 Buscando vendas pagas...');
-            const salesStartTime = performance.now();
-            const paidSet = new Set<string>();
-            if (appointmentsData.length > 0) {
-                try {
-                    const appointmentIds = appointmentsData.map(apt => apt.id);
-                    console.log('[AGENDA] 📊 Buscando vendas para', appointmentIds.length, 'agendamentos');
-                    const sales = await withTimeout(saleRepo.findByAppointmentIds(appointmentIds));
-                    
-                    if (signal?.aborted) {
-                        console.log('[AGENDA] ⚠️ Busca de vendas cancelada');
-                        return;
-                    }
-                    
-                    const salesTime = performance.now() - salesStartTime;
-                    console.log('[AGENDA] ✅ Vendas carregadas', {
-                        total: sales.length,
-                        paid: sales.filter(s => s.status === 'paid').length,
-                        timeMs: salesTime.toFixed(2)
-                    });
-                    sales.filter(sale => sale.status === 'paid').forEach(sale => {
-                        if (sale.appointmentId) {
-                            paidSet.add(sale.appointmentId);
+                // Otimização: Buscar todas as vendas pagas de uma vez
+                console.log('[AGENDA] 💰 Buscando vendas pagas...');
+                const salesStartTime = performance.now();
+                const paidSet = new Set<string>();
+                if (appointmentsData.length > 0) {
+                    try {
+                        const appointmentIds = appointmentsData.map(apt => apt.id);
+                        console.log('[AGENDA] 📊 Buscando vendas para', appointmentIds.length, 'agendamentos');
+                        const sales = await withTimeout(saleRepo.findByAppointmentIds(appointmentIds));
+                        
+                        if (signal?.aborted) {
+                            console.log('[AGENDA] ⚠️ Busca de vendas cancelada');
+                            return;
                         }
-                    });
-                } catch (error) {
-                    console.error('[AGENDA] ❌ Erro ao buscar vendas:', error);
+                        
+                        const salesTime = performance.now() - salesStartTime;
+                        console.log('[AGENDA] ✅ Vendas carregadas', {
+                            total: sales.length,
+                            paid: sales.filter(s => s.status === 'paid').length,
+                            timeMs: salesTime.toFixed(2)
+                        });
+                        sales.filter(sale => sale.status === 'paid').forEach(sale => {
+                            if (sale.appointmentId) {
+                                paidSet.add(sale.appointmentId);
+                            }
+                        });
+                    } catch (error) {
+                        console.error('[AGENDA] ❌ Erro ao buscar vendas:', error);
+                    }
+                }
+                setPaidAppointments(paidSet);
+                
+                const totalTime = performance.now() - startTime;
+                console.log('[AGENDA] 🎉 fetchData concluído!', {
+                    totalTimeMs: totalTime.toFixed(2),
+                    timestamp: new Date().toISOString()
+                });
+                
+                break; // Sucesso - sair do loop
+                
+            } catch (error) {
+                // Ignorar erros de abort
+                if (error instanceof Error && error.name === 'AbortError') {
+                    console.log('[AGENDA] ⚠️ Query abortada');
+                    return;
+                }
+                
+                lastError = error as Error;
+                retries++;
+                
+                if (retries <= maxRetries) {
+                    console.warn(`[AGENDA] ⚠️ Tentativa ${retries} falhou. Tentando novamente...`, error);
+                    // Aguardar 1 segundo antes de tentar novamente
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                } else {
+                    console.error('[AGENDA] ❌ Erro fatal em fetchData:', error);
+                    toast.error('Erro ao carregar agenda. Tente recarregar a página.');
                 }
             }
-            setPaidAppointments(paidSet);
-            
-            const totalTime = performance.now() - startTime;
-            console.log('[AGENDA] 🎉 fetchData concluído!', {
-                totalTimeMs: totalTime.toFixed(2),
-                timestamp: new Date().toISOString()
-            });
-        } catch (error) {
-            // Ignorar erros de abort
-            if (error instanceof Error && error.name === 'AbortError') {
-                console.log('[AGENDA] ⚠️ Query abortada');
-                return;
-            }
-            console.error('[AGENDA] ❌ Erro fatal em fetchData:', error);
-            toast.error('Erro ao carregar agenda: ' + (error as Error).message);
-        } finally {
-            setIsLoading(false);
         }
+        
+        setIsLoading(false);
     };
 
     useEffect(() => {
