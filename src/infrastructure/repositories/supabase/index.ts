@@ -8,3 +8,4 @@ export { SupabaseAppointmentRepository } from './SupabaseAppointmentRepository';
 export { SupabaseSaleRepository } from './SupabaseSaleRepository';
 export { SupabaseCreditRepository } from './SupabaseCreditRepository';
 export { SupabaseStockMovementRepository } from './SupabaseStockMovementRepository';
+export { SupabaseCashRegisterRepository } from './SupabaseCashRegisterRepository';

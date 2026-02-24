@@ -211,6 +211,7 @@ export function resetRepositories(): void {
     stockMovementRepo = null;
     cashMovementRepo = null;
     bankAccountRepo = null;
+    cashRegisterRepo = null;
 }
 
 // Singleton for BankAccountRepository
@@ -230,4 +231,24 @@ export function getBankAccountRepository(): BankAccountRepository {
         }
     }
     return bankAccountRepo;
+}
+
+// Singleton for CashRegisterRepository
+let cashRegisterRepo: CashRegisterRepository | null = null;
+import { CashRegisterRepository } from '@/core/repositories/CashRegisterRepository';
+import { SupabaseCashRegisterRepository } from './supabase/SupabaseCashRegisterRepository';
+
+export function getCashRegisterRepository(client?: SupabaseClient): CashRegisterRepository {
+    if (client) {
+        return new SupabaseCashRegisterRepository(client);
+    }
+
+    if (!cashRegisterRepo) {
+        if (useSupabase()) {
+            cashRegisterRepo = new SupabaseCashRegisterRepository();
+        } else {
+            throw new Error('Cash Register module is only available with Supabase backend.');
+        }
+    }
+    return cashRegisterRepo;
 }
