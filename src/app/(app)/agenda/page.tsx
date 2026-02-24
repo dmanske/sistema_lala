@@ -233,8 +233,17 @@ export default function AgendaPage() {
     }, [currentDate, viewMode]);
 
     const fetchData = async () => {
+        console.log('[AGENDA] 🔄 Iniciando fetchData...', {
+            dateRange: { start: format(dateRange.start, 'yyyy-MM-dd'), end: format(dateRange.end, 'yyyy-MM-dd') },
+            viewMode,
+            timestamp: new Date().toISOString()
+        });
+        
         setIsLoading(true);
         try {
+            console.log('[AGENDA] 📡 Buscando dados em paralelo...');
+            const startTime = performance.now();
+            
             const [appointmentsData, clientsData, servicesData, professionalsData] = await Promise.all([
                 service.getAll({
                     startDate: format(dateRange.start, 'yyyy-MM-dd'),
@@ -244,35 +253,65 @@ export default function AgendaPage() {
                 serviceRepo.getAll(),
                 professionalRepo.getAll()
             ]);
+            
+            const fetchTime = performance.now() - startTime;
+            console.log('[AGENDA] ✅ Dados básicos carregados', {
+                appointments: appointmentsData.length,
+                clients: clientsData.length,
+                services: servicesData.length,
+                professionals: professionalsData.length,
+                timeMs: fetchTime.toFixed(2)
+            });
+            
             setAppointments(appointmentsData);
             setClients(clientsData);
             setServices(servicesData);
             setProfessionals(professionalsData);
 
             // Otimização: Buscar todas as vendas pagas de uma vez
+            console.log('[AGENDA] 💰 Buscando vendas pagas...');
+            const salesStartTime = performance.now();
             const paidSet = new Set<string>();
             if (appointmentsData.length > 0) {
                 try {
                     const appointmentIds = appointmentsData.map(apt => apt.id);
+                    console.log('[AGENDA] 📊 Buscando vendas para', appointmentIds.length, 'agendamentos');
                     const sales = await saleRepo.findByAppointmentIds(appointmentIds);
+                    const salesTime = performance.now() - salesStartTime;
+                    console.log('[AGENDA] ✅ Vendas carregadas', {
+                        total: sales.length,
+                        paid: sales.filter(s => s.status === 'paid').length,
+                        timeMs: salesTime.toFixed(2)
+                    });
                     sales.filter(sale => sale.status === 'paid').forEach(sale => {
                         if (sale.appointmentId) {
                             paidSet.add(sale.appointmentId);
                         }
                     });
                 } catch (error) {
-                    console.error('Erro ao buscar vendas:', error);
+                    console.error('[AGENDA] ❌ Erro ao buscar vendas:', error);
                 }
             }
             setPaidAppointments(paidSet);
+            
+            const totalTime = performance.now() - startTime;
+            console.log('[AGENDA] 🎉 fetchData concluído!', {
+                totalTimeMs: totalTime.toFixed(2),
+                timestamp: new Date().toISOString()
+            });
         } catch (error) {
-            console.error(error);
+            console.error('[AGENDA] ❌ Erro fatal em fetchData:', error);
         } finally {
             setIsLoading(false);
         }
     };
 
     useEffect(() => {
+        console.log('[AGENDA] 🔄 useEffect triggered', {
+            currentDate: format(currentDate, 'yyyy-MM-dd'),
+            viewMode,
+            timestamp: new Date().toISOString()
+        });
         fetchData();
     }, [currentDate, viewMode]);
 

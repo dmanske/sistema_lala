@@ -52,11 +52,19 @@ export default function Aniversarios() {
   const CACHE_DURATION = 5 * 60 * 1000;
 
   useEffect(() => {
+    console.log('[ANIVERSARIOS] 🔄 useEffect montagem', {
+      lastFetch,
+      shouldFetch: lastFetch === 0 || (Date.now() - lastFetch > CACHE_DURATION),
+      timestamp: new Date().toISOString()
+    });
+    
     const now = Date.now();
     const shouldFetch = now - lastFetch > CACHE_DURATION;
     
     if (shouldFetch || lastFetch === 0) {
       buscarDadosAniversarios();
+    } else {
+      console.log('[ANIVERSARIOS] ⚡ Usando cache! Idade do cache:', ((now - lastFetch) / 1000).toFixed(1), 'segundos');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Roda apenas na montagem do componente
@@ -66,10 +74,19 @@ export default function Aniversarios() {
   }, [searchTerm, mesFilter, todosClientes]);
 
   const buscarDadosAniversarios = async () => {
+    console.log('[ANIVERSARIOS] 🔄 Iniciando buscarDadosAniversarios...', {
+      lastFetch: new Date(lastFetch).toISOString(),
+      cacheAge: Date.now() - lastFetch,
+      timestamp: new Date().toISOString()
+    });
+    
     try {
       setLoading(true);
       const supabase = createClient();
 
+      console.log('[ANIVERSARIOS] 📡 Buscando clientes...');
+      const startTime = performance.now();
+      
       const { data: clientes, error } = await supabase
         .from('clients')
         .select('id, name, birth_date, phone, whatsapp, photo_url')
@@ -78,11 +95,18 @@ export default function Aniversarios() {
 
       if (error) throw error;
 
+      const fetchTime = performance.now() - startTime;
+      console.log('[ANIVERSARIOS] ✅ Clientes carregados', {
+        total: clientes?.length || 0,
+        timeMs: fetchTime.toFixed(2)
+      });
+
       const clientesValidos = (clientes || []).filter(c => c.birth_date);
       setTodosClientes(clientesValidos);
 
       const hoje = clientesValidos.filter(c => isAniversarioHoje(c.birth_date!));
       setAniversariantesHoje(hoje);
+      console.log('[ANIVERSARIOS] 🎂 Aniversariantes hoje:', hoje.length);
 
       const clientesComDias = clientesValidos
         .map(c => ({
@@ -94,9 +118,12 @@ export default function Aniversarios() {
         .sort((a, b) => a.diasRestantes - b.diasRestantes);
 
       setProximosAniversarios(clientesComDias);
+      console.log('[ANIVERSARIOS] 📅 Próximos aniversários (60 dias):', clientesComDias.length);
+      
       setLastFetch(Date.now());
+      console.log('[ANIVERSARIOS] 🎉 Concluído! Cache atualizado.');
     } catch (error) {
-      console.error('Erro:', error);
+      console.error('[ANIVERSARIOS] ❌ Erro:', error);
       toast.error('Erro ao carregar dados de aniversários');
     } finally {
       setLoading(false);
