@@ -249,16 +249,19 @@ export default function AgendaPage() {
             setServices(servicesData);
             setProfessionals(professionalsData);
 
-            // Verificar quais agendamentos têm vendas pagas
+            // Otimização: Buscar todas as vendas pagas de uma vez
             const paidSet = new Set<string>();
-            for (const apt of appointmentsData) {
+            if (appointmentsData.length > 0) {
                 try {
-                    const sale = await saleRepo.findByAppointmentId(apt.id);
-                    if (sale && sale.status === 'paid') {
-                        paidSet.add(apt.id);
-                    }
+                    const appointmentIds = appointmentsData.map(apt => apt.id);
+                    const sales = await saleRepo.findByAppointmentIds(appointmentIds);
+                    sales.filter(sale => sale.status === 'paid').forEach(sale => {
+                        if (sale.appointmentId) {
+                            paidSet.add(sale.appointmentId);
+                        }
+                    });
                 } catch (error) {
-                    // Ignorar erros individuais
+                    console.error('Erro ao buscar vendas:', error);
                 }
             }
             setPaidAppointments(paidSet);

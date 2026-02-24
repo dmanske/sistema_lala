@@ -44,11 +44,20 @@ export default function Aniversarios() {
   const [showMensagemMassa, setShowMensagemMassa] = useState(false);
   const [mensagemTemplate, setMensagemTemplate] = useState('Parabéns, {nome}! 🥳✨ Que seu dia seja incrível e repleto de alegrias! Receba todo o carinho da equipe Lala. 🎈💖');
   const [enviandoMensagens, setEnviandoMensagens] = useState(false);
+  const [lastFetch, setLastFetch] = useState<number>(0);
 
   const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
+  // Cache de 5 minutos - evita recargas desnecessárias
+  const CACHE_DURATION = 5 * 60 * 1000;
+
   useEffect(() => {
-    buscarDadosAniversarios();
+    const now = Date.now();
+    const shouldFetch = now - lastFetch > CACHE_DURATION;
+    
+    if (shouldFetch) {
+      buscarDadosAniversarios();
+    }
   }, []);
 
   useEffect(() => {
@@ -84,6 +93,7 @@ export default function Aniversarios() {
         .sort((a, b) => a.diasRestantes - b.diasRestantes);
 
       setProximosAniversarios(clientesComDias);
+      setLastFetch(Date.now());
     } catch (error) {
       console.error('Erro:', error);
       toast.error('Erro ao carregar dados de aniversários');

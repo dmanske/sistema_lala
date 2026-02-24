@@ -57,6 +57,12 @@ export class LocalStorageSaleRepository implements SaleRepository {
         return sales.find(s => s.appointmentId === appointmentId && s.status !== 'canceled') || null;
     }
 
+    async findByAppointmentIds(appointmentIds: string[]): Promise<Sale[]> {
+        const sales = this.getStorage();
+        const appointmentIdSet = new Set(appointmentIds);
+        return sales.filter(s => s.appointmentId && appointmentIdSet.has(s.appointmentId) && s.status !== 'canceled');
+    }
+
     async findByCustomerId(customerId: string): Promise<Sale[]> {
         const sales = this.getStorage();
         return sales.filter(s => s.customerId === customerId);

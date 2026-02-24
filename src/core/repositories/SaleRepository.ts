@@ -5,6 +5,7 @@ export interface SaleRepository {
     create(sale: Sale): Promise<Sale>;
     findById(id: string): Promise<Sale | null>;
     findByAppointmentId(appointmentId: string): Promise<Sale | null>;
+    findByAppointmentIds(appointmentIds: string[]): Promise<Sale[]>;
     findByCustomerId(customerId: string): Promise<Sale[]>;
     findAll(tenantId?: string): Promise<Sale[]>;
     update(id: string, sale: Partial<Sale>): Promise<Sale>;

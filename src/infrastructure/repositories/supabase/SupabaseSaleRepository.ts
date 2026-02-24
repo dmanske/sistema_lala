@@ -120,6 +120,23 @@ export class SupabaseSaleRepository implements SaleRepository {
         return data ? this.mapFromDbFull(data) : null;
     }
 
+    async findByAppointmentIds(appointmentIds: string[]): Promise<Sale[]> {
+        if (appointmentIds.length === 0) return [];
+
+        const { data, error } = await this.supabase
+            .from('sales')
+            .select(`
+                *,
+                sale_items (*),
+                sale_payments (*)
+            `)
+            .in('appointment_id', appointmentIds)
+            .order('created_at', { ascending: false });
+
+        if (error) throw new Error(`Failed to fetch sales by appointments: ${error.message}`);
+        return (data || []).map(this.mapFromDbFull);
+    }
+
     async findByCustomerId(customerId: string): Promise<Sale[]> {
         const { data, error } = await this.supabase
             .from('sales')
