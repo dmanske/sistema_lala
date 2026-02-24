@@ -61,11 +61,20 @@ export default function Aniversarios() {
     const now = Date.now();
     const shouldFetch = now - lastFetch > CACHE_DURATION;
     
+    // AbortController para cancelar queries ao desmontar
+    const abortController = new AbortController();
+    
     if (shouldFetch || lastFetch === 0) {
-      buscarDadosAniversarios();
+      buscarDadosAniversarios(abortController.signal);
     } else {
       console.log('[ANIVERSARIOS] ⚡ Usando cache! Idade do cache:', ((now - lastFetch) / 1000).toFixed(1), 'segundos');
     }
+    
+    // Cleanup: cancelar queries pendentes ao desmontar
+    return () => {
+      console.log('[ANIVERSARIOS] 🧹 Limpando queries pendentes...');
+      abortController.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Roda apenas na montagem do componente
 
@@ -73,7 +82,7 @@ export default function Aniversarios() {
     filtrarClientes();
   }, [searchTerm, mesFilter, todosClientes]);
 
-  const buscarDadosAniversarios = async () => {
+  const buscarDadosAniversarios = async (signal?: AbortSignal) => {
     console.log('[ANIVERSARIOS] 🔄 Iniciando buscarDadosAniversarios...', {
       lastFetch: new Date(lastFetch).toISOString(),
       cacheAge: Date.now() - lastFetch,
@@ -87,13 +96,31 @@ export default function Aniversarios() {
       console.log('[ANIVERSARIOS] 📡 Buscando clientes...');
       const startTime = performance.now();
       
-      const { data: clientes, error } = await supabase
+      // Timeout de 8 segundos (mais agressivo)
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout: Query demorou mais de 8 segundos')), 8000)
+      );
+      
+      // Query com AbortSignal
+      const queryPromise = supabase
         .from('clients')
         .select('id, name, birth_date, phone, whatsapp, photo_url')
         .not('birth_date', 'is', null)
-        .order('name');
+        .order('name')
+        .abortSignal(signal!);
 
-      if (error) throw error;
+      const { data: clientes, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+
+      // Verificar se foi cancelado
+      if (signal?.aborted) {
+        console.log('[ANIVERSARIOS] ⚠️ Query cancelada (componente desmontado)');
+        return;
+      }
+
+      if (error) {
+        console.error('[ANIVERSARIOS] ❌ Erro na query:', error);
+        throw error;
+      }
 
       const fetchTime = performance.now() - startTime;
       console.log('[ANIVERSARIOS] ✅ Clientes carregados', {
@@ -123,10 +150,16 @@ export default function Aniversarios() {
       setLastFetch(Date.now());
       console.log('[ANIVERSARIOS] 🎉 Concluído! Cache atualizado.');
     } catch (error) {
-      console.error('[ANIVERSARIOS] ❌ Erro:', error);
-      toast.error('Erro ao carregar dados de aniversários');
+      // Ignorar erros de abort
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('[ANIVERSARIOS] ⚠️ Query abortada');
+        return;
+      }
+      console.error('[ANIVERSARIOS] ❌ Erro fatal:', error);
+      toast.error('Erro ao carregar dados de aniversários: ' + (error as Error).message);
     } finally {
       setLoading(false);
+      console.log('[ANIVERSARIOS] 🏁 Loading finalizado');
     }
   };
 

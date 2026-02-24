@@ -123,18 +123,32 @@ export class SupabaseSaleRepository implements SaleRepository {
     async findByAppointmentIds(appointmentIds: string[]): Promise<Sale[]> {
         if (appointmentIds.length === 0) return [];
 
+        // Otimização: Buscar apenas campos necessários sem JOINs pesados
+        // Para verificar se está pago, não precisamos de items e payments
         const { data, error } = await this.supabase
             .from('sales')
-            .select(`
-                *,
-                sale_items (*),
-                sale_payments (*)
-            `)
+            .select('id, tenant_id, customer_id, appointment_id, status, subtotal, discount, total, notes, created_at, created_by')
             .in('appointment_id', appointmentIds)
             .order('created_at', { ascending: false });
 
         if (error) throw new Error(`Failed to fetch sales by appointments: ${error.message}`);
-        return (data || []).map(this.mapFromDbFull);
+        
+        // Mapear sem items e payments (não são necessários para verificar status)
+        return (data || []).map(row => ({
+            id: row.id,
+            tenantId: row.tenant_id,
+            customerId: row.customer_id || undefined,
+            appointmentId: row.appointment_id || undefined,
+            status: row.status,
+            subtotal: Number(row.subtotal) || 0,
+            discount: Number(row.discount) || 0,
+            total: Number(row.total) || 0,
+            notes: row.notes || undefined,
+            createdAt: row.created_at,
+            createdBy: row.created_by,
+            items: undefined,
+            payments: undefined,
+        }));
     }
 
     async findByCustomerId(customerId: string): Promise<Sale[]> {

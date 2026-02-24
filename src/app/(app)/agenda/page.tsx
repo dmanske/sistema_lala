@@ -232,7 +232,7 @@ export default function AgendaPage() {
         }
     }, [currentDate, viewMode]);
 
-    const fetchData = async () => {
+    const fetchData = async (signal?: AbortSignal) => {
         console.log('[AGENDA] 🔄 Iniciando fetchData...', {
             dateRange: { start: format(dateRange.start, 'yyyy-MM-dd'), end: format(dateRange.end, 'yyyy-MM-dd') },
             viewMode,
@@ -244,15 +244,31 @@ export default function AgendaPage() {
             console.log('[AGENDA] 📡 Buscando dados em paralelo...');
             const startTime = performance.now();
             
+            // Timeout de 8 segundos para cada query
+            const withTimeout = <T,>(promise: Promise<T>, timeoutMs = 8000): Promise<T> => {
+                return Promise.race([
+                    promise,
+                    new Promise<T>((_, reject) => 
+                        setTimeout(() => reject(new Error(`Timeout após ${timeoutMs}ms`)), timeoutMs)
+                    )
+                ]);
+            };
+            
             const [appointmentsData, clientsData, servicesData, professionalsData] = await Promise.all([
-                service.getAll({
+                withTimeout(service.getAll({
                     startDate: format(dateRange.start, 'yyyy-MM-dd'),
                     endDate: format(dateRange.end, 'yyyy-MM-dd')
-                }),
-                clientRepo.getAll(),
-                serviceRepo.getAll(),
-                professionalRepo.getAll()
+                })),
+                withTimeout(clientRepo.getAll()),
+                withTimeout(serviceRepo.getAll()),
+                withTimeout(professionalRepo.getAll())
             ]);
+            
+            // Verificar se foi cancelado
+            if (signal?.aborted) {
+                console.log('[AGENDA] ⚠️ fetchData cancelado (componente desmontado)');
+                return;
+            }
             
             const fetchTime = performance.now() - startTime;
             console.log('[AGENDA] ✅ Dados básicos carregados', {
@@ -276,7 +292,13 @@ export default function AgendaPage() {
                 try {
                     const appointmentIds = appointmentsData.map(apt => apt.id);
                     console.log('[AGENDA] 📊 Buscando vendas para', appointmentIds.length, 'agendamentos');
-                    const sales = await saleRepo.findByAppointmentIds(appointmentIds);
+                    const sales = await withTimeout(saleRepo.findByAppointmentIds(appointmentIds));
+                    
+                    if (signal?.aborted) {
+                        console.log('[AGENDA] ⚠️ Busca de vendas cancelada');
+                        return;
+                    }
+                    
                     const salesTime = performance.now() - salesStartTime;
                     console.log('[AGENDA] ✅ Vendas carregadas', {
                         total: sales.length,
@@ -300,7 +322,13 @@ export default function AgendaPage() {
                 timestamp: new Date().toISOString()
             });
         } catch (error) {
+            // Ignorar erros de abort
+            if (error instanceof Error && error.name === 'AbortError') {
+                console.log('[AGENDA] ⚠️ Query abortada');
+                return;
+            }
             console.error('[AGENDA] ❌ Erro fatal em fetchData:', error);
+            toast.error('Erro ao carregar agenda: ' + (error as Error).message);
         } finally {
             setIsLoading(false);
         }
@@ -312,7 +340,16 @@ export default function AgendaPage() {
             viewMode,
             timestamp: new Date().toISOString()
         });
-        fetchData();
+        
+        // AbortController para cancelar queries ao desmontar ou mudar deps
+        const abortController = new AbortController();
+        fetchData(abortController.signal);
+        
+        // Cleanup: cancelar queries pendentes
+        return () => {
+            console.log('[AGENDA] 🧹 Limpando queries pendentes...');
+            abortController.abort();
+        };
     }, [currentDate, viewMode]);
 
     // Navegação
