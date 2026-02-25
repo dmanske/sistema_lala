@@ -172,10 +172,21 @@ export function ProductStatsTab({ product }: ProductStatsTabProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-900">
-              {stats.turnoverDays > 0 ? `${stats.turnoverDays}d` : "N/A"}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">dias de giro</p>
+            {stats.turnoverDays > 0 ? (
+              <>
+                <div className="text-2xl font-bold text-slate-900">
+                  {stats.turnoverDays}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">dias de giro</p>
+              </>
+            ) : (
+              <>
+                <div className="text-lg font-medium text-muted-foreground">
+                  Sem vendas
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">ainda</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
