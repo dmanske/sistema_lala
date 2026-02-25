@@ -19,7 +19,8 @@ import {
     Building2,
     Gift,
     Loader2,
-    Calculator
+    Calculator,
+    Receipt
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -79,6 +80,7 @@ export function Sidebar({ className }: SidebarProps) {
             items: [
                 { name: "Caixa", icon: Wallet, href: "/cash", active: true },
                 { name: "Gestão de Caixa", icon: Calculator, href: "/cash-register", active: true },
+                { name: "Contas a Pagar", icon: Receipt, href: "/accounts-payable", active: true },
                 { name: "Contas", icon: Building2, href: "/contas", active: true },
                 { name: "Compras", icon: ShoppingBag, href: "/purchases", active: true },
             ],

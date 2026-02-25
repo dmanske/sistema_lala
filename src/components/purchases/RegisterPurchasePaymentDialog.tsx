@@ -72,6 +72,12 @@ export function RegisterPurchasePaymentDialog({
     const paymentRepo = getPurchasePaymentRepository();
 
     async function onSubmit(data: z.infer<typeof FormSchema>) {
+        // Validar que o valor não excede o saldo pendente
+        if (data.amount > remainingAmount) {
+            toast.error(`O valor não pode exceder o saldo pendente de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(remainingAmount)}`);
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             await paymentRepo.create({
@@ -110,12 +116,25 @@ export function RegisterPurchasePaymentDialog({
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                            <p className="text-sm text-blue-700 font-medium">
-                                Valor restante a pagar:
-                            </p>
-                            <p className="text-2xl font-bold text-blue-900">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(remainingAmount)}
-                            </p>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-blue-700 font-medium">
+                                        Valor restante a pagar:
+                                    </p>
+                                    <p className="text-2xl font-bold text-blue-900">
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(remainingAmount)}
+                                    </p>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => form.setValue('amount', remainingAmount)}
+                                    className="bg-white hover:bg-blue-50"
+                                >
+                                    Pagar Total
+                                </Button>
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
@@ -129,11 +148,17 @@ export function RegisterPurchasePaymentDialog({
                                             <Input
                                                 type="number"
                                                 step="0.01"
+                                                max={remainingAmount}
                                                 placeholder="0,00"
                                                 {...field}
                                                 onChange={e => field.onChange(Number(e.target.value))}
                                             />
                                         </FormControl>
+                                        {field.value > remainingAmount && (
+                                            <p className="text-xs text-red-600 mt-1">
+                                                Valor não pode exceder o saldo pendente
+                                            </p>
+                                        )}
                                         <FormMessage />
                                     </FormItem>
                                 )}

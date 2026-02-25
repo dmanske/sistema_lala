@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
     Plus, Search, ShoppingBag, Calendar, Package, ArrowRight,
-    Loader2
+    Loader2, Filter
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -21,11 +21,19 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
-import { Purchase } from "@/core/domain/Purchase";
+import { Purchase, calculatePaymentSummary } from "@/core/domain/Purchase";
 import { Supplier } from "@/core/domain/Supplier";
 import { getPurchaseRepository, getSupplierRepository } from "@/infrastructure/repositories/factory";
 import { formatDate, parseLocalDate } from "@/lib/utils/dateFormatters";
+import { PaymentStatusBadge } from "@/components/purchases/PaymentStatusBadge";
 
 export default function PurchasesPage() {
     const router = useRouter();
@@ -33,6 +41,7 @@ export default function PurchasesPage() {
     const [suppliers, setSuppliers] = useState<Map<string, string>>(new Map());
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
     const purchaseRepo = getPurchaseRepository();
     const supplierRepo = getSupplierRepository();
@@ -70,7 +79,11 @@ export default function PurchasesPage() {
         const supplierName = suppliers.get(p.supplierId)?.toLowerCase() || "";
         const idMatch = p.id.toLowerCase().includes(search.toLowerCase());
         const supplierMatch = supplierName.includes(search.toLowerCase());
-        return idMatch || supplierMatch;
+        const searchMatch = idMatch || supplierMatch;
+        
+        const statusMatch = statusFilter === "ALL" || p.paymentStatus === statusFilter;
+        
+        return searchMatch && statusMatch;
     });
 
     const getInitials = (name: string) => {
@@ -208,6 +221,18 @@ export default function PurchasesPage() {
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full md:w-[200px] bg-white/40 border-white/20 rounded-xl">
+                        <Filter className="h-4 w-4 mr-2" />
+                        <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="ALL">Todos os Status</SelectItem>
+                        <SelectItem value="PENDING">Pendente</SelectItem>
+                        <SelectItem value="PARTIAL">Parcial</SelectItem>
+                        <SelectItem value="PAID">Pago</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -219,6 +244,8 @@ export default function PurchasesPage() {
                                 <TableHead className="font-heading font-semibold text-slate-700">Fornecedor</TableHead>
                                 <TableHead className="font-heading font-semibold text-slate-700 text-center">Itens</TableHead>
                                 <TableHead className="font-heading font-semibold text-slate-700 text-right">Total</TableHead>
+                                <TableHead className="font-heading font-semibold text-slate-700 text-right">Saldo</TableHead>
+                                <TableHead className="font-heading font-semibold text-slate-700 text-center">Status</TableHead>
                                 <TableHead className="font-heading font-semibold text-slate-700 w-[50px]"></TableHead>
                             </TableRow>
                         </TableHeader>
@@ -230,22 +257,32 @@ export default function PurchasesPage() {
                                         <TableCell><div className="h-4 w-32 bg-slate-100 rounded animate-pulse" /></TableCell>
                                         <TableCell><div className="h-4 w-12 bg-slate-100 rounded animate-pulse mx-auto" /></TableCell>
                                         <TableCell><div className="h-4 w-20 bg-slate-100 rounded animate-pulse ml-auto" /></TableCell>
+                                        <TableCell><div className="h-4 w-20 bg-slate-100 rounded animate-pulse ml-auto" /></TableCell>
+                                        <TableCell><div className="h-4 w-16 bg-slate-100 rounded animate-pulse mx-auto" /></TableCell>
                                         <TableCell></TableCell>
                                     </TableRow>
                                 ))
                             ) : filteredPurchases.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="h-32 text-center border-slate-100">
+                                    <TableCell colSpan={7} className="h-32 text-center border-slate-100">
                                         <div className="flex flex-col items-center justify-center text-muted-foreground">
                                             <ShoppingBag className="h-10 w-10 text-slate-300 mb-2" />
                                             <p className="font-medium text-slate-600">Nenhuma compra encontrada</p>
-                                            <p className="text-xs text-slate-500 mt-1">Registre sua primeira entrada de estoque</p>
+                                            <p className="text-xs text-slate-500 mt-1">
+                                                {statusFilter !== "ALL" 
+                                                    ? "Tente alterar o filtro de status"
+                                                    : "Registre sua primeira entrada de estoque"
+                                                }
+                                            </p>
                                         </div>
                                     </TableCell>
                                 </TableRow>
                             ) : (
                                 filteredPurchases.map((purchase) => {
                                     const supplierName = suppliers.get(purchase.supplierId) || "Fornecedor desconhecido";
+                                    const paymentSummary = calculatePaymentSummary(purchase);
+                                    const remainingAmount = paymentSummary.remaining;
+                                    
                                     return (
                                         <TableRow
                                             key={purchase.id}
@@ -274,20 +311,25 @@ export default function PurchasesPage() {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                <div className="flex flex-col items-end gap-1">
-                                                    <span className="font-bold text-slate-900">
-                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(purchase.total)}
+                                                <span className="font-bold text-slate-900">
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(purchase.total)}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                {remainingAmount > 0 ? (
+                                                    <span className="font-semibold text-red-600">
+                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(remainingAmount)}
                                                     </span>
-                                                    {purchase.paymentStatus === 'PENDING' && (
-                                                        <Badge variant="secondary" className="bg-yellow-50 text-yellow-700 text-xs border border-yellow-200">Pendente</Badge>
-                                                    )}
-                                                    {purchase.paymentStatus === 'PARTIAL' && (
-                                                        <Badge variant="secondary" className="bg-blue-50 text-blue-700 text-xs border border-blue-200">Parcial</Badge>
-                                                    )}
-                                                    {purchase.paymentStatus === 'PAID' && (
-                                                        <Badge variant="secondary" className="bg-green-50 text-green-700 text-xs border border-green-200">Pago</Badge>
-                                                    )}
-                                                </div>
+                                                ) : (
+                                                    <span className="text-xs text-slate-400">-</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <PaymentStatusBadge
+                                                    status={purchase.paymentStatus}
+                                                    totalAmount={paymentSummary.total}
+                                                    paidAmount={paymentSummary.paid}
+                                                />
                                             </TableCell>
                                             <TableCell>
                                                 <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />

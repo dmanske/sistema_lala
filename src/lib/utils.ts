@@ -11,3 +11,8 @@ export function formatCurrency(value: number) {
     currency: 'BRL',
   }).format(value)
 }
+
+export function formatDate(date: string | Date) {
+  const d = typeof date === 'string' ? new Date(date) : date
+  return new Intl.DateTimeFormat('pt-BR').format(d)
+}

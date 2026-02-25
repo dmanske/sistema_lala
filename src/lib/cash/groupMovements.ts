@@ -78,6 +78,12 @@ export function groupMovements(movements: CashMovement[]): GroupedMovement[] {
     result.sort((a, b) => {
         const dateA = a._type === 'group' ? a.date : a.occurredAt
         const dateB = b._type === 'group' ? b.date : b.occurredAt
+        
+        // Handle null dates
+        if (!dateA && !dateB) return 0
+        if (!dateA) return 1
+        if (!dateB) return -1
+        
         return dateB.getTime() - dateA.getTime()
     })
 
