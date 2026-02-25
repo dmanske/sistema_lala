@@ -221,49 +221,70 @@ export default function ProductsPage() {
                             <Table>
                                 <TableHeader>
                                     <TableRow className="border-white/10 hover:bg-white/20">
-                                        <TableHead className="w-[40%] font-heading text-slate-700">Produto</TableHead>
-                                        <TableHead className="font-heading text-slate-700">Status</TableHead>
-                                        <TableHead className="font-heading text-slate-700">Preço</TableHead>
+                                        <TableHead className="w-[35%] font-heading text-slate-700">Produto</TableHead>
                                         <TableHead className="font-heading text-slate-700">Estoque</TableHead>
+                                        <TableHead className="font-heading text-slate-700">Preço</TableHead>
                                         <TableHead className="text-right font-heading text-slate-700">Ações</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {filteredAndSortedProducts.map((product) => {
                                         const isLowStock = product.currentStock <= product.minStock;
+                                        const isZeroStock = product.currentStock === 0;
                                         return (
-                                            <TableRow key={product.id} className="cursor-pointer border-white/10 hover:bg-white/40 transition-colors" onClick={() => window.location.href = `/products/${product.id}`}>
-                                                <TableCell className="font-medium text-slate-800">
-                                                    {product.name}
+                                            <TableRow key={product.id} className="cursor-pointer border-white/10 hover:bg-white/40 transition-all group" onClick={() => window.location.href = `/products/${product.id}`}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={cn(
+                                                            "relative h-12 w-12 rounded-xl flex items-center justify-center shadow-sm transition-all group-hover:scale-105",
+                                                            isLowStock 
+                                                                ? "bg-gradient-to-br from-red-500 to-orange-500" 
+                                                                : "bg-gradient-to-br from-blue-500 to-cyan-500"
+                                                        )}>
+                                                            <ShoppingCart className="h-6 w-6 text-white" />
+                                                            {isLowStock && (
+                                                                <div className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-white animate-pulse" />
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-semibold text-slate-800 group-hover:text-purple-700 transition-colors">
+                                                                {product.name}
+                                                            </div>
+                                                            {isLowStock && (
+                                                                <Badge variant="destructive" className="mt-1 text-[10px] px-1.5 py-0 h-4 rounded animate-pulse">
+                                                                    {isZeroStock ? "SEM ESTOQUE" : "ESTOQUE CRÍTICO"}
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    {isLowStock ? (
-                                                        <Badge variant="destructive" className="animate-pulse shadow-sm rounded-lg px-2 py-0.5 text-[10px] uppercase tracking-wider">
-                                                            Crítico
-                                                        </Badge>
-                                                    ) : (
-                                                        <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
-                                                            Normal
-                                                        </Badge>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="font-semibold text-slate-700">
-                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
+                                                    <div className="space-y-1">
+                                                        <div className={cn(
+                                                            "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold",
+                                                            isLowStock 
+                                                                ? "bg-red-50 text-red-700 border border-red-200" 
+                                                                : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                                        )}>
+                                                            <AlertTriangle className={cn("h-3.5 w-3.5", isLowStock ? "block" : "hidden")} />
+                                                            <span>{product.currentStock} un</span>
+                                                        </div>
+                                                        <div className="text-xs text-muted-foreground">
+                                                            Mín: {product.minStock} un
+                                                        </div>
+                                                    </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <span className={cn("font-bold", isLowStock ? "text-red-600" : "text-emerald-600")}>
-                                                        {product.currentStock}
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground ml-1">
-                                                        (Min: {product.minStock})
-                                                    </span>
+                                                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200 text-sm font-semibold">
+                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
+                                                    </div>
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-500 hover:text-purple-600 hover:bg-purple-50" onClick={(e) => { e.preventDefault(); handleEdit(product); }}>
+                                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-all" onClick={(e) => { e.preventDefault(); handleEdit(product); }}>
                                                             <Pencil className="h-4 w-4" />
                                                         </Button>
-                                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-500 hover:text-red-600 hover:bg-red-50" onClick={(e) => { e.preventDefault(); handleDelete(product.id, product.name); }}>
+                                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-500 hover:text-red-600 hover:bg-red-50 transition-all" onClick={(e) => { e.preventDefault(); handleDelete(product.id, product.name); }}>
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
                                                     </div>

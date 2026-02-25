@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Search, LayoutGrid, LayoutList } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, LayoutGrid, LayoutList, Scissors, Clock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -128,44 +128,66 @@ export default function ServicesPage() {
                             ))}
                         </div>
                     ) : (
-                        <div className="bg-white/40 backdrop-blur-xl border border-white/20 rounded-2xl overflow-hidden shadow-sm">
+                        <div className="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden transition-all">
                             <Table>
                                 <TableHeader>
-                                    <TableRow className="border-white/10 hover:bg-white/20">
-                                        <TableHead className="w-[40%] font-heading text-slate-700">Serviço</TableHead>
-                                        <TableHead className="font-heading text-slate-700">Duração</TableHead>
-                                        <TableHead className="font-heading text-slate-700">Preço</TableHead>
-                                        <TableHead className="font-heading text-slate-700">Comissão</TableHead>
-                                        <TableHead className="text-right font-heading text-slate-700">Ações</TableHead>
+                                    <TableRow className="border-white/10 hover:bg-transparent bg-slate-50 border-b border-slate-100">
+                                        <TableHead className="font-bold text-slate-800 h-14 px-6">Serviço</TableHead>
+                                        <TableHead className="font-bold text-slate-800 h-14">Duração</TableHead>
+                                        <TableHead className="font-bold text-slate-800 h-14">Preço</TableHead>
+                                        <TableHead className="font-bold text-slate-800 h-14">Comissão</TableHead>
+                                        <TableHead className="text-right font-bold text-slate-800 h-14 px-6">Ações</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {services.map((service) => (
-                                        <TableRow key={service.id} className="border-white/10 hover:bg-white/40 transition-colors">
-                                            <TableCell className="font-medium text-slate-800">
-                                                {service.name}
+                                        <TableRow key={service.id} className="border-slate-50 hover:bg-purple-50/30 transition-colors group">
+                                            <TableCell className="py-5 px-6">
+                                                <div className="flex items-center gap-4">
+                                                    {/* Ícone com gradiente */}
+                                                    <div className="h-12 w-12 rounded-xl flex items-center justify-center transition-all duration-300 ring-2 bg-gradient-to-br from-purple-500 to-pink-600 ring-purple-100 group-hover:ring-purple-200">
+                                                        <Scissors className="h-6 w-6 text-white" />
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-slate-900 font-bold text-base group-hover:text-purple-600 transition-colors tracking-tight">
+                                                            {service.name}
+                                                        </span>
+                                                    </div>
+                                                </div>
                                             </TableCell>
-                                            <TableCell className="text-muted-foreground">
-                                                {service.duration} min
+                                            <TableCell>
+                                                <div className="flex items-center gap-2 p-1.5 rounded-lg bg-blue-50 border border-blue-100 w-fit">
+                                                    <div className="p-1 bg-blue-100 text-blue-600 rounded">
+                                                        <Clock className="h-3 w-3" />
+                                                    </div>
+                                                    <span className="text-slate-700 font-bold text-xs pr-1">{service.duration} min</span>
+                                                </div>
                                             </TableCell>
-                                            <TableCell className="font-semibold text-slate-700">
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price)}
+                                            <TableCell>
+                                                <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 w-fit">
+                                                    <span className="font-bold text-sm text-emerald-700">
+                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.price)}
+                                                    </span>
+                                                </div>
                                             </TableCell>
                                             <TableCell>
                                                 {service.commission > 0 ? (
-                                                    <Badge variant="secondary" className="bg-orange-50 text-orange-700 border-orange-100 font-normal">
-                                                        {service.commission}%
-                                                    </Badge>
+                                                    <div className="flex items-center gap-2 p-1.5 rounded-lg bg-orange-50 border border-orange-100 w-fit">
+                                                        <div className="p-1 bg-orange-100 text-orange-600 rounded">
+                                                            <Sparkles className="h-3 w-3" />
+                                                        </div>
+                                                        <span className="text-slate-700 font-bold text-xs pr-1">{service.commission}%</span>
+                                                    </div>
                                                 ) : (
                                                     <span className="text-muted-foreground text-xs">-</span>
                                                 )}
                                             </TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="text-right px-6">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-500 hover:text-purple-600 hover:bg-purple-50" onClick={() => handleEdit(service)}>
+                                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg" onClick={() => handleEdit(service)}>
                                                         <Pencil className="h-4 w-4" />
                                                     </Button>
-                                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(service.id, service.name)}>
+                                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg" onClick={() => handleDelete(service.id, service.name)}>
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </div>

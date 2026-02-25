@@ -1,13 +1,7 @@
 import { Service } from "@/core/domain/Service";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, MoreVertical, Edit2, Trash2, Sparkles, Scissors } from "lucide-react";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Clock, Edit2, Trash2, Sparkles, Scissors, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ServiceCardProps {
@@ -25,78 +19,86 @@ export function ServiceCard({ service, onEdit, onDelete }: ServiceCardProps) {
     };
 
     return (
-        <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-white border-slate-100 dark:bg-slate-900 dark:border-slate-800">
-            {/* Decorative Top Gradient */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-400 to-pink-500" />
+        <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-white border-slate-100 rounded-2xl">
+            {/* Background Accent */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-700" />
 
-            <CardHeader className="p-5 pb-2">
-                <div className="flex justify-between items-start">
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-start gap-2 mb-2">
-                            <div className="p-2 bg-purple-50 text-purple-600 rounded-lg dark:bg-purple-900/20 dark:text-purple-400">
-                                <Scissors className="h-4 w-4" />
-                            </div>
-                            <h3 className="font-bold text-lg text-slate-900 line-clamp-2 break-words dark:text-slate-100">
-                                {service.name}
-                            </h3>
+            {/* Decorative Top Gradient */}
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-purple-400 via-pink-500 to-purple-400 bg-[length:200%_100%] animate-gradient-x" />
+
+            <CardHeader className="p-4 pb-2 relative">
+                <div className="flex items-start gap-3">
+                    {/* Ícone com Gradiente */}
+                    <div className="relative">
+                        <div className="h-12 w-12 rounded-xl flex items-center justify-center transition-all duration-300 ring-2 bg-gradient-to-br from-purple-500 to-pink-600 ring-purple-100 group-hover:ring-purple-200">
+                            <Scissors className="h-6 w-6 text-white" />
                         </div>
                     </div>
 
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600 -mr-2">
-                                <MoreVertical className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => onEdit(service)}>
-                                <Edit2 className="mr-2 h-3.5 w-3.5" />
-                                Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                className="text-red-600 focus:text-red-600"
-                                onClick={() => onDelete(service.id, service.name)}
-                            >
-                                <Trash2 className="mr-2 h-3.5 w-3.5" />
-                                Excluir
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-base text-slate-800 line-clamp-2 break-words tracking-tight mb-1 group-hover:text-purple-600 transition-colors">
+                            {service.name}
+                        </h3>
+                    </div>
                 </div>
             </CardHeader>
 
-            <CardContent className="p-5 pt-2 space-y-4">
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100 dark:bg-slate-800 dark:border-slate-700">
-                        <Clock className="h-3.5 w-3.5 text-slate-500" />
-                        <span>{service.duration} min</span>
+            <CardContent className="p-4 pt-2 space-y-2 relative">
+                {/* Info Grid com Ícones Coloridos */}
+                <div className="grid grid-cols-1 gap-2">
+                    {/* Duração */}
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-blue-50/50 border border-blue-100/50 group/item hover:bg-blue-50 transition-colors">
+                        <div className="p-1.5 bg-blue-100 rounded-md text-blue-600">
+                            <Clock className="h-3.5 w-3.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="text-[9px] font-bold text-blue-600 uppercase tracking-wider">Duração</div>
+                            <div className="text-xs font-bold text-slate-700">{service.duration} minutos</div>
+                        </div>
                     </div>
+
+                    {/* Preço */}
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-50/50 border border-emerald-100/50 group/item hover:bg-emerald-50 transition-colors">
+                        <div className="p-1.5 bg-emerald-100 rounded-md text-emerald-600">
+                            <DollarSign className="h-3.5 w-3.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider">Preço</div>
+                            <div className="text-xs font-bold text-slate-700">{formatCurrency(service.price)}</div>
+                        </div>
+                    </div>
+
+                    {/* Comissão */}
                     {service.commission > 0 && (
-                        <div className="flex items-center gap-1.5 bg-orange-50 px-2.5 py-1 rounded-md border border-orange-100 text-orange-700 dark:bg-orange-900/20 dark:border-orange-900/30 dark:text-orange-400">
-                            <Sparkles className="h-3.5 w-3.5" />
-                            <span>{service.commission}% comissão</span>
+                        <div className="flex items-center gap-2 p-2 rounded-lg bg-orange-50/50 border border-orange-100/50 group/item hover:bg-orange-50 transition-colors">
+                            <div className="p-1.5 bg-orange-100 rounded-md text-orange-600">
+                                <Sparkles className="h-3.5 w-3.5" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="text-[9px] font-bold text-orange-600 uppercase tracking-wider">Comissão</div>
+                                <div className="text-xs font-bold text-slate-700">{service.commission}%</div>
+                            </div>
                         </div>
                     )}
                 </div>
 
-                <div className="flex items-end justify-between mt-2">
-                    <div className="flex items-baseline gap-1">
-                        <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                            {formatCurrency(service.price)}
-                        </span>
-                        <span className="text-xs text-muted-foreground">/ serviço</span>
-                    </div>
-
+                {/* Botões de Ação */}
+                <div className="pt-2 flex items-center justify-end gap-2">
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-purple-600 bg-purple-50 hover:bg-purple-100 hover:text-purple-700 -mb-1 opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onEdit(service);
-                        }}
+                        className="h-8 w-8 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all"
+                        onClick={(e) => { e.stopPropagation(); onEdit(service); }}
                     >
                         <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                        onClick={(e) => { e.stopPropagation(); onDelete(service.id, service.name); }}
+                    >
+                        <Trash2 className="h-4 w-4" />
                     </Button>
                 </div>
             </CardContent>
