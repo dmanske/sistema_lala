@@ -37,17 +37,26 @@ export class SupabaseAccountPayableRepository implements IAccountPayableReposito
   async create(input: CreateAccountPayableInput): Promise<AccountPayable> {
     const tenantId = await this.getTenantId();
     
+    const dueDate = typeof input.dueDate === 'string' 
+      ? input.dueDate 
+      : input.dueDate.toISOString().split('T')[0];
+    
     const { data, error } = await this.supabase
       .from('accounts_payable')
       .insert({
         tenant_id: tenantId,
         description: input.description,
         amount: input.amount,
-        due_date: input.dueDate.toISOString().split('T')[0],
+        due_date: dueDate,
         purchase_id: input.purchaseId,
         supplier_id: input.supplierId,
-        category: input.category,
+        category: input.category || 'COMPRA',
+        payment_status: input.status || 'PENDING',
         notes: input.notes,
+        installment_number: input.installmentNumber,
+        total_installments: input.totalInstallments,
+        cost_center_id: input.costCenterId,
+        project_id: input.projectId,
         created_by: input.createdBy,
       })
       .select()

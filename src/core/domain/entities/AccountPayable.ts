@@ -28,6 +28,12 @@ export interface AccountPayable {
   paymentStatus: AccountPayableStatus;
   paidAmount: number;
   notes?: string;
+  // Installment fields
+  installmentNumber?: number;
+  totalInstallments?: number;
+  // Cost tracking
+  costCenterId?: string;
+  projectId?: string;
   createdBy?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -44,11 +50,18 @@ export interface AccountPayableWithDetails extends AccountPayable {
 export interface CreateAccountPayableInput {
   description: string;
   amount: number;
-  dueDate: Date;
+  dueDate: Date | string;
   purchaseId?: string;
   supplierId?: string;
-  category: AccountPayableCategory;
+  category?: AccountPayableCategory;
   notes?: string;
+  // Installment fields
+  installmentNumber?: number;
+  totalInstallments?: number;
+  // Cost tracking
+  costCenterId?: string;
+  projectId?: string;
+  status?: AccountPayableStatus;
   createdBy?: string;
 }
 

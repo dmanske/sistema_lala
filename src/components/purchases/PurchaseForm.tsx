@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -30,12 +30,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 
 import { CreatePurchaseSchema } from "@/core/domain/Purchase";
-import { CreatePurchase } from "@/core/usecases/purchases/CreatePurchase";
-import { getPurchaseRepository, getSupplierRepository, getProductRepository } from "@/infrastructure/repositories/factory";
+import { CreatePurchaseWithInstallments } from "@/core/usecases/purchases/CreatePurchaseWithInstallments";
+import { getPurchaseRepository, getSupplierRepository, getProductRepository, getAccountPayableRepository } from "@/infrastructure/repositories/factory";
 import { Supplier } from "@/core/domain/Supplier";
 import { Product } from "@/core/domain/Product";
 import { PurchaseItemRow } from "./PurchaseItemRow";
 import { AccountSelector } from "@/components/bank-accounts/AccountSelector";
+import { CostCenterSelector } from "@/components/cost-centers/CostCenterSelector";
+import { ProjectSelector } from "@/components/projects/ProjectSelector";
 
 const FormSchema = CreatePurchaseSchema;
 
@@ -46,6 +48,14 @@ export function PurchaseForm() {
     const [isLoadingData, setIsLoadingData] = useState(true);
     const [isPaid, setIsPaid] = useState(false);
     const [bankAccountId, setBankAccountId] = useState<string>("");
+    const [costCenterId, setCostCenterId] = useState<string>("");
+    const [projectId, setProjectId] = useState<string>("");
+    
+    // Installment states
+    const [paymentType, setPaymentType] = useState<'single' | 'installment'>('single');
+    const [installmentsCount, setInstallmentsCount] = useState(1);
+    const [firstDueDate, setFirstDueDate] = useState<string>("");
+    const [installmentInterval, setInstallmentInterval] = useState(30);
 
     const form = useForm<z.infer<typeof FormSchema>>({
         resolver: zodResolver(FormSchema),
@@ -67,7 +77,8 @@ export function PurchaseForm() {
     const purchaseRepo = getPurchaseRepository();
     const productRepo = getProductRepository();
     const supplierRepo = getSupplierRepository();
-    const createUseCase = new CreatePurchase(purchaseRepo, productRepo);
+    const accountPayableRepo = getAccountPayableRepository();
+    const createUseCase = new CreatePurchaseWithInstallments(purchaseRepo, productRepo, accountPayableRepo);
 
     useEffect(() => {
         const load = async () => {
@@ -95,6 +106,34 @@ export function PurchaseForm() {
         return acc + (qty * cost);
     }, 0) || 0;
 
+    // Calculate installments preview
+    const installmentsPreview = React.useMemo(() => {
+        if (isPaid || !firstDueDate || paymentType === 'single') {
+            return [];
+        }
+
+        const count = paymentType === 'installment' ? installmentsCount : 1;
+        const installments = [];
+        const baseValue = Math.floor((grandTotal / count) * 100) / 100;
+        const remainder = grandTotal - (baseValue * count);
+
+        for (let i = 0; i < count; i++) {
+            const dueDate = new Date(firstDueDate);
+            dueDate.setDate(dueDate.getDate() + (i * installmentInterval));
+            
+            const value = i === count - 1 ? baseValue + remainder : baseValue;
+            
+            installments.push({
+                number: i + 1,
+                total: count,
+                value,
+                dueDate: dueDate.toISOString().split('T')[0],
+            });
+        }
+
+        return installments;
+    }, [isPaid, firstDueDate, paymentType, installmentsCount, grandTotal, installmentInterval]);
+
     useEffect(() => {
         if (isPaid && form.getValues("paidAmount") === 0) {
             form.setValue("paidAmount", grandTotal);
@@ -109,13 +148,32 @@ export function PurchaseForm() {
                 return;
             }
 
+            // Validate installment fields if not paying immediately
+            if (!isPaid && !firstDueDate) {
+                toast.error("Informe a data de vencimento");
+                return;
+            }
+
+            if (!isPaid && paymentType === 'installment' && installmentsCount < 2) {
+                toast.error("Para parcelar, informe pelo menos 2 parcelas");
+                return;
+            }
+
             const input = {
                 ...data,
                 paymentMethod: isPaid ? data.paymentMethod : undefined,
                 paidAmount: isPaid ? data.paidAmount : undefined,
                 paidAt: isPaid ? new Date().toISOString() : undefined,
                 bankAccountId: isPaid ? bankAccountId : undefined,
+                costCenterId: costCenterId || undefined,
+                projectId: projectId || undefined,
+                // Installment data
+                paymentType: isPaid ? 'IMMEDIATE' : (paymentType === 'installment' ? 'INSTALLMENT' : 'SINGLE_DUE'),
+                installmentsCount: !isPaid && paymentType === 'installment' ? installmentsCount : 1,
+                firstDueDate: !isPaid ? firstDueDate : undefined,
+                installmentInterval: !isPaid && paymentType === 'installment' ? installmentInterval : undefined,
             };
+            
             await createUseCase.execute(input);
             toast.success("Compra registrada com sucesso!");
             router.push("/purchases");
@@ -147,9 +205,19 @@ export function PurchaseForm() {
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent className="rounded-xl border-white/20 bg-white/80 backdrop-blur-xl">
-                                        {suppliers.map(s => (
-                                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                        ))}
+                                        {suppliers.length === 0 ? (
+                                            <div className="p-4 text-sm text-muted-foreground text-center">
+                                                Nenhum fornecedor ativo encontrado.
+                                                <br />
+                                                <a href="/suppliers" className="text-primary underline">
+                                                    Cadastre um fornecedor
+                                                </a>
+                                            </div>
+                                        ) : (
+                                            suppliers.map(s => (
+                                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                            ))
+                                        )}
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -169,6 +237,32 @@ export function PurchaseForm() {
                             </FormItem>
                         )}
                     />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormItem>
+                        <FormLabel className="text-sm font-semibold text-slate-700">Centro de Custos (Opcional)</FormLabel>
+                        <CostCenterSelector
+                            value={costCenterId}
+                            onValueChange={setCostCenterId}
+                            placeholder="Selecione um centro de custos"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Para despesas recorrentes (ex: Operacional, Estoque)
+                        </p>
+                    </FormItem>
+
+                    <FormItem>
+                        <FormLabel className="text-sm font-semibold text-slate-700">Projeto (Opcional)</FormLabel>
+                        <ProjectSelector
+                            value={projectId}
+                            onValueChange={setProjectId}
+                            placeholder="Selecione um projeto"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Para investimentos pontuais (ex: Expansão, Reforma)
+                        </p>
+                    </FormItem>
                 </div>
 
                 <div className="space-y-4">
@@ -288,6 +382,103 @@ export function PurchaseForm() {
                         </div>
                     )}
                 </div>
+
+                {!isPaid && (
+                    <div className="bg-amber-50/50 p-6 rounded-2xl border border-amber-200 space-y-6">
+                        <div className="space-y-0.5">
+                            <Label className="text-base font-semibold flex items-center gap-2">
+                                📅 Pagamento a Prazo
+                            </Label>
+                            <p className="text-sm text-muted-foreground">
+                                Configure como será o pagamento desta compra (boleto, prazo, parcelado, etc)
+                            </p>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="flex gap-4">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="paymentType"
+                                        checked={paymentType === 'single'}
+                                        onChange={() => setPaymentType('single')}
+                                        className="w-4 h-4"
+                                    />
+                                    <span className="text-sm font-medium">À Vista (1 vencimento)</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="paymentType"
+                                        checked={paymentType === 'installment'}
+                                        onChange={() => setPaymentType('installment')}
+                                        className="w-4 h-4"
+                                    />
+                                    <span className="text-sm font-medium">Parcelado</span>
+                                </label>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <Label className="text-xs">Data de Vencimento *</Label>
+                                    <Input
+                                        type="date"
+                                        value={firstDueDate}
+                                        onChange={(e) => setFirstDueDate(e.target.value)}
+                                        className="h-10 rounded-xl mt-1"
+                                    />
+                                </div>
+
+                                {paymentType === 'installment' && (
+                                    <>
+                                        <div>
+                                            <Label className="text-xs">Número de Parcelas</Label>
+                                            <Input
+                                                type="number"
+                                                min="2"
+                                                max="12"
+                                                value={installmentsCount}
+                                                onChange={(e) => setInstallmentsCount(Number(e.target.value))}
+                                                className="h-10 rounded-xl mt-1"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs">Intervalo (dias)</Label>
+                                            <Input
+                                                type="number"
+                                                min="1"
+                                                value={installmentInterval}
+                                                onChange={(e) => setInstallmentInterval(Number(e.target.value))}
+                                                className="h-10 rounded-xl mt-1"
+                                            />
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            {installmentsPreview.length > 0 && (
+                                <div className="bg-white p-4 rounded-xl border border-amber-200">
+                                    <p className="text-sm font-semibold mb-3">Parcelas que serão criadas:</p>
+                                    <div className="space-y-2">
+                                        {installmentsPreview.map((inst) => (
+                                            <div key={inst.number} className="flex justify-between items-center text-sm">
+                                                <span className="text-muted-foreground">
+                                                    {inst.number}/{inst.total}
+                                                </span>
+                                                <span className="font-medium">
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(inst.value)}
+                                                </span>
+                                                <span className="text-muted-foreground">
+                                                    Venc: {new Date(inst.dueDate).toLocaleDateString('pt-BR')}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 <FormField
                     control={form.control}

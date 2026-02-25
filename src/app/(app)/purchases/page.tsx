@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
     Plus, Search, ShoppingBag, Calendar, Package, ArrowRight,
@@ -9,6 +8,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { NewPurchaseDialog } from "@/components/purchases/NewPurchaseDialog";
 import { Input } from "@/components/ui/input";
 import {
     Table,
@@ -42,37 +42,39 @@ export default function PurchasesPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("ALL");
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     const purchaseRepo = getPurchaseRepository();
     const supplierRepo = getSupplierRepository();
 
+    const loadData = async () => {
+        try {
+            const [pList, sList] = await Promise.all([
+                purchaseRepo.getAll(),
+                supplierRepo.getAll()
+            ]);
+
+            // Create Supplier Map
+            const sMap = new Map<string, string>();
+            sList.forEach(s => sMap.set(s.id, s.name));
+            setSuppliers(sMap);
+
+            // Sort by Date Desc
+            const sorted = pList.sort((a, b) => {
+                const dateA = parseLocalDate(a.date)?.getTime() || 0;
+                const dateB = parseLocalDate(b.date)?.getTime() || 0;
+                return dateB - dateA;
+            });
+            setPurchases(sorted);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const load = async () => {
-            try {
-                const [pList, sList] = await Promise.all([
-                    purchaseRepo.getAll(),
-                    supplierRepo.getAll()
-                ]);
-
-                // Create Supplier Map
-                const sMap = new Map<string, string>();
-                sList.forEach(s => sMap.set(s.id, s.name));
-                setSuppliers(sMap);
-
-                // Sort by Date Desc
-                const sorted = pList.sort((a, b) => {
-                    const dateA = parseLocalDate(a.date)?.getTime() || 0;
-                    const dateB = parseLocalDate(b.date)?.getTime() || 0;
-                    return dateB - dateA;
-                });
-                setPurchases(sorted);
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        load();
+        loadData();
     }, []);
 
     const filteredPurchases = purchases.filter(p => {
@@ -104,23 +106,35 @@ export default function PurchasesPage() {
                         Histórico de compras e entradas de produtos.
                     </p>
                 </div>
-                <Button asChild className="rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all">
-                    <Link href="/purchases/new">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Nova Entrada
-                    </Link>
+                <Button 
+                    onClick={() => setIsDialogOpen(true)}
+                    className="rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all"
+                >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nova Entrada
                 </Button>
             </div>
 
             {/* Mobile Header */}
             <div className="md:hidden flex justify-between items-center">
                 <h1 className="text-2xl font-bold font-heading">Compras</h1>
-                <Button asChild size="sm" className="rounded-xl">
-                    <Link href="/purchases/new">
-                        <Plus className="h-4 w-4" />
-                    </Link>
+                <Button 
+                    onClick={() => setIsDialogOpen(true)}
+                    size="sm" 
+                    className="rounded-xl"
+                >
+                    <Plus className="h-4 w-4" />
                 </Button>
             </div>
+
+            <NewPurchaseDialog 
+                open={isDialogOpen} 
+                onOpenChange={setIsDialogOpen}
+                onSuccess={() => {
+                    loadData();
+                    router.refresh();
+                }}
+            />
 
             {/* Metrics Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

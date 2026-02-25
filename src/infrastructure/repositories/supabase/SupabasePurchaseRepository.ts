@@ -79,21 +79,32 @@ export class SupabasePurchaseRepository implements PurchaseRepository {
 
     async create(input: CreatePurchaseInput): Promise<Purchase> {
         const tenantId = await this.getTenantId();
+        const { data: { user } } = await this.supabase.auth.getUser();
+        if (!user) throw new Error('User not authenticated');
+
+        // Calculate total
+        const total = input.items.reduce((sum, item) => sum + (item.quantity * item.unitCost), 0);
+
+        // Determine payment status (UPPERCASE as required by constraint)
+        const paymentStatus = input.paidAt ? 'PAID' : 'PENDING';
 
         // Use RPC for atomicity (creates purchase + items + stock movements + cash movement)
         const { data: purchaseId, error } = await this.supabase.rpc('create_purchase_with_movements', {
-            p_tenant_id: tenantId,
-            p_supplier_id: input.supplierId,
-            p_date: input.date,
-            p_notes: input.notes || null,
+            p_purchase: {
+                supplier_id: input.supplierId,
+                date: input.date,
+                notes: input.notes || null,
+                total_amount: total,
+                payment_status: paymentStatus,
+                payment_method: input.paymentMethod || null,
+                tenant_id: tenantId,
+                created_by: user.id,
+            },
             p_items: input.items.map(item => ({
-                productId: item.productId,
+                product_id: item.productId,
                 quantity: item.quantity,
-                unitCost: item.unitCost,
+                unit_cost: item.unitCost,
             })),
-            p_payment_method: input.paymentMethod || null,
-            p_paid_amount: input.paidAmount || 0,
-            p_paid_at: input.paidAt || null,
             p_bank_account_id: input.bankAccountId || null,
         });
 

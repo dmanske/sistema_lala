@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { formatCurrency } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
+import { ProjectSelector } from '@/components/projects/ProjectSelector';
 
 interface Client {
   id: string;
@@ -29,6 +30,7 @@ interface CreateInstallmentSaleDialogProps {
     totalAmount: number;
     description: string;
     installments: InstallmentInput[];
+    projectId?: string;
   }) => Promise<void>;
 }
 
@@ -45,6 +47,7 @@ export function CreateInstallmentSaleDialog({
   const [firstDueDate, setFirstDueDate] = useState('');
   const [installments, setInstallments] = useState<InstallmentInput[]>([]);
   const [loading, setLoading] = useState(false);
+  const [projectId, setProjectId] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -63,6 +66,7 @@ export function CreateInstallmentSaleDialog({
       setTotalAmount('');
       setNumberOfInstallments(2);
       setInstallments([]);
+      setProjectId('');
     }
   }, [open]);
 
@@ -175,6 +179,7 @@ export function CreateInstallmentSaleDialog({
         totalAmount: totalAmountNum,
         description,
         installments,
+        projectId: projectId || undefined,
       });
       onOpenChange(false);
     } catch (error) {
@@ -222,6 +227,18 @@ export function CreateInstallmentSaleDialog({
               rows={2}
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="projectId">Projeto (Opcional)</Label>
+            <ProjectSelector
+              value={projectId}
+              onValueChange={setProjectId}
+              placeholder="Selecione um projeto/campanha"
+            />
+            <p className="text-xs text-muted-foreground">
+              Para rastrear vendas por campanha ou projeto específico
+            </p>
           </div>
 
           <div className="space-y-2">

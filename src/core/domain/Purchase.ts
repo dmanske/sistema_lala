@@ -53,6 +53,11 @@ export const PurchaseSchema = z.object({
     paymentStatus: z.enum(["PENDING", "PARTIAL", "PAID"]).default("PENDING"),
     payments: z.array(PurchasePaymentSchema).optional(),
 
+    // Installment support
+    paymentType: z.enum(["IMMEDIATE", "SINGLE_DUE", "INSTALLMENT"]).default("IMMEDIATE"),
+    installmentsCount: z.number().min(1).max(12).optional(),
+    firstDueDate: z.string().optional(), // ISO Date
+
     // Legacy payment info (deprecated, kept for backward compatibility)
     paymentMethod: z.enum(["CASH", "PIX", "CARD", "TRANSFER", "WALLET"]).optional(),
     paidAmount: z.number().min(0).optional(),
@@ -75,6 +80,10 @@ export const CreatePurchaseSchema = PurchaseSchema.omit({
 }).extend({
     items: z.array(CreatePurchaseItemSchema).min(1, "Adicione pelo menos um item"),
     bankAccountId: z.string().optional(),
+    costCenterId: z.string().optional(),
+    projectId: z.string().optional(),
+    // Installment fields
+    installmentInterval: z.number().min(1).default(30).optional(), // Days between installments
 });
 
 export type CreatePurchaseInput = z.infer<typeof CreatePurchaseSchema>;
