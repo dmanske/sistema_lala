@@ -278,51 +278,115 @@ export default function ClientsPage() {
                             ) : (
                                 paginatedClients.map((client) => {
                                     const stats = clientStats[client.id] || {};
+                                    const daysSinceLastVisit = stats.lastVisit ? Math.floor((new Date().getTime() - stats.lastVisit.getTime()) / (1000 * 60 * 60 * 24)) : null;
+                                    const isInactive = daysSinceLastVisit && daysSinceLastVisit > 60;
+                                    
                                     return (
                                         <TableRow
                                             key={client.id}
-                                            className="cursor-pointer group hover:bg-white/40 border-white/10 transition-colors relative"
+                                            className="cursor-pointer group hover:bg-white/60 border-white/10 transition-all relative"
                                             onClick={() => router.push(`/clients/${client.id}`)}
                                         >
                                             <TableCell className="font-medium">
                                                 <div className="flex items-center gap-3">
-                                                    <Avatar className="h-8 w-8 border border-white/20">
-                                                        <AvatarImage src={client.photoUrl} alt={client.name} />
-                                                        <AvatarFallback className="text-xs bg-primary/10 text-primary font-bold">
-                                                            {getInitials(client.name)}
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                    <span>{formatName(client.name)}</span>
+                                                    <div className="relative">
+                                                        <Avatar className="h-10 w-10 border-2 border-white shadow-sm ring-1 ring-primary/10">
+                                                            <AvatarImage src={client.photoUrl} alt={client.name} />
+                                                            <AvatarFallback className="text-xs bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold">
+                                                                {getInitials(client.name)}
+                                                            </AvatarFallback>
+                                                        </Avatar>
+                                                        <div className={cn(
+                                                            "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white shadow-sm",
+                                                            client.status === 'ACTIVE' ? 'bg-green-500' :
+                                                            client.status === 'ATTENTION' ? 'bg-orange-500' : 'bg-gray-400'
+                                                        )} />
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-semibold text-slate-900 group-hover:text-primary transition-colors">
+                                                            {formatName(client.name)}
+                                                        </span>
+                                                        {isInactive && (
+                                                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold w-fit mt-0.5">
+                                                                Inativo há {daysSinceLastVisit}d
+                                                            </Badge>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <div className="flex flex-col">
+                                                <div className="flex flex-col gap-1">
                                                     {(client.phone || client.whatsapp) ? (
                                                         <>
-                                                            {client.phone && <span>{formatPhone(client.phone)}</span>}
-                                                            {client.whatsapp && client.whatsapp !== client.phone && <span className="text-xs text-muted-foreground">{formatPhone(client.whatsapp)}</span>}
+                                                            {client.whatsapp && (
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <MessageCircle className="h-3.5 w-3.5 text-green-600" />
+                                                                    <span className="font-medium text-sm">{formatPhone(client.whatsapp)}</span>
+                                                                </div>
+                                                            )}
+                                                            {client.phone && client.phone !== client.whatsapp && (
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <Phone className="h-3.5 w-3.5 text-slate-400" />
+                                                                    <span className="text-xs text-muted-foreground">{formatPhone(client.phone)}</span>
+                                                                </div>
+                                                            )}
                                                         </>
-                                                    ) : <span className="text-muted-foreground">-</span>}
+                                                    ) : <span className="text-muted-foreground text-sm">-</span>}
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <span className="text-muted-foreground text-sm">
-                                                    {stats.lastVisit ? format(stats.lastVisit, 'dd/MM/yyyy') : '-'}
-                                                </span>
+                                                {stats.lastVisit ? (
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium text-slate-700 text-sm">
+                                                            {format(stats.lastVisit, 'dd/MM/yyyy')}
+                                                        </span>
+                                                        {daysSinceLastVisit !== null && (
+                                                            <span className={cn(
+                                                                "text-xs font-medium",
+                                                                daysSinceLastVisit > 60 ? "text-amber-600" :
+                                                                daysSinceLastVisit > 30 ? "text-orange-500" :
+                                                                "text-slate-500"
+                                                            )}>
+                                                                {daysSinceLastVisit}d atrás
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-muted-foreground text-sm">Nunca</span>
+                                                )}
                                             </TableCell>
                                             <TableCell className="text-center">
-                                                <span className="text-muted-foreground text-sm">
-                                                    {stats.nextAppointment ? (
-                                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                                            {format(stats.nextAppointment, 'dd/MM HH:mm')}
-                                                        </Badge>
-                                                    ) : '-'}
-                                                </span>
+                                                {stats.nextAppointment ? (
+                                                    <Badge className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 font-semibold">
+                                                        <Calendar className="h-3 w-3 mr-1" />
+                                                        {format(stats.nextAppointment, 'dd/MM HH:mm')}
+                                                    </Badge>
+                                                ) : (
+                                                    <span className="text-muted-foreground text-sm">-</span>
+                                                )}
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                <span className={`font-bold ${client.creditBalance < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
-                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(client.creditBalance)}
-                                                </span>
+                                                {client.creditBalance !== 0 ? (
+                                                    <div className="flex flex-col items-end">
+                                                        <span className={cn(
+                                                            "font-bold text-base",
+                                                            client.creditBalance > 0 ? 'text-emerald-600' : 'text-rose-600'
+                                                        )}>
+                                                            {new Intl.NumberFormat('pt-BR', { 
+                                                                style: 'currency', 
+                                                                currency: 'BRL' 
+                                                            }).format(client.creditBalance)}
+                                                        </span>
+                                                        <span className={cn(
+                                                            "text-[10px] font-semibold uppercase",
+                                                            client.creditBalance > 0 ? 'text-emerald-600' : 'text-rose-600'
+                                                        )}>
+                                                            {client.creditBalance > 0 ? 'Crédito' : 'Débito'}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-muted-foreground text-sm">-</span>
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     )
@@ -356,66 +420,137 @@ export default function ClientsPage() {
                 ) : (
                     paginatedClients.map((client) => {
                         const stats = clientStats[client.id] || {};
+                        const daysSinceLastVisit = stats.lastVisit ? Math.floor((new Date().getTime() - stats.lastVisit.getTime()) / (1000 * 60 * 60 * 24)) : null;
+                        const isInactive = daysSinceLastVisit && daysSinceLastVisit > 60;
+                        
                         return (
                             <Link href={`/clients/${client.id}`} key={client.id} className="block group">
-                                <Card className="border border-slate-200 bg-white/60 hover:bg-white/90 backdrop-blur-xl shadow-lg shadow-purple-500/5 hover:shadow-purple-500/15 transition-all duration-300 rounded-2xl overflow-hidden group h-full flex flex-col">
-                                    <CardContent className="p-4 flex flex-col gap-3 flex-1">
-                                        {/* Top Section: Avatar, Name and Balance */}
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="flex items-start gap-3 flex-1 min-w-0">
-                                                <div className="relative flex-shrink-0">
-                                                    <Avatar className="h-12 w-12 border-2 border-white shadow-md">
-                                                        <AvatarImage src={client.photoUrl} alt={client.name} />
-                                                        <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
-                                                            {getInitials(client.name)}
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                    <div className={cn(
-                                                        "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white",
-                                                        client.status === 'ACTIVE' ? 'bg-green-500' :
-                                                            client.status === 'ATTENTION' ? 'bg-orange-500' : 'bg-gray-300'
-                                                    )} />
-                                                </div>
-
-                                                <div className="flex-1 min-w-0">
-                                                    <h3 className="font-bold text-slate-800 line-clamp-2 break-words font-heading group-hover:text-primary transition-colors text-base">
-                                                        {formatName(client.name)}
-                                                    </h3>
-                                                    <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                                                        {client.whatsapp ? <MessageCircle className="h-3.5 w-3.5 text-green-600 flex-shrink-0" /> : <Phone className="h-3.5 w-3.5 flex-shrink-0" />}
-                                                        <span className="font-medium tracking-tight truncate">
-                                                            {formatPhone(client.whatsapp || client.phone || 'Sem contato')}
-                                                        </span>
-                                                    </div>
-                                                </div>
+                                <Card className="border border-slate-200 bg-white/60 hover:bg-white hover:shadow-xl backdrop-blur-xl shadow-lg hover:scale-[1.02] transition-all duration-300 rounded-2xl overflow-hidden h-full flex flex-col relative">
+                                    {/* Badge de Status no Canto */}
+                                    {isInactive && (
+                                        <div className="absolute top-3 right-3 z-10">
+                                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px] font-bold">
+                                                Inativo
+                                            </Badge>
+                                        </div>
+                                    )}
+                                    
+                                    <CardContent className="p-5 flex flex-col gap-4 flex-1">
+                                        {/* Header: Avatar + Nome + Saldo */}
+                                        <div className="flex items-start gap-3">
+                                            <div className="relative flex-shrink-0">
+                                                <Avatar className="h-14 w-14 border-2 border-white shadow-lg ring-2 ring-primary/10">
+                                                    <AvatarImage src={client.photoUrl} alt={client.name} />
+                                                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold text-base">
+                                                        {getInitials(client.name)}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div className={cn(
+                                                    "absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white shadow-sm",
+                                                    client.status === 'ACTIVE' ? 'bg-green-500' :
+                                                    client.status === 'ATTENTION' ? 'bg-orange-500' : 'bg-gray-400'
+                                                )} />
                                             </div>
 
-                                            <div className="flex flex-col items-end flex-shrink-0">
-                                                <span className="text-[9px] uppercase text-muted-foreground font-bold tracking-wider">Saldo</span>
-                                                <span className={cn("text-lg font-black leading-tight", client.creditBalance < 0 ? "text-red-500" : "text-emerald-600")}>
-                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(client.creditBalance)}
-                                                </span>
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="font-bold text-slate-900 line-clamp-2 break-words font-heading group-hover:text-primary transition-colors text-base leading-tight mb-1">
+                                                    {formatName(client.name)}
+                                                </h3>
+                                                <div className="flex items-center gap-1.5 text-sm text-slate-600">
+                                                    {client.whatsapp ? (
+                                                        <MessageCircle className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
+                                                    ) : (
+                                                        <Phone className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+                                                    )}
+                                                    <span className="font-medium tracking-tight truncate text-xs">
+                                                        {formatPhone(client.whatsapp || client.phone || 'Sem contato')}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        {/* Info Block */}
-                                        <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 flex flex-col gap-2">
-                                            <div className="flex items-center gap-2 text-slate-600">
-                                                <MapPin className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
-                                                <span className="text-xs font-medium truncate">{client.city || 'Cidade não inf.'}</span>
-                                            </div>
-
-                                            <div className="pt-2 border-t border-slate-200/50 grid grid-cols-2 gap-2">
-                                                <div className="flex flex-col gap-0.5">
-                                                    <span className="text-[9px] uppercase text-slate-400 font-bold">Última</span>
-                                                    <span className="font-semibold text-slate-700 text-xs">
-                                                        {stats.lastVisit ? format(stats.lastVisit, 'dd/MM/yy') : '-'}
+                                        {/* Saldo em Destaque */}
+                                        {client.creditBalance !== 0 && (
+                                            <div className={cn(
+                                                "p-3 rounded-xl border-2 flex items-center justify-between",
+                                                client.creditBalance > 0 
+                                                    ? "bg-emerald-50 border-emerald-200" 
+                                                    : "bg-rose-50 border-rose-200"
+                                            )}>
+                                                <div className="flex items-center gap-2">
+                                                    <CreditCard className={cn(
+                                                        "h-4 w-4",
+                                                        client.creditBalance > 0 ? "text-emerald-600" : "text-rose-600"
+                                                    )} />
+                                                    <span className="text-xs font-semibold text-slate-600">
+                                                        {client.creditBalance > 0 ? 'Crédito' : 'Débito'}
                                                     </span>
                                                 </div>
-                                                <div className="flex flex-col gap-0.5 border-l border-slate-200 pl-2">
-                                                    <span className="text-[9px] uppercase text-slate-400 font-bold">Próximo</span>
-                                                    <span className={cn("font-semibold text-xs truncate", stats.nextAppointment ? "text-blue-600" : "text-slate-500")}>
-                                                        {stats.nextAppointment ? format(stats.nextAppointment, 'dd/MM HH:mm') : '-'}
+                                                <span className={cn(
+                                                    "text-xl font-black",
+                                                    client.creditBalance > 0 ? "text-emerald-600" : "text-rose-600"
+                                                )}>
+                                                    {new Intl.NumberFormat('pt-BR', { 
+                                                        style: 'currency', 
+                                                        currency: 'BRL',
+                                                        minimumFractionDigits: 2
+                                                    }).format(Math.abs(client.creditBalance))}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        {/* Info Grid */}
+                                        <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 p-3 rounded-xl border border-slate-200 space-y-2.5">
+                                            {/* Localização */}
+                                            <div className="flex items-center gap-2 text-slate-700">
+                                                <div className="h-7 w-7 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                                    <MapPin className="h-3.5 w-3.5 text-blue-600" />
+                                                </div>
+                                                <span className="text-xs font-medium truncate">{client.city || 'Cidade não informada'}</span>
+                                            </div>
+
+                                            {/* Última Visita */}
+                                            <div className="flex items-center gap-2 text-slate-700">
+                                                <div className="h-7 w-7 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+                                                    <History className="h-3.5 w-3.5 text-purple-600" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <span className="text-[10px] uppercase text-slate-500 font-bold block">Última visita</span>
+                                                    <span className="font-semibold text-slate-800 text-xs">
+                                                        {stats.lastVisit ? (
+                                                            <>
+                                                                {format(stats.lastVisit, 'dd/MM/yyyy')}
+                                                                {daysSinceLastVisit && (
+                                                                    <span className="text-[10px] text-slate-500 ml-1">
+                                                                        ({daysSinceLastVisit}d atrás)
+                                                                    </span>
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            <span className="text-slate-400">Nunca</span>
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Próximo Agendamento */}
+                                            <div className="flex items-center gap-2 text-slate-700">
+                                                <div className={cn(
+                                                    "h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0",
+                                                    stats.nextAppointment ? "bg-green-100" : "bg-slate-100"
+                                                )}>
+                                                    <Calendar className={cn(
+                                                        "h-3.5 w-3.5",
+                                                        stats.nextAppointment ? "text-green-600" : "text-slate-400"
+                                                    )} />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <span className="text-[10px] uppercase text-slate-500 font-bold block">Próximo agendamento</span>
+                                                    <span className={cn(
+                                                        "font-semibold text-xs truncate block",
+                                                        stats.nextAppointment ? "text-green-700" : "text-slate-400"
+                                                    )}>
+                                                        {stats.nextAppointment ? format(stats.nextAppointment, "dd/MM/yyyy 'às' HH:mm") : 'Sem agendamento'}
                                                     </span>
                                                 </div>
                                             </div>
