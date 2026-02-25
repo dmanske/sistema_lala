@@ -212,6 +212,8 @@ export function resetRepositories(): void {
     cashMovementRepo = null;
     bankAccountRepo = null;
     cashRegisterRepo = null;
+    accountPayableRepo = null;
+    saleInstallmentRepo = null;
 }
 
 // Singleton for BankAccountRepository
@@ -231,6 +233,38 @@ export function getBankAccountRepository(): BankAccountRepository {
         }
     }
     return bankAccountRepo;
+}
+
+// Singleton for AccountPayableRepository
+let accountPayableRepo: IAccountPayableRepository | null = null;
+import { IAccountPayableRepository } from '@/core/repositories/AccountPayableRepository';
+import { SupabaseAccountPayableRepository } from './supabase/SupabaseAccountPayableRepository';
+
+export function getAccountPayableRepository(): IAccountPayableRepository {
+    if (!accountPayableRepo) {
+        if (useSupabase()) {
+            accountPayableRepo = new SupabaseAccountPayableRepository();
+        } else {
+            throw new Error('Account Payable module is only available with Supabase backend.');
+        }
+    }
+    return accountPayableRepo;
+}
+
+// Singleton for SaleInstallmentRepository
+let saleInstallmentRepo: ISaleInstallmentRepository | null = null;
+import { ISaleInstallmentRepository } from '@/core/repositories/SaleInstallmentRepository';
+import { SupabaseSaleInstallmentRepository } from './supabase/SupabaseSaleInstallmentRepository';
+
+export function getSaleInstallmentRepository(): ISaleInstallmentRepository {
+    if (!saleInstallmentRepo) {
+        if (useSupabase()) {
+            saleInstallmentRepo = new SupabaseSaleInstallmentRepository();
+        } else {
+            throw new Error('Sale Installment module is only available with Supabase backend.');
+        }
+    }
+    return saleInstallmentRepo;
 }
 
 // Singleton for CashRegisterRepository

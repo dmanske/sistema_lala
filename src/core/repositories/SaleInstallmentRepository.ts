@@ -8,6 +8,13 @@ import type {
 export interface ISaleInstallmentRepository {
   getById(id: string): Promise<SaleInstallmentWithDetails | null>;
   getBySaleId(saleId: string): Promise<SaleInstallmentWithDetails[]>;
+  list(filters?: {
+    status?: 'PENDING' | 'PAID' | 'CANCELLED';
+    clientId?: string;
+    dueDateStart?: Date;
+    dueDateEnd?: Date;
+    overdue?: boolean;
+  }): Promise<SaleInstallmentWithDetails[]>;
   getPending(filters?: {
     clientId?: string;
     startDate?: Date;

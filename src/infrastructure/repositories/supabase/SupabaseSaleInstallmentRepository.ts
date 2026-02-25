@@ -92,6 +92,54 @@ export class SupabaseSaleInstallmentRepository implements ISaleInstallmentReposi
     return data.map(row => this.mapWithDetailsFromDb(row));
   }
 
+  async list(filters?: {
+    status?: 'PENDING' | 'PAID' | 'CANCELLED';
+    clientId?: string;
+    dueDateStart?: Date;
+    dueDateEnd?: Date;
+    overdue?: boolean;
+  }): Promise<SaleInstallmentWithDetails[]> {
+    const tenantId = await this.getTenantId();
+
+    let query = this.supabase
+      .from('vw_contas_receber')
+      .select('*')
+      .eq('tenant_id', tenantId);
+
+    if (filters?.status) {
+      query = query.eq('status', filters.status);
+    }
+
+    if (filters?.clientId) {
+      query = query.eq('client_id', filters.clientId);
+    }
+
+    if (filters?.dueDateStart) {
+      const year = filters.dueDateStart.getFullYear();
+      const month = String(filters.dueDateStart.getMonth() + 1).padStart(2, '0');
+      const day = String(filters.dueDateStart.getDate()).padStart(2, '0');
+      query = query.gte('due_date', `${year}-${month}-${day}`);
+    }
+
+    if (filters?.dueDateEnd) {
+      const year = filters.dueDateEnd.getFullYear();
+      const month = String(filters.dueDateEnd.getMonth() + 1).padStart(2, '0');
+      const day = String(filters.dueDateEnd.getDate()).padStart(2, '0');
+      query = query.lte('due_date', `${year}-${month}-${day}`);
+    }
+
+    if (filters?.overdue) {
+      query = query.eq('is_overdue', true);
+    }
+
+    query = query.order('due_date', { ascending: true });
+
+    const { data, error } = await query;
+
+    if (error) throw new Error(`Failed to list installments: ${error.message}`);
+    return data.map(row => this.mapWithDetailsFromDb(row));
+  }
+
   async getPending(filters?: {
     clientId?: string;
     startDate?: Date;

@@ -21,7 +21,8 @@ import {
     Loader2,
     Calculator,
     Receipt,
-    FileText
+    FileText,
+    TrendingUp
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -79,6 +80,8 @@ export function Sidebar({ className }: SidebarProps) {
         {
             label: "Financeiro",
             items: [
+                { name: "Dashboard Financeiro", icon: TrendingUp, href: "/dashboard/financial", active: true },
+                { name: "Projeção de Caixa", icon: TrendingUp, href: "/cash/projection", active: true },
                 { name: "Fluxo de Caixa", icon: Wallet, href: "/cash", active: true },
                 { name: "Fechamento de Caixa", icon: Calculator, href: "/cash-register", active: true },
                 { name: "Contas Bancárias", icon: Building2, href: "/contas", active: true },
@@ -121,24 +124,31 @@ export function Sidebar({ className }: SidebarProps) {
                             </h3>
                             <div className="space-y-1">
                                 {group.items.map((item) => {
-                                    const isActive = pathname === item.href || (pathname.startsWith(item.href + '/'));
+                                    // Verificação mais precisa: rota exata ou sub-rotas, mas não prefixos parciais
+                                    const isActive = pathname === item.href || 
+                                        (pathname.startsWith(item.href + '/') && item.href !== '/cash');
+                                    
+                                    // Caso especial: /cash só deve estar ativo se for exatamente /cash
+                                    const isExactCash = item.href === '/cash' && pathname === '/cash';
+                                    const finalIsActive = item.href === '/cash' ? isExactCash : isActive;
+                                    
                                     return (
                                         <Button
                                             key={item.href}
                                             variant="ghost"
                                             className={cn(
                                                 "w-full justify-start font-medium text-sm h-10 px-4 rounded-xl transition-all duration-300",
-                                                isActive
+                                                finalIsActive
                                                     ? "bg-primary text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90"
                                                     : "text-muted-foreground hover:bg-white/50 hover:text-primary",
-                                                !item.active && !isActive && "opacity-60 hover:opacity-100"
+                                                !item.active && !finalIsActive && "opacity-60 hover:opacity-100"
                                             )}
                                             asChild={item.active}
                                             disabled={!item.active || isLoggingOut}
                                         >
                                             {item.active ? (
                                                 <Link href={item.href}>
-                                                    <item.icon className={cn("mr-3 h-4 w-4", isActive ? "text-primary-foreground" : "text-muted-foreground/70")} />
+                                                    <item.icon className={cn("mr-3 h-4 w-4", finalIsActive ? "text-primary-foreground" : "text-muted-foreground/70")} />
                                                     {item.name}
                                                 </Link>
                                             ) : (
