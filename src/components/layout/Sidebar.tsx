@@ -86,7 +86,6 @@ export function Sidebar({ className }: SidebarProps) {
                 { name: "Dashboard Financeiro", icon: TrendingUp, href: "/dashboard/financial", active: true },
                 { name: "Fluxo de Caixa", icon: Wallet, href: "/cash", active: true },
                 { name: "Fechamento de Caixa", icon: Calculator, href: "/cash-register", active: true },
-                { name: "Dashboard de Contas", icon: Building2, href: "/bank-accounts/dashboard", active: true },
                 { name: "Contas Bancárias", icon: Building2, href: "/contas", active: true },
                 { name: "Contas a Pagar", icon: Receipt, href: "/accounts-payable", active: true },
                 { name: "Contas a Receber", icon: FileText, href: "/receivables", active: true },

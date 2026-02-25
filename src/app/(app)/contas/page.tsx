@@ -4,11 +4,12 @@ import { useState } from 'react'
 import { BankAccountCard } from '@/components/bank-accounts/BankAccountCard'
 import { BankAccountsList } from '@/components/bank-accounts/BankAccountsList'
 import { BankAccountDialog } from '@/components/bank-accounts/BankAccountDialog'
+import { TransferDialog } from '@/components/bank-accounts/TransferDialog'
 import { StatsCards } from '@/components/bank-accounts/StatsCards'
 import { AccountsFilter } from '@/components/bank-accounts/AccountsFilter'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, Wallet } from 'lucide-react'
+import { Plus, Wallet, ArrowRightLeft } from 'lucide-react'
 import { BankAccountWithBalance, BankAccount } from '@/core/domain/BankAccount'
 import { useBankAccounts } from '@/hooks/useBankAccounts'
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
@@ -16,6 +17,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recha
 export default function ContasPage() {
     const { accounts, loading, createAccount, updateAccount, toggleAccountStatus, refresh } = useBankAccounts()
     const [dialogOpen, setDialogOpen] = useState(false)
+    const [transferDialogOpen, setTransferDialogOpen] = useState(false)
     const [selectedAccount, setSelectedAccount] = useState<BankAccount | null>(null)
     const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('active')
     const [searchTerm, setSearchTerm] = useState('')
@@ -105,6 +107,14 @@ export default function ContasPage() {
                         Gerencie seu patrimônio e fluxo de caixa
                     </p>
                 </div>
+                <Button
+                    onClick={() => setTransferDialogOpen(true)}
+                    disabled={accounts.filter(a => a.isActive).length < 2}
+                    className="shadow-lg hover:shadow-primary/20 transition-all"
+                >
+                    <ArrowRightLeft className="h-4 w-4 mr-2" />
+                    Nova Transferência
+                </Button>
             </div>
 
             <StatsCards accounts={accounts} />
@@ -210,6 +220,12 @@ export default function ContasPage() {
                 onOpenChange={setDialogOpen}
                 account={selectedAccount}
                 onSave={handleSave}
+            />
+
+            <TransferDialog
+                open={transferDialogOpen}
+                onOpenChange={setTransferDialogOpen}
+                accounts={accounts.filter(a => a.isActive)}
             />
         </div>
     )

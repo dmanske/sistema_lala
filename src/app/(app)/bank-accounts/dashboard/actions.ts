@@ -122,8 +122,15 @@ export async function createTransfer(formData: {
   if (error) throw error;
 
   // Se for para hoje, executar imediatamente
-  const today = new Date().toISOString().split('T')[0];
-  if (formData.scheduledDate === today) {
+  const today = new Date();
+  const scheduledDate = new Date(formData.scheduledDate + 'T00:00:00');
+  
+  // Comparar apenas as datas (ignorar horário)
+  const isToday = today.getFullYear() === scheduledDate.getFullYear() &&
+                  today.getMonth() === scheduledDate.getMonth() &&
+                  today.getDate() === scheduledDate.getDate();
+  
+  if (isToday) {
     await executeTransferInternal(supabase, profile.tenant_id, formData);
   }
 
