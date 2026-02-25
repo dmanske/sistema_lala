@@ -84,7 +84,6 @@ export function Sidebar({ className }: SidebarProps) {
             label: "Financeiro",
             items: [
                 { name: "Dashboard Financeiro", icon: TrendingUp, href: "/dashboard/financial", active: true },
-                { name: "Projeção de Caixa", icon: TrendingUp, href: "/cash/projection", active: true },
                 { name: "Fluxo de Caixa", icon: Wallet, href: "/cash", active: true },
                 { name: "Fechamento de Caixa", icon: Calculator, href: "/cash-register", active: true },
                 { name: "Dashboard de Contas", icon: Building2, href: "/bank-accounts/dashboard", active: true },

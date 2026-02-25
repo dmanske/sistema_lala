@@ -94,8 +94,8 @@ export async function GetFinancialAlerts(period: string) {
       message: "Saldo projetado para os próximos 30 dias está negativo",
       value: projectedBalance,
       action: {
-        label: "Ver Projeção",
-        href: "/cash/projection",
+        label: "Ver Dashboard",
+        href: "/dashboard/financial",
       },
     });
   }
