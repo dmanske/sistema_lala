@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { StatementFilters, FilterValues } from './StatementFilters'
-import { ArrowDownCircle, ArrowUpCircle, Download, RefreshCw, TrendingUp, TrendingDown, DollarSign, Hash } from 'lucide-react'
+import { ArrowDownCircle, ArrowUpCircle, Download, RefreshCw, TrendingUp, TrendingDown, DollarSign, Hash, ChevronDown, ChevronRight } from 'lucide-react'
 import { format, isSameDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import Link from 'next/link'
@@ -143,6 +143,16 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
         return result
     }, [statement.movements, filters])
 
+    // State for expanded days
+    const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({})
+
+    const toggleDay = (dateKey: string) => {
+        setExpandedDays(prev => ({
+            ...prev,
+            [dateKey]: !prev[dateKey]
+        }))
+    }
+
     // Group by date
     const groupedMovements = useMemo(() => {
         const groups = new Map<string, MovementWithBalance[]>()
@@ -164,10 +174,10 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
 
         return Array.from(groups.entries()).map(([dateStr, movements]) => {
             const date = parseLocalDate(dateStr)!
-            const dailyTotal = movements.reduce((sum, m) =>
-                sum + (m.type === 'IN' ? m.amount : -m.amount), 0
-            )
-            return { date, movements, dailyTotal }
+            const totalIn = movements.filter(m => m.type === 'IN').reduce((sum, m) => sum + m.amount, 0)
+            const totalOut = movements.filter(m => m.type === 'OUT').reduce((sum, m) => sum + m.amount, 0)
+            const dailyTotal = totalIn - totalOut
+            return { dateKey: dateStr, date, movements, totalIn, totalOut, dailyTotal }
         })
     }, [filteredMovements])
 
@@ -337,78 +347,114 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
             />
 
             {/* Movements by Date */}
-            <div className="space-y-4">
+            <div className="space-y-3">
                 {groupedMovements.length === 0 ? (
-                    <Card className="bg-card/50 backdrop-blur-sm">
-                        <CardContent className="py-12 text-center">
-                            <div className="text-muted-foreground">
-                                <p className="text-lg font-medium">Nenhuma movimentação encontrada</p>
-                                <p className="text-sm mt-2">Ajuste os filtros ou registre uma nova transação</p>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <div className="rounded-lg border bg-card p-12 text-center">
+                        <div className="text-muted-foreground">
+                            <p className="text-lg font-medium">Nenhuma movimentação encontrada</p>
+                            <p className="text-sm mt-2">Ajuste os filtros ou registre uma nova transação</p>
+                        </div>
+                    </div>
                 ) : (
-                    groupedMovements.map(({ date, movements, dailyTotal }) => (
-                        <Card key={date.toISOString()} className="bg-card/50 backdrop-blur-sm">
-                            <CardHeader className="pb-3">
-                                <div className="flex items-center justify-between">
-                                    <CardTitle className="text-lg">
-                                        📅 {formatDateHeader(date)}
-                                    </CardTitle>
-                                    <Badge variant={dailyTotal >= 0 ? 'default' : 'destructive'} className="text-sm">
-                                        Total: {dailyTotal >= 0 ? '+' : ''}{formatCurrency(dailyTotal)}
-                                    </Badge>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-2">
-                                    {movements.map((movement) => {
-                                        const link = getSourceLink(movement)
-                                        return (
-                                            <div
-                                                key={movement.id}
-                                                className="flex items-center gap-3 p-3 rounded-lg border bg-background/50 hover:bg-background/80 transition-colors"
-                                            >
-                                                <span className="text-2xl">{movement.icon}</span>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-sm text-muted-foreground">
-                                                            {formatBrazilDate(movement.occurredAt, 'HH:mm')}
-                                                        </span>
-                                                        <span className="font-medium truncate">
-                                                            {movement.description}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <Badge variant="outline" className="text-xs">
-                                                            {getMethodLabel(movement.method)}
-                                                        </Badge>
-                                                        {link && (
-                                                            <Link
-                                                                href={link}
-                                                                className="text-xs text-blue-600 hover:underline"
-                                                            >
-                                                                Ver detalhes →
-                                                            </Link>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <div className={`text-lg font-bold ${movement.type === 'IN' ? 'text-green-600' : 'text-red-600'
-                                                        }`}>
-                                                        {movement.type === 'IN' ? '+' : '-'}{formatCurrency(movement.amount)}
-                                                    </div>
-                                                    <div className="text-xs text-muted-foreground">
-                                                        Saldo: {formatCurrency(movement.balanceAfter)}
-                                                    </div>
-                                                </div>
+                    groupedMovements.map(({ dateKey, date, movements, totalIn, totalOut, dailyTotal }) => {
+                        const isExpanded = expandedDays[dateKey] || false
+                        
+                        return (
+                            <div key={dateKey} className="rounded-lg border bg-card overflow-hidden">
+                                {/* Header do Dia */}
+                                <div
+                                    className="flex items-center justify-between p-4 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+                                    onClick={() => toggleDay(dateKey)}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-2xl">📅</span>
+                                        <div>
+                                            <p className="font-semibold capitalize">{formatDateHeader(date)}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {movements.length} {movements.length === 1 ? 'transação' : 'transações'}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-4">
+                                        <div className="text-right">
+                                            <div className={`font-bold ${dailyTotal >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                {formatCurrency(dailyTotal)}
                                             </div>
-                                        )
-                                    })}
+                                            <div className="text-xs text-muted-foreground">
+                                                <span className="text-emerald-600">+{formatCurrency(totalIn)}</span>
+                                                {' / '}
+                                                <span className="text-rose-600">-{formatCurrency(totalOut)}</span>
+                                            </div>
+                                        </div>
+                                        {isExpanded ? (
+                                            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                                        ) : (
+                                            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                                        )}
+                                    </div>
                                 </div>
-                            </CardContent>
-                        </Card>
-                    ))
+
+                                {/* Movimentos do Dia */}
+                                {isExpanded && (
+                                    <div className="divide-y">
+                                        {movements.map((movement) => {
+                                            const Icon = movement.type === 'IN' ? ArrowUpCircle : ArrowDownCircle
+                                            const colorClass = movement.type === 'IN' ? "text-emerald-600" : "text-rose-600"
+                                            const link = getSourceLink(movement)
+                                            
+                                            return (
+                                                <div 
+                                                    key={movement.id}
+                                                    className="flex items-center justify-between py-3 px-4 hover:bg-muted/30 transition-colors"
+                                                >
+                                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                        <div className="text-xs text-muted-foreground w-16 shrink-0">
+                                                            {formatBrazilDate(movement.occurredAt, 'HH:mm')}
+                                                        </div>
+                                                        
+                                                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                            <div className={`p-1.5 rounded-full shrink-0 ${
+                                                                movement.type === 'IN' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'
+                                                            }`}>
+                                                                <Icon className="h-3.5 w-3.5" />
+                                                            </div>
+                                                            <div className="flex flex-col min-w-0">
+                                                                <span className="text-sm font-medium truncate">{movement.description}</span>
+                                                                <div className="flex items-center gap-2 mt-0.5">
+                                                                    <Badge variant="outline" className="text-xs h-5">
+                                                                        {getMethodLabel(movement.method)}
+                                                                    </Badge>
+                                                                    {link && (
+                                                                        <Link
+                                                                            href={link}
+                                                                            className="text-xs text-blue-600 hover:underline"
+                                                                        >
+                                                                            Ver detalhes →
+                                                                        </Link>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-3 ml-4">
+                                                        <div className={`font-bold text-sm flex items-center gap-1 w-28 justify-end ${colorClass}`}>
+                                                            <Icon className="h-3 w-3" />
+                                                            {formatCurrency(movement.amount)}
+                                                        </div>
+                                                        <div className="text-sm font-mono font-semibold text-muted-foreground w-32 text-right">
+                                                            {formatCurrency(movement.balanceAfter)}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )
+                    })
                 )}
             </div>
         </div>
