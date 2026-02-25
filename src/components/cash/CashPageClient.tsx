@@ -9,6 +9,7 @@ import { CashHeader } from './CashHeader'
 import { ExportButton } from './ExportButton'
 import { PaymentMethodSummary } from './PaymentMethodSummary'
 import { AccountSummary } from './AccountSummary'
+import { CashAnalytics } from './CashAnalytics'
 import { filterMovements } from '@/lib/cash/filterMovements'
 import { createClient } from '@/lib/supabase/client'
 
@@ -125,6 +126,9 @@ export function CashPageClient({ movements, summary, period }: CashPageClientPro
                 <PaymentMethodSummary movements={filteredMovements} />
                 <AccountSummary movements={filteredMovements} accountNames={accountNames} />
             </div>
+
+            {/* Analytics */}
+            <CashAnalytics movements={filteredMovements} period={period} />
 
             <CashList movements={filteredMovements} />
         </div>
