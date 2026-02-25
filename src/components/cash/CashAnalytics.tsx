@@ -36,7 +36,7 @@ export function CashAnalytics({ movements, period }: CashAnalyticsProps) {
     const byCategory = movements
       .filter((m) => m.type === 'OUT')
       .reduce((acc, m) => {
-        const category = m.source || 'Outros';
+        const category = m.sourceType || 'Outros';
         if (!acc[category]) {
           acc[category] = 0;
         }

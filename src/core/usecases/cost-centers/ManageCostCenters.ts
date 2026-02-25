@@ -145,14 +145,14 @@ async function checkForCircularReference(
 
     visited.add(currentId);
 
-    const { data } = await supabase
+    const { data: result }: { data: any } = await supabase
       .from('cost_centers')
       .select('parent_id')
       .eq('id', currentId)
       .eq('tenant_id', tenantId)
       .single();
 
-    currentId = data?.parent_id || null;
+    currentId = result?.parent_id || null;
   }
 
   return false;

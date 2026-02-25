@@ -50,7 +50,7 @@ export function PurchaseForm() {
     const [bankAccountId, setBankAccountId] = useState<string>("");
     const [costCenterId, setCostCenterId] = useState<string>("");
     const [projectId, setProjectId] = useState<string>("");
-    
+
     // Installment states
     const [paymentType, setPaymentType] = useState<'single' | 'installment'>('single');
     const [installmentsCount, setInstallmentsCount] = useState(1);
@@ -58,7 +58,7 @@ export function PurchaseForm() {
     const [installmentInterval, setInstallmentInterval] = useState(30);
 
     const form = useForm<z.infer<typeof FormSchema>>({
-        resolver: zodResolver(FormSchema),
+        resolver: zodResolver(FormSchema) as any,
         defaultValues: {
             supplierId: "",
             date: new Date().toISOString().split('T')[0],
@@ -78,7 +78,7 @@ export function PurchaseForm() {
     const productRepo = getProductRepository();
     const supplierRepo = getSupplierRepository();
     const accountPayableRepo = getAccountPayableRepository();
-    const createUseCase = new CreatePurchaseWithInstallments(purchaseRepo, productRepo, accountPayableRepo);
+    const createUseCase = new CreatePurchaseWithInstallments(purchaseRepo, accountPayableRepo);
 
     useEffect(() => {
         const load = async () => {
@@ -120,9 +120,9 @@ export function PurchaseForm() {
         for (let i = 0; i < count; i++) {
             const dueDate = new Date(firstDueDate);
             dueDate.setDate(dueDate.getDate() + (i * installmentInterval));
-            
+
             const value = i === count - 1 ? baseValue + remainder : baseValue;
-            
+
             installments.push({
                 number: i + 1,
                 total: count,
@@ -168,12 +168,12 @@ export function PurchaseForm() {
                 costCenterId: costCenterId || undefined,
                 projectId: projectId || undefined,
                 // Installment data
-                paymentType: isPaid ? 'IMMEDIATE' : (paymentType === 'installment' ? 'INSTALLMENT' : 'SINGLE_DUE'),
+                paymentType: (isPaid ? 'IMMEDIATE' : (paymentType === 'installment' ? 'INSTALLMENT' : 'SINGLE_DUE')) as "IMMEDIATE" | "SINGLE_DUE" | "INSTALLMENT",
                 installmentsCount: !isPaid && paymentType === 'installment' ? installmentsCount : 1,
                 firstDueDate: !isPaid ? firstDueDate : undefined,
                 installmentInterval: !isPaid && paymentType === 'installment' ? installmentInterval : undefined,
             };
-            
+
             await createUseCase.execute(input);
             toast.success("Compra registrada com sucesso!");
             router.push("/purchases");

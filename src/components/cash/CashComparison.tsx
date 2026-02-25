@@ -40,7 +40,7 @@ export function CashComparison({ movements, period }: CashComparisonProps) {
     };
 
     movements.forEach((m) => {
-      const movementDate = new Date(m.date);
+      const movementDate = new Date(m.occurredAt);
 
       // Período atual
       if (
@@ -110,9 +110,8 @@ export function CashComparison({ movements, period }: CashComparisonProps) {
     const isPositive = value > 0;
     return (
       <span
-        className={`inline-flex items-center gap-1 ${
-          isPositive ? 'text-green-600' : 'text-red-600'
-        }`}
+        className={`inline-flex items-center gap-1 ${isPositive ? 'text-green-600' : 'text-red-600'
+          }`}
       >
         {isPositive ? (
           <ArrowUp className="h-4 w-4" />
@@ -202,9 +201,8 @@ export function CashComparison({ movements, period }: CashComparisonProps) {
             <div>
               <p className="text-xs text-muted-foreground">Período Atual</p>
               <p
-                className={`text-2xl font-bold ${
-                  comparison.current.net >= 0 ? 'text-blue-600' : 'text-orange-600'
-                }`}
+                className={`text-2xl font-bold ${comparison.current.net >= 0 ? 'text-blue-600' : 'text-orange-600'
+                  }`}
               >
                 R${' '}
                 {comparison.current.net.toLocaleString('pt-BR', {

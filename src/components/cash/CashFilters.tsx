@@ -4,6 +4,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { X, Search } from 'lucide-react'
 
+export interface FilterState {
+    type: 'IN' | 'OUT' | 'ALL'
+    method: string | 'ALL'
+    source: string | 'ALL'
+    bankAccountId?: string
+    searchText?: string
+}
+
 interface CashFiltersProps {
     searchText: string
     onSearchChange: (value: string) => void

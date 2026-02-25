@@ -65,6 +65,7 @@ export class LocalStoragePurchaseRepository implements PurchaseRepository {
             total: grandTotal,
             items: purchaseItems,
             paymentStatus: 'PENDING',
+            paymentType: input.paymentType || 'IMMEDIATE',
             createdAt: new Date().toISOString()
         };
 
@@ -76,7 +77,7 @@ export class LocalStoragePurchaseRepository implements PurchaseRepository {
     async update(id: string, input: UpdatePurchaseInput): Promise<Purchase> {
         const purchases = this.getPurchases();
         const index = purchases.findIndex(p => p.id === id);
-        
+
         if (index === -1) {
             throw new Error('Purchase not found');
         }

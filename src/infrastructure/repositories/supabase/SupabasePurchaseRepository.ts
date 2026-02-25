@@ -177,6 +177,7 @@ export class SupabasePurchaseRepository implements PurchaseRepository {
             items: items.length > 0 ? items : undefined,
             paymentStatus: row.payment_status || 'PENDING',
             payments: payments.length > 0 ? payments : undefined,
+            paymentType: row.payment_type || 'IMMEDIATE',
             // Legacy fields (kept for backward compatibility)
             paymentMethod: row.payment_method || undefined,
             paidAmount: Number(row.paid_amount) || 0,

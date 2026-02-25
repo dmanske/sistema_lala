@@ -87,7 +87,7 @@ export function AccountPayableDialog({
   const [loading, setLoading] = useState(false);
 
   const form = useForm<FormData>({
-    resolver: zodResolver(FormSchema),
+    resolver: zodResolver(FormSchema) as any,
     defaultValues: {
       description: '',
       amount: 0,

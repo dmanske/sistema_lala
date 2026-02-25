@@ -169,7 +169,7 @@ export function CashList({ movements }: CashListProps) {
                         const fiadoMap: Record<string, number> = {}
                         const creditMap: Record<string, number> = {}
                         const creditSet = new Set<string>()
-                        
+
                         payments?.forEach((payment: any) => {
                             if (payment.method?.toLowerCase() === 'fiado') {
                                 fiadoSet.add(payment.sale_id)
@@ -179,7 +179,7 @@ export function CashList({ movements }: CashListProps) {
                                 creditMap[payment.sale_id] = (creditMap[payment.sale_id] || 0) + parseFloat(payment.amount)
                             }
                         })
-                        
+
                         setFiadoAmounts(prev => ({ ...prev, ...fiadoMap }))
                         setCreditAmounts(prev => ({ ...prev, ...creditMap }))
                         setSalesWithCredit(prev => new Set([...prev, ...creditSet]))
@@ -242,7 +242,7 @@ export function CashList({ movements }: CashListProps) {
         const colorClass = movement.type === 'IN' ? "text-emerald-600" : "text-rose-600"
 
         return (
-            <div 
+            <div
                 key={movement.id}
                 className={cn(
                     "flex items-center justify-between py-3 px-4 hover:bg-muted/30 transition-colors border-b last:border-b-0",
@@ -253,7 +253,7 @@ export function CashList({ movements }: CashListProps) {
                     <div className="text-xs text-muted-foreground w-12 shrink-0">
                         {formatBrazilDate(movement.occurredAt, "HH:mm")}
                     </div>
-                    
+
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                         {SOURCE_ICONS[movement.sourceType] || <Settings className="h-4 w-4 text-muted-foreground" />}
                         <span className="text-sm font-medium truncate">{movement.description || "-"}</span>
@@ -291,13 +291,13 @@ export function CashList({ movements }: CashListProps) {
         const isExpanded = expandedGroups[`${dayKey}-${item.sourceId}`] || false
         const isSale = item.sourceType === 'SALE'
         const displayName = isSale
-            ? (customerNames[item.sourceId] || 'Cliente')
-            : (supplierNames[item.sourceId] || 'Fornecedor')
+            ? (customerNames[item.sourceId || ''] || 'Cliente')
+            : (supplierNames[item.sourceId || ''] || 'Fornecedor')
         const Icon = isSale ? ShoppingCart : Package
-        const hasFiado = isSale && salesWithFiado.has(item.sourceId)
-        const fiadoAmount = hasFiado ? fiadoAmounts[item.sourceId] : 0
-        const hasCredit = isSale && salesWithCredit.has(item.sourceId)
-        const creditAmount = hasCredit ? creditAmounts[item.sourceId] : 0
+        const hasFiado = isSale && salesWithFiado.has(item.sourceId || '')
+        const fiadoAmount = hasFiado ? fiadoAmounts[item.sourceId || ''] : 0
+        const hasCredit = isSale && salesWithCredit.has(item.sourceId || '')
+        const creditAmount = hasCredit ? creditAmounts[item.sourceId || ''] : 0
 
         return (
             <Fragment key={`group-${dayKey}-${item.sourceId}`}>
@@ -310,16 +310,16 @@ export function CashList({ movements }: CashListProps) {
                 >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                         <div className="text-xs text-muted-foreground w-12 shrink-0">
-                            {format(new Date(item.date), "HH:mm", { locale: ptBR })}
+                            {format(new Date(item._type === 'group' ? item.date : (item.occurredAt || new Date())), "HH:mm", { locale: ptBR })}
                         </div>
-                        
+
                         <div className="flex items-center gap-2 min-w-0 flex-1">
                             <div className={cn("p-1.5 rounded-full shrink-0", isSale ? "bg-emerald-100 text-emerald-600" : "bg-blue-100 text-blue-600")}>
                                 <Icon className="h-3.5 w-3.5" />
                             </div>
                             <span className="font-medium text-sm">{isSale ? 'Venda' : 'Compra'} - {displayName}</span>
                             <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal">
-                                {item.movements.length} itens
+                                {(item as any).movements?.length || 0} itens
                             </Badge>
                             {hasFiado && (
                                 <Badge variant="destructive" className="text-[10px] h-5 px-1.5 font-medium gap-1">
@@ -338,13 +338,13 @@ export function CashList({ movements }: CashListProps) {
 
                     <div className="flex items-center gap-3 ml-4">
                         <div className={cn("font-bold text-sm w-28 text-right", isSale ? "text-emerald-600" : "text-rose-600")}>
-                            {formatCurrency(item.total)}
+                            {formatCurrency((item as any).total || 0)}
                         </div>
                         {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
                     </div>
                 </div>
 
-                {isExpanded && item.movements.map((movement) => renderMovement(movement, true))}
+                {isExpanded && (item as any).movements?.map((movement: any) => renderMovement(movement, true))}
             </Fragment>
         )
     }

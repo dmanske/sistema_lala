@@ -6,6 +6,13 @@ import { startOfMonth, endOfMonth } from 'date-fns'
 import { parseLocalDate } from '@/lib/utils/dateFormatters'
 import { createClient } from '@/lib/supabase/server'
 
+interface CashPageProps {
+    searchParams: Promise<{
+        start?: string
+        end?: string
+    }>
+}
+
 export default async function CashPage({ searchParams }: CashPageProps) {
     const params = await searchParams
     const supabase = await createClient()

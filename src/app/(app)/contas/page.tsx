@@ -190,7 +190,7 @@ export default function ContasPage() {
                                                 outerRadius={80}
                                                 paddingAngle={5}
                                                 dataKey="value"
-                                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                                label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                                                 labelLine={false}
                                             >
                                                 {chartData.map((entry, index) => (
@@ -214,8 +214,8 @@ export default function ContasPage() {
                                     {chartData.map((entry, index) => (
                                         <div key={index} className="flex items-center justify-between text-sm">
                                             <div className="flex items-center gap-2">
-                                                <div 
-                                                    className="w-3 h-3 rounded-full" 
+                                                <div
+                                                    className="w-3 h-3 rounded-full"
                                                     style={{ backgroundColor: entry.color }}
                                                 />
                                                 <span className="text-muted-foreground">{entry.name}</span>

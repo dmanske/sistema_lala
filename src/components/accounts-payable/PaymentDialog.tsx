@@ -72,7 +72,7 @@ export function PaymentDialog({
   const [loading, setLoading] = useState(false);
 
   const form = useForm<FormData>({
-    resolver: zodResolver(FormSchema),
+    resolver: zodResolver(FormSchema) as any,
     defaultValues: {
       amount: 0,
       paidAt: (() => {

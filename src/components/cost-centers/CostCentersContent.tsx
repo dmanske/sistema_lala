@@ -82,7 +82,7 @@ export function CostCentersContent() {
 
       {costCenters && costCenters.length > 0 ? (
         <CostCenterTree
-          costCenters={costCenters}
+          costCenters={costCenters as any}
           onEdit={handleEdit}
           onDelete={handleDelete}
         />

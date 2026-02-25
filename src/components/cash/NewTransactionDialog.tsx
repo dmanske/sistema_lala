@@ -77,7 +77,7 @@ export function NewTransactionDialog({ type }: NewTransactionDialogProps) {
             bankAccountId,
             costCenterId: costCenterId || undefined,
             projectId: projectId || undefined,
-        })
+        } as any)
 
         if (result.success) {
             toast.success(type === 'IN' ? "Entrada registrada" : "Saída registrada")

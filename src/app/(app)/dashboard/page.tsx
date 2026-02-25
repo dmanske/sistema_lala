@@ -164,7 +164,7 @@ export default function DashboardPage() {
 
         // Calcular receita total das vendas
         const totalRevenue = filteredSales.reduce((acc, s) => acc + (s.total || 0), 0);
-        
+
         // Contar atendimentos finalizados (vendas com appointment_id)
         const appointmentsCount = filteredSales.filter(s => s.appointmentId).length;
 
@@ -235,7 +235,7 @@ export default function DashboardPage() {
         }).length;
 
         // === NOVAS MÉTRICAS DE NEGÓCIO ===
-        
+
         // 1. Taxa de Ocupação (simplificado - baseado em agendamentos vs dias úteis)
         const daysInPeriod = Math.ceil((periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24));
         const totalAppointments = appointments.filter(a => {
@@ -249,7 +249,7 @@ export default function DashboardPage() {
             const appt = appointments.find(a => a.id === s.appointmentId);
             return appt?.clientId;
         }).filter(Boolean));
-        
+
         const returningClients = Array.from(clientsInPeriod).filter(clientId => {
             const clientSales = sales.filter(s => {
                 const appt = appointments.find(a => a.id === s.appointmentId);
@@ -257,7 +257,7 @@ export default function DashboardPage() {
             });
             return clientSales.length > 1;
         }).length;
-        
+
         const returnRate = clientsInPeriod.size > 0 ? (returningClients / clientsInPeriod.size) * 100 : 0;
 
         // 3. Tempo Médio entre Visitas
@@ -272,13 +272,13 @@ export default function DashboardPage() {
                 }
             }
         });
-        
+
         let totalDaysBetweenVisits = 0;
         let visitPairs = 0;
         Object.values(clientVisits).forEach(dates => {
             const sorted = dates.sort((a, b) => a.getTime() - b.getTime());
             for (let i = 1; i < sorted.length; i++) {
-                const days = (sorted[i].getTime() - sorted[i-1].getTime()) / (1000 * 60 * 60 * 24);
+                const days = (sorted[i].getTime() - sorted[i - 1].getTime()) / (1000 * 60 * 60 * 24);
                 totalDaysBetweenVisits += days;
                 visitPairs++;
             }
@@ -294,13 +294,13 @@ export default function DashboardPage() {
         // 5. Taxa de Cancelamento
         const canceledAppointments = appointments.filter(a => {
             const d = parseLocalDate(a.date);
-            return a.status === 'CANCELLED' && d && d >= periodStart && d <= periodEnd;
+            return a.status === 'CANCELED' && d && d >= periodStart && d <= periodEnd;
         }).length;
         const totalScheduled = totalAppointments + canceledAppointments;
         const cancellationRate = totalScheduled > 0 ? (canceledAppointments / totalScheduled) * 100 : 0;
 
         // === MÉTRICAS FINANCEIRAS ===
-        
+
         // 6. Contas a Receber Vencidas
         const overdueReceivables = 0; // TODO: implementar quando tiver contas a receber
 
@@ -321,7 +321,7 @@ export default function DashboardPage() {
         const profitMargin = totalRevenue > 0 ? (realProfit / totalRevenue) * 100 : 0;
 
         // === MÉTRICAS OPERACIONAIS ===
-        
+
         // 11. Produtos Mais Vendidos
         const productSales: Record<string, { name: string, quantity: number, revenue: number }> = {};
         filteredSales.forEach(sale => {
@@ -383,7 +383,7 @@ export default function DashboardPage() {
                 return appt?.clientId;
             }).filter(Boolean)
         );
-        const inactiveClients = clients.filter(c => 
+        const inactiveClients = clients.filter(c =>
             c.status === 'ACTIVE' && !activeClientIds.has(c.id)
         ).length;
 
@@ -454,7 +454,7 @@ export default function DashboardPage() {
     // Generate alerts
     const alerts: Alert[] = useMemo(() => {
         const result: Alert[] = [];
-        
+
         if (stats.criticalStock.length > 0) {
             result.push({
                 id: 'critical-stock',
@@ -630,9 +630,9 @@ export default function DashboardPage() {
                                                 <div className={cn(
                                                     "px-2 py-1 rounded text-xs font-medium",
                                                     appt.status === 'CONFIRMED' ? "bg-green-100 text-green-700" :
-                                                    appt.status === 'PENDING' ? "bg-yellow-100 text-yellow-700" :
-                                                    appt.status === 'DONE' ? "bg-blue-100 text-blue-700" :
-                                                    "bg-gray-100 text-gray-700"
+                                                        appt.status === 'PENDING' ? "bg-yellow-100 text-yellow-700" :
+                                                            appt.status === 'DONE' ? "bg-blue-100 text-blue-700" :
+                                                                "bg-gray-100 text-gray-700"
                                                 )}>
                                                     {appt.status}
                                                 </div>
@@ -670,9 +670,9 @@ export default function DashboardPage() {
                                                 <div className={cn(
                                                     "flex items-center justify-center w-8 h-8 rounded-lg font-bold text-sm",
                                                     idx === 0 ? "bg-yellow-100 text-yellow-700" :
-                                                    idx === 1 ? "bg-slate-100 text-slate-700" :
-                                                    idx === 2 ? "bg-orange-100 text-orange-700" :
-                                                    "bg-purple-50 text-purple-600"
+                                                        idx === 1 ? "bg-slate-100 text-slate-700" :
+                                                            idx === 2 ? "bg-orange-100 text-orange-700" :
+                                                                "bg-purple-50 text-purple-600"
                                                 )}>
                                                     {idx + 1}º
                                                 </div>

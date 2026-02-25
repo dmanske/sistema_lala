@@ -1,0 +1,24 @@
+src/components/cash/CashComparison.tsx(43,39): error TS2339: Property 'date' does not exist on type 'CashMovement'.
+src/components/cash/CashDistributionCharts.tsx(104,17): error TS2322: Type '(value: number) => string' is not assignable to type 'Formatter<number, NameType> & ((value: number, name: NameType, item: Payload<number, NameType>, index: number, payload: Payload<number, NameType>[]) => ReactNode | [...])'.
+  Type '(value: number) => string' is not assignable to type 'Formatter<number, NameType>'.
+    Types of parameters 'value' and 'value' are incompatible.
+      Type 'number | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+src/components/cash/CashDistributionCharts.tsx(140,17): error TS2322: Type '(value: number) => string' is not assignable to type 'Formatter<number, NameType> & ((value: number, name: NameType, item: Payload<number, NameType>, index: number, payload: Payload<number, NameType>[]) => ReactNode | [...])'.
+  Type '(value: number) => string' is not assignable to type 'Formatter<number, NameType>'.
+    Types of parameters 'value' and 'value' are incompatible.
+      Type 'number | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+src/components/cash/CashRegisterHistory.tsx(100,53): error TS18048: 'cashRegister.actualBalance' is possibly 'undefined'.
+src/components/cash/NewTransactionDialog.tsx(78,13): error TS2353: Object literal may only specify known properties, and 'costCenterId' does not exist in type 'CreateCashMovementInput'.
+src/components/cost-centers/CostCentersContent.tsx(85,11): error TS2322: Type 'CostCenter[]' is not assignable to type 'CostCenterWithChildren[]'.
+  Type 'CostCenter' is missing the following properties from type 'CostCenterWithChildren': children, level
+src/components/reports/ExpensesByCategory.tsx(82,60): error TS18048: 'percent' is possibly 'undefined'.
+src/components/reports/ExpensesByCategory.tsx(92,17): error TS2322: Type '(value: number) => string' is not assignable to type 'Formatter<number, NameType> & ((value: number, name: NameType, item: Payload<number, NameType>, index: number, payload: Payload<number, NameType>[]) => ReactNode | [...])'.
+  Type '(value: number) => string' is not assignable to type 'Formatter<number, NameType>'.
+    Types of parameters 'value' and 'value' are incompatible.
+      Type 'number | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+src/core/usecases/cost-centers/ManageCostCenters.ts(148,13): error TS7022: 'data' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
+src/infrastructure/repositories/LocalStoragePurchaseRepository.ts(60,15): error TS2741: Property 'paymentType' is missing in type '{ id: string; supplierId: string; date: string; notes: string | undefined; total: number; items: { id: string; purchaseId: string; productId: string; quantity: number; unitCost: number; lineTotal: number; }[]; paymentStatus: "PENDING"; createdAt: string; }' but required in type '{ id: string; supplierId: string; date: string; total: number; paymentStatus: "PENDING" | "PARTIAL" | "PAID"; paymentType: "IMMEDIATE" | "SINGLE_DUE" | "INSTALLMENT"; createdAt: string; ... 8 more ...; updatedAt?: string | undefined; }'.
+src/infrastructure/repositories/supabase/SupabasePurchaseRepository.ts(171,9): error TS2741: Property 'paymentType' is missing in type '{ id: any; supplierId: any; date: any; notes: any; total: number; items: any; paymentStatus: any; payments: any; paymentMethod: any; paidAmount: number; paidAt: any; createdAt: any; updatedAt: any; }' but required in type '{ id: string; supplierId: string; date: string; total: number; paymentStatus: "PENDING" | "PARTIAL" | "PAID"; paymentType: "IMMEDIATE" | "SINGLE_DUE" | "INSTALLMENT"; createdAt: string; ... 8 more ...; updatedAt?: string | undefined; }'.

@@ -41,7 +41,7 @@ import { createClient } from "@/lib/supabase/client"
 const FormSchema = z.object({
     type: z.enum(["SANGRIA", "SUPRIMENTO"], {
         required_error: "Selecione o tipo de movimentação",
-    }),
+    } as any),
     amount: z.number().min(0.01, "Valor deve ser maior que zero"),
     reason: z.string().min(3, "Motivo deve ter pelo menos 3 caracteres"),
 })
@@ -63,7 +63,7 @@ export function CashMovementDialog({
     const { user } = useAuth()
 
     const form = useForm<z.infer<typeof FormSchema>>({
-        resolver: zodResolver(FormSchema),
+        resolver: zodResolver(FormSchema) as any,
         defaultValues: {
             type: "SANGRIA",
             amount: 0,
@@ -129,7 +129,7 @@ export function CashMovementDialog({
                         Registrar Movimentação
                     </DialogTitle>
                     <DialogDescription>
-                        {selectedType === "SANGRIA" 
+                        {selectedType === "SANGRIA"
                             ? "Registre uma retirada de dinheiro do caixa."
                             : "Registre uma adição de dinheiro ao caixa."}
                     </DialogDescription>
@@ -211,13 +211,12 @@ export function CashMovementDialog({
                             )}
                         />
 
-                        <div className={`p-3 rounded-lg border ${
-                            selectedType === "SANGRIA" 
-                                ? "bg-red-50 border-red-200" 
-                                : "bg-green-50 border-green-200"
-                        }`}>
+                        <div className={`p-3 rounded-lg border ${selectedType === "SANGRIA"
+                            ? "bg-red-50 border-red-200"
+                            : "bg-green-50 border-green-200"
+                            }`}>
                             <p className="text-xs text-gray-600">
-                                {selectedType === "SANGRIA" 
+                                {selectedType === "SANGRIA"
                                     ? "⚠️ Esta operação irá reduzir o saldo do caixa."
                                     : "✓ Esta operação irá aumentar o saldo do caixa."}
                             </p>
@@ -232,8 +231,8 @@ export function CashMovementDialog({
                             >
                                 Cancelar
                             </Button>
-                            <Button 
-                                type="submit" 
+                            <Button
+                                type="submit"
                                 disabled={isSubmitting}
                                 variant={selectedType === "SANGRIA" ? "destructive" : "default"}
                             >

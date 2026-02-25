@@ -57,7 +57,7 @@ export function CashDistributionCharts({
     .sort((a, b) => b.amount - a.amount)
     .slice(0, 10)
     .map((m) => ({
-      description: m.description.substring(0, 30) + (m.description.length > 30 ? '...' : ''),
+      description: (m.description || '').substring(0, 30) + ((m.description || '').length > 30 ? '...' : ''),
       amount: m.amount,
       type: m.type,
     }));
@@ -90,7 +90,7 @@ export function CashDistributionCharts({
                 cy="50%"
                 labelLine={false}
                 label={({ name, percent }) =>
-                  `${name}: ${(percent * 100).toFixed(0)}%`
+                  `${name}: ${((percent || 0) * 100).toFixed(0)}%`
                 }
                 outerRadius={80}
                 fill="#8884d8"
@@ -101,8 +101,8 @@ export function CashDistributionCharts({
                 ))}
               </Pie>
               <Tooltip
-                formatter={(value: number) =>
-                  `R$ ${value.toLocaleString('pt-BR', {
+                formatter={(value: any) =>
+                  `R$ ${(value || 0).toLocaleString('pt-BR', {
                     minimumFractionDigits: 2,
                   })}`
                 }
@@ -126,7 +126,7 @@ export function CashDistributionCharts({
                 cy="50%"
                 labelLine={false}
                 label={({ name, percent }) =>
-                  `${name}: ${(percent * 100).toFixed(0)}%`
+                  `${name}: ${((percent || 0) * 100).toFixed(0)}%`
                 }
                 outerRadius={80}
                 fill="#8884d8"
@@ -137,8 +137,8 @@ export function CashDistributionCharts({
                 ))}
               </Pie>
               <Tooltip
-                formatter={(value: number) =>
-                  `R$ ${value.toLocaleString('pt-BR', {
+                formatter={(value: any) =>
+                  `R$ ${(value || 0).toLocaleString('pt-BR', {
                     minimumFractionDigits: 2,
                   })}`
                 }
@@ -172,8 +172,8 @@ export function CashDistributionCharts({
                 tick={{ fontSize: 12 }}
               />
               <Tooltip
-                formatter={(value: number) =>
-                  `R$ ${value.toLocaleString('pt-BR', {
+                formatter={(value: any) =>
+                  `R$ ${(value || 0).toLocaleString('pt-BR', {
                     minimumFractionDigits: 2,
                   })}`
                 }

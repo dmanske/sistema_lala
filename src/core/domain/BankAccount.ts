@@ -7,22 +7,22 @@ export interface BankAccount {
     type: BankAccountType
     initialBalance: number
     isActive: boolean
-    
+
     // Campos de personalização
     color: string // hex color
     icon: string // emoji ou nome do ícone
     description?: string
-    
+
     // Campos bancários
     creditLimit?: number // para cartões
     bankName?: string
     agency?: string
     accountNumber?: string
-    
+
     // Organização
     isFavorite: boolean
     displayOrder: number
-    
+
     createdAt: Date
     updatedAt: Date
 }
@@ -32,7 +32,7 @@ export interface BankAccountWithBalance extends BankAccount {
 }
 
 export type PaymentMethod = 'CASH' | 'PIX' | 'CARD' | 'TRANSFER' | 'WALLET'
-export type SourceType = 'SALE' | 'REFUND' | 'PURCHASE' | 'MANUAL' | 'CREDIT'
+export type SourceType = 'SALE' | 'REFUND' | 'PURCHASE' | 'MANUAL' | 'CREDIT' | 'TRANSFER'
 
 export interface AccountMovement {
     id: string
@@ -86,27 +86,27 @@ export interface StatementFilters {
     startDate?: Date
     endDate?: Date
     quickPeriod?: 'today' | 'yesterday' | '7days' | '30days' | 'thisMonth' | 'lastMonth' | 'custom'
-    
+
     // Type
     type?: 'all' | 'in' | 'out'
-    
+
     // Method
     method?: PaymentMethod | 'all'
-    
+
     // Source
     source?: SourceType | 'all'
-    
+
     // Search
     searchText?: string
-    
+
     // Sorting
     sortBy: 'date' | 'amount' | 'description'
     sortOrder: 'asc' | 'desc'
-    
+
     // Pagination
     page: number
     itemsPerPage: number
-    
+
     // View
     viewMode: 'compact' | 'detailed'
 }

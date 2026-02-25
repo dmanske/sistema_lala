@@ -71,7 +71,7 @@ export function CashRegisterHistory({ cashRegisters }: CashRegisterHistoryProps)
                                             </p>
                                             <p className="text-xs text-gray-500">
                                                 {format(cashRegister.openedAt, "HH:mm", { locale: ptBR })} - {" "}
-                                                {cashRegister.closedAt 
+                                                {cashRegister.closedAt
                                                     ? format(cashRegister.closedAt, "HH:mm", { locale: ptBR })
                                                     : "Aberto"}
                                             </p>
@@ -96,19 +96,18 @@ export function CashRegisterHistory({ cashRegisters }: CashRegisterHistoryProps)
                                         R$ {cashRegister.initialBalance.toFixed(2)}
                                     </TableCell>
                                     <TableCell className="text-right font-medium">
-                                        {cashRegister.actualBalance !== null
+                                        {cashRegister.actualBalance !== null && cashRegister.actualBalance !== undefined
                                             ? `R$ ${cashRegister.actualBalance.toFixed(2)}`
                                             : "-"}
                                     </TableCell>
                                     <TableCell className="text-right">
                                         {cashRegister.difference !== null ? (
-                                            <span className={`font-semibold ${
-                                                !isDifferent 
-                                                    ? "text-green-600" 
-                                                    : difference > 0 
-                                                    ? "text-yellow-600" 
-                                                    : "text-red-600"
-                                            }`}>
+                                            <span className={`font-semibold ${!isDifferent
+                                                    ? "text-green-600"
+                                                    : difference > 0
+                                                        ? "text-yellow-600"
+                                                        : "text-red-600"
+                                                }`}>
                                                 {difference > 0 ? "+" : ""}
                                                 R$ {difference.toFixed(2)}
                                             </span>
@@ -122,7 +121,7 @@ export function CashRegisterHistory({ cashRegisters }: CashRegisterHistoryProps)
                                                 ABERTO
                                             </Badge>
                                         ) : (
-                                            <Badge 
+                                            <Badge
                                                 variant={isDifferent ? "destructive" : "secondary"}
                                             >
                                                 {isDifferent ? "COM DIFERENÇA" : "FECHADO"}
