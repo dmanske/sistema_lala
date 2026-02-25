@@ -148,10 +148,9 @@ export function ReceivePaymentDialog({
               <SelectContent>
                 <SelectItem value="CASH">Dinheiro</SelectItem>
                 <SelectItem value="PIX">PIX</SelectItem>
-                <SelectItem value="CREDIT_CARD">Cartão de Crédito</SelectItem>
-                <SelectItem value="DEBIT_CARD">Cartão de Débito</SelectItem>
-                <SelectItem value="BANK_TRANSFER">Transferência</SelectItem>
-                <SelectItem value="CHECK">Cheque</SelectItem>
+                <SelectItem value="CARD">Cartão</SelectItem>
+                <SelectItem value="TRANSFER">Transferência</SelectItem>
+                <SelectItem value="WALLET">Carteira Digital</SelectItem>
               </SelectContent>
             </Select>
           </div>
