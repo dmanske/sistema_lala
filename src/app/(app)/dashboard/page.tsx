@@ -97,6 +97,7 @@ export default function DashboardPage() {
     const [clients, setClients] = useState<Client[]>([]);
     const [cashMovements, setCashMovements] = useState<CashMovement[]>([]);
     const [professionals, setProfessionals] = useState<Professional[]>([]);
+    const [sales, setSales] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [periodStart, setPeriodStart] = useState(startOfMonth(new Date()));
     const [periodEnd, setPeriodEnd] = useState(endOfDay(new Date()));
@@ -114,8 +115,8 @@ export default function DashboardPage() {
                     getProfessionalRepository().getAll()
                 ]);
 
-                const doneAppts = apptData.filter(a => a.status === 'DONE');
-                setAppointments(doneAppts);
+                // Manter TODOS os agendamentos para calcular futuros também
+                setAppointments(apptData);
                 setProducts(prodData);
                 setServices(servData);
                 setClients(clientData);
@@ -126,6 +127,12 @@ export default function DashboardPage() {
                     endDate: periodEnd
                 });
                 setCashMovements(cashData);
+
+                // Buscar vendas pagas do período
+                const { getSaleRepository } = await import('@/infrastructure/repositories/factory');
+                const salesData = await getSaleRepository().findAll();
+                const paidSales = salesData.filter(s => s.status === 'paid');
+                setSales(paidSales);
             } catch (error) {
                 console.error(error);
             } finally {
@@ -142,40 +149,55 @@ export default function DashboardPage() {
 
     // Memoized Stats
     const stats = useMemo(() => {
-        const filteredAppts = appointments.filter(a => {
-            const d = parseLocalDate(a.date);
+        // Filtrar vendas pagas do período
+        const filteredSales = sales.filter(s => {
+            const d = parseLocalDate(s.createdAt);
             if (!d) return false;
             return d >= periodStart && d <= periodEnd;
         });
 
-        const totalServiceRevenue = filteredAppts.reduce((acc, a) => acc + (a.totalServiceValue || 0), 0);
-        const totalProductRevenue = filteredAppts.reduce((acc, a) => acc + (a.totalProductValue || 0), 0);
-        const totalRevenue = totalServiceRevenue + totalProductRevenue;
+        // Calcular receita total das vendas
+        const totalRevenue = filteredSales.reduce((acc, s) => acc + (s.total || 0), 0);
+        
+        // Contar atendimentos finalizados (vendas com appointment_id)
+        const appointmentsCount = filteredSales.filter(s => s.appointmentId).length;
 
+        // Ticket médio
+        const ticketMedio = appointmentsCount > 0 ? totalRevenue / appointmentsCount : 0;
+
+        // Para lucro, vamos calcular baseado nos itens das vendas
         let totalProductProfit = 0;
         let totalServiceProfit = 0;
 
-        filteredAppts.forEach(apt => {
-            apt.usedProducts?.forEach(p => {
-                const profitPerUnit = (p.price || 0) - (p.cost || 0);
-                totalProductProfit += profitPerUnit * p.quantity;
-            });
-
-            apt.finalizedServices?.forEach(s => {
-                const def = services.find(sv => sv.id === s.serviceId);
-                const cost = def?.cost || 0;
-                const commission = def?.commission || 0;
-                totalServiceProfit += (s.price - cost - commission);
+        filteredSales.forEach(sale => {
+            // Calcular lucro de produtos
+            sale.items?.forEach((item: any) => {
+                if (item.type === 'product') {
+                    const product = products.find(p => p.id === item.productId);
+                    const cost = product?.cost || 0;
+                    const profitPerUnit = item.price - cost;
+                    totalProductProfit += profitPerUnit * item.quantity;
+                }
+                // Calcular lucro de serviços
+                if (item.type === 'service') {
+                    const service = services.find(s => s.id === item.serviceId);
+                    const cost = service?.cost || 0;
+                    const commission = service?.commission || 0;
+                    totalServiceProfit += (item.price - cost - commission);
+                }
             });
         });
 
         const serviceCounts: Record<string, number> = {};
         const serviceRevenue: Record<string, number> = {};
 
-        filteredAppts.forEach(apt => {
-            apt.finalizedServices?.forEach(s => {
-                serviceCounts[s.name] = (serviceCounts[s.name] || 0) + 1;
-                serviceRevenue[s.name] = (serviceRevenue[s.name] || 0) + s.price;
+        filteredSales.forEach(sale => {
+            sale.items?.forEach((item: any) => {
+                if (item.type === 'service') {
+                    const serviceName = item.name || 'Serviço';
+                    serviceCounts[serviceName] = (serviceCounts[serviceName] || 0) + 1;
+                    serviceRevenue[serviceName] = (serviceRevenue[serviceName] || 0) + item.price;
+                }
             });
         });
 
@@ -198,13 +220,27 @@ export default function DashboardPage() {
             }));
 
         const criticalStock = products.filter(p => p.currentStock <= p.minStock);
-        const ticketMedio = filteredAppts.length > 0 ? totalRevenue / filteredAppts.length : 0;
         const activeClients = clients.filter(c => c.status === 'ACTIVE').length;
 
         const now = new Date();
         const futureAppointments = appointments.filter(a => {
             const d = parseLocalDate(a.date);
-            return (a.status === 'PENDING' || a.status === 'CONFIRMED') && d && d >= now;
+            const isFuture = (a.status === 'PENDING' || a.status === 'CONFIRMED') && d && d >= now;
+            
+            // Debug temporário
+            if (a.status === 'PENDING' || a.status === 'CONFIRMED') {
+                console.log('Agendamento:', {
+                    id: a.id,
+                    date: a.date,
+                    parsedDate: d,
+                    status: a.status,
+                    now: now,
+                    isFuture: isFuture,
+                    comparison: d ? d.getTime() - now.getTime() : 'null'
+                });
+            }
+            
+            return isFuture;
         }).length;
 
         const totalIn = cashMovements.filter(m => m.type === 'IN').reduce((sum, m) => sum + m.amount, 0);
@@ -212,29 +248,28 @@ export default function DashboardPage() {
         const netCashFlow = totalIn - totalOut;
 
         const professionalStats = professionals.map(prof => {
-            const profAppts = filteredAppts.filter(a => a.professionalId === prof.id);
-            const revenue = profAppts.reduce((sum, a) =>
-                sum + (a.totalServiceValue || 0) + (a.totalProductValue || 0), 0
-            );
+            const profSales = filteredSales.filter(s => {
+                const appt = appointments.find(a => a.id === s.appointmentId);
+                return appt?.professionalId === prof.id;
+            });
+            const revenue = profSales.reduce((sum, s) => sum + (s.total || 0), 0);
             return {
                 id: prof.id,
                 name: prof.name,
-                appointments: profAppts.length,
+                appointments: profSales.length,
                 revenue
             };
         }).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
 
         return {
             totalRevenue,
-            totalServiceRevenue,
-            totalProductRevenue,
             totalProductProfit,
             totalServiceProfit,
             ticketMedio,
             topServices,
             topRevenueServices,
             criticalStock,
-            appointmentsCount: filteredAppts.length,
+            appointmentsCount,
             activeClients,
             futureAppointments,
             totalIn,
@@ -242,7 +277,7 @@ export default function DashboardPage() {
             netCashFlow,
             professionalStats
         };
-    }, [appointments, products, services, clients, cashMovements, professionals, periodStart, periodEnd]);
+    }, [appointments, products, services, clients, cashMovements, professionals, sales, periodStart, periodEnd]);
 
     const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
