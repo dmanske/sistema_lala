@@ -21,6 +21,9 @@ import { FinancialMetricsCards } from "@/components/dashboard/FinancialMetricsCa
 import { CashFlowChart } from "@/components/dashboard/CashFlowChart";
 import { InflowOutflowChart } from "@/components/dashboard/InflowOutflowChart";
 import { BankAccountsList } from "@/components/dashboard/BankAccountsList";
+import { DefaultRateCard } from "@/components/dashboard/DefaultRateCard";
+import { ExpenseTypeCard } from "@/components/dashboard/ExpenseTypeCard";
+import { SimplifiedDRECard } from "@/components/dashboard/SimplifiedDRECard";
 
 import { useFinancialDashboard } from "@/hooks/useFinancialDashboard";
 
@@ -137,13 +140,19 @@ export default function FinancialDashboardPage() {
       {/* Tab Content */}
       {activeTab === 'cashflow' && (
         <div className="space-y-4">
-          <CashFlowChart data={data?.cashFlowData} />
+          {/* Cards de Insights */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <DefaultRateCard data={data?.insights?.defaultRate} />
+            <ExpenseTypeCard data={data?.insights?.expenseType} />
+            <SimplifiedDRECard data={data?.insights?.simplifiedDRE} />
+          </div>
         </div>
       )}
 
       {activeTab === 'analysis' && (
         <div className="space-y-4">
           <InflowOutflowChart data={data?.inflowOutflowData} />
+          <CashFlowChart data={data?.cashFlowData} />
         </div>
       )}
 

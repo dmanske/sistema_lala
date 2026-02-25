@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { GetFinancialSummary } from "@/core/usecases/dashboard/GetFinancialSummary";
 import { GetCashFlowData } from "@/core/usecases/dashboard/GetCashFlowData";
 import { GetFinancialAlerts } from "@/core/usecases/dashboard/GetFinancialAlerts";
+import { getFinancialInsights } from "@/app/(app)/dashboard/financial/actions";
 
 interface FinancialDashboardData {
   metrics: any;
@@ -11,6 +12,7 @@ interface FinancialDashboardData {
   inflowOutflowData: any[];
   bankAccounts: any[];
   alerts: any[];
+  insights: any;
 }
 
 export function useFinancialDashboard(period: string) {
@@ -24,10 +26,11 @@ export function useFinancialDashboard(period: string) {
       setError(null);
 
       try {
-        const [metrics, cashFlowData, alerts] = await Promise.all([
+        const [metrics, cashFlowData, alerts, insights] = await Promise.all([
           GetFinancialSummary(period),
           GetCashFlowData(period),
           GetFinancialAlerts(period),
+          getFinancialInsights(period),
         ]);
 
         setData({
@@ -36,6 +39,7 @@ export function useFinancialDashboard(period: string) {
           inflowOutflowData: cashFlowData.monthlyData || [],
           bankAccounts: metrics.bankAccounts || [],
           alerts: alerts || [],
+          insights,
         });
       } catch (err) {
         console.error("Error loading financial dashboard:", err);
