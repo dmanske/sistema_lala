@@ -32,6 +32,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { AccountPayableCategory } from '@/core/domain/entities/AccountPayable';
 import { createClient } from '@/lib/supabase/client';
+import { CostCenterSelector } from '@/components/cost-centers/CostCenterSelector';
+import { ProjectSelector } from '@/components/projects/ProjectSelector';
 
 const FormSchema = z.object({
   description: z.string().min(1, 'Descrição é obrigatória'),
@@ -40,6 +42,8 @@ const FormSchema = z.object({
   category: z.string().min(1, 'Categoria é obrigatória'),
   supplierId: z.string().optional(),
   notes: z.string().optional(),
+  costCenterId: z.string().optional(),
+  projectId: z.string().optional(),
 });
 
 type FormData = z.infer<typeof FormSchema>;
@@ -56,6 +60,8 @@ interface AccountPayableDialogProps {
     category: AccountPayableCategory;
     supplierId?: string;
     notes?: string;
+    costCenterId?: string;
+    projectId?: string;
   };
 }
 
@@ -89,6 +95,8 @@ export function AccountPayableDialog({
       category: 'OUTROS',
       supplierId: '',
       notes: '',
+      costCenterId: '',
+      projectId: '',
     },
   });
 
@@ -109,6 +117,8 @@ export function AccountPayableDialog({
           category: editData.category,
           supplierId: editData.supplierId || '',
           notes: editData.notes || '',
+          costCenterId: editData.costCenterId || '',
+          projectId: editData.projectId || '',
         });
       } else {
         form.reset({
@@ -118,6 +128,8 @@ export function AccountPayableDialog({
           category: 'OUTROS',
           supplierId: '',
           notes: '',
+          costCenterId: '',
+          projectId: '',
         });
       }
       fetchSuppliers();
@@ -281,6 +293,50 @@ export function AccountPayableDialog({
                 </FormItem>
               )}
             />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="costCenterId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Centro de Custos</FormLabel>
+                    <FormControl>
+                      <CostCenterSelector
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder="Selecione"
+                      />
+                    </FormControl>
+                    <p className="text-[11px] text-muted-foreground">
+                      Despesas recorrentes
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="projectId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Projeto</FormLabel>
+                    <FormControl>
+                      <ProjectSelector
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder="Selecione"
+                      />
+                    </FormControl>
+                    <p className="text-[11px] text-muted-foreground">
+                      Investimentos pontuais
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <DialogFooter>
               <Button

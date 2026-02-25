@@ -22,7 +22,10 @@ import {
     Calculator,
     Receipt,
     FileText,
-    TrendingUp
+    TrendingUp,
+    Settings,
+    FolderTree,
+    Briefcase
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -88,6 +91,13 @@ export function Sidebar({ className }: SidebarProps) {
                 { name: "Contas a Pagar", icon: Receipt, href: "/accounts-payable", active: true },
                 { name: "Contas a Receber", icon: FileText, href: "/receivables", active: true },
                 { name: "Compras", icon: ShoppingBag, href: "/purchases", active: true },
+            ],
+        },
+        {
+            label: "Configurações",
+            items: [
+                { name: "Centros de Custos", icon: FolderTree, href: "/settings/cost-centers", active: true },
+                { name: "Projetos", icon: Briefcase, href: "/settings/projects", active: true },
             ],
         },
     ];

@@ -27,6 +27,8 @@ import { createCashMovementAction } from "@/app/(app)/cash/actions"
 import { toast } from "sonner"
 import { Plus, Minus, Banknote, QrCode, CreditCard, ArrowRightLeft, Wallet } from "lucide-react"
 import { AccountSelector } from "@/components/bank-accounts/AccountSelector"
+import { CostCenterSelector } from "@/components/cost-centers/CostCenterSelector"
+import { ProjectSelector } from "@/components/projects/ProjectSelector"
 import { cn } from "@/lib/utils"
 
 const schema = z.object({
@@ -52,6 +54,8 @@ const METHOD_OPTIONS = [
 export function NewTransactionDialog({ type }: NewTransactionDialogProps) {
     const [open, setOpen] = useState(false)
     const [bankAccountId, setBankAccountId] = useState<string>("")
+    const [costCenterId, setCostCenterId] = useState<string>("")
+    const [projectId, setProjectId] = useState<string>("")
     const form = useForm<FormValues>({
         resolver: zodResolver(schema),
         defaultValues: {
@@ -71,6 +75,8 @@ export function NewTransactionDialog({ type }: NewTransactionDialogProps) {
             ...values,
             type,
             bankAccountId,
+            costCenterId: costCenterId || undefined,
+            projectId: projectId || undefined,
         })
 
         if (result.success) {
@@ -78,6 +84,8 @@ export function NewTransactionDialog({ type }: NewTransactionDialogProps) {
             setOpen(false)
             form.reset()
             setBankAccountId("")
+            setCostCenterId("")
+            setProjectId("")
         } else {
             toast.error(result.error || "Erro ao salvar")
         }
@@ -196,6 +204,32 @@ export function NewTransactionDialog({ type }: NewTransactionDialogProps) {
                                 </FormItem>
                             )}
                         />
+
+                        {/* Cost Center */}
+                        <FormItem>
+                            <FormLabel>Centro de Custos (Opcional)</FormLabel>
+                            <CostCenterSelector
+                                value={costCenterId}
+                                onValueChange={setCostCenterId}
+                                placeholder="Selecione um centro de custos"
+                            />
+                            <p className="text-[11px] text-muted-foreground">
+                                Para despesas recorrentes (ex: Operacional, Marketing, Infraestrutura)
+                            </p>
+                        </FormItem>
+
+                        {/* Project */}
+                        <FormItem>
+                            <FormLabel>Projeto (Opcional)</FormLabel>
+                            <ProjectSelector
+                                value={projectId}
+                                onValueChange={setProjectId}
+                                placeholder="Selecione um projeto"
+                            />
+                            <p className="text-[11px] text-muted-foreground">
+                                Para investimentos pontuais (ex: Reforma, Campanha, Expansão)
+                            </p>
+                        </FormItem>
 
                         <DialogFooter className="pt-2">
                             <Button type="submit" className="w-full sm:w-auto" size="lg">
