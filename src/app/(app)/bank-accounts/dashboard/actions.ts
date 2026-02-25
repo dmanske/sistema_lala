@@ -4,58 +4,63 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
 export async function getBankAccountsDashboard() {
-  const supabase = await createClient();
-  
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
+  try {
+    const supabase = await createClient();
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('tenant_id')
-    .eq('id', user.id)
-    .single();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Unauthorized');
 
-  if (!profile?.tenant_id) throw new Error('Tenant not found');
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('tenant_id')
+      .eq('id', user.id)
+      .single();
 
-  // Buscar todas as contas
-  const { data: accounts, error: accountsError } = await supabase
-    .from('bank_accounts')
-    .select('*')
-    .eq('tenant_id', profile.tenant_id)
-    .order('name');
+    if (!profile?.tenant_id) throw new Error('Tenant not found');
 
-  if (accountsError) throw accountsError;
+    // Buscar todas as contas
+    const { data: accounts, error: accountsError } = await supabase
+      .from('bank_accounts')
+      .select('*')
+      .eq('tenant_id', profile.tenant_id)
+      .order('name');
 
-  // Calcular saldo de cada conta
-  const accountsWithBalance = await Promise.all(
-    (accounts || []).map(async (account) => {
-      // Buscar movimentações da conta
-      const { data: movements } = await supabase
-        .from('cash_movements')
-        .select('type, amount')
-        .eq('bank_account_id', account.id);
+    if (accountsError) throw accountsError;
 
-      // Calcular saldo: initial_balance + entradas - saídas
-      const movementsBalance = (movements || []).reduce((sum, mov) => {
-        return sum + (mov.type === 'IN' ? Number(mov.amount) : -Number(mov.amount));
-      }, 0);
+    // Calcular saldo de cada conta
+    const accountsWithBalance = await Promise.all(
+      (accounts || []).map(async (account) => {
+        // Buscar movimentações da conta
+        const { data: movements } = await supabase
+          .from('cash_movements')
+          .select('type, amount')
+          .eq('bank_account_id', account.id);
 
-      const currentBalance = Number(account.initial_balance || 0) + movementsBalance;
+        // Calcular saldo: initial_balance + entradas - saídas
+        const movementsBalance = (movements || []).reduce((sum, mov) => {
+          return sum + (mov.type === 'IN' ? Number(mov.amount) : -Number(mov.amount));
+        }, 0);
 
-      return {
-        ...account,
-        currentBalance,
-      };
-    })
-  );
+        const currentBalance = Number(account.initial_balance || 0) + movementsBalance;
 
-  // Calcular saldo total
-  const totalBalance = accountsWithBalance.reduce((sum, acc) => sum + acc.currentBalance, 0);
+        return {
+          ...account,
+          currentBalance,
+        };
+      })
+    );
 
-  return {
-    accounts: accountsWithBalance,
-    totalBalance,
-  };
+    // Calcular saldo total
+    const totalBalance = accountsWithBalance.reduce((sum, acc) => sum + acc.currentBalance, 0);
+
+    return {
+      accounts: accountsWithBalance,
+      totalBalance,
+    };
+  } catch (error) {
+    console.error('Erro ao buscar contas bancárias:', error);
+    return { accounts: [], totalBalance: 0 };
+  }
 }
 
 export async function createTransfer(formData: {
@@ -66,7 +71,7 @@ export async function createTransfer(formData: {
   description?: string;
 }) {
   const supabase = await createClient();
-  
+
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Unauthorized');
 
@@ -124,12 +129,12 @@ export async function createTransfer(formData: {
   // Se for para hoje, executar imediatamente
   const today = new Date();
   const scheduledDate = new Date(formData.scheduledDate + 'T00:00:00');
-  
+
   // Comparar apenas as datas (ignorar horário)
   const isToday = today.getFullYear() === scheduledDate.getFullYear() &&
-                  today.getMonth() === scheduledDate.getMonth() &&
-                  today.getDate() === scheduledDate.getDate();
-  
+    today.getMonth() === scheduledDate.getMonth() &&
+    today.getDate() === scheduledDate.getDate();
+
   if (isToday) {
     await executeTransferInternal(supabase, profile.tenant_id, formData);
   }
@@ -139,7 +144,7 @@ export async function createTransfer(formData: {
 
 async function executeTransferInternal(supabase: any, tenantId: string, transfer: any) {
   // Criar movimentação de saída
-  await supabase.from('cash_movements').insert({
+  const { error: outError } = await supabase.from('cash_movements').insert({
     tenant_id: tenantId,
     type: 'OUT',
     amount: transfer.amount,
@@ -149,8 +154,12 @@ async function executeTransferInternal(supabase: any, tenantId: string, transfer
     source_type: 'TRANSFER',
   });
 
+  if (outError) {
+    throw new Error(`Erro ao registrar saída da transferência: ${outError.message}`);
+  }
+
   // Criar movimentação de entrada
-  await supabase.from('cash_movements').insert({
+  const { error: inError } = await supabase.from('cash_movements').insert({
     tenant_id: tenantId,
     type: 'IN',
     amount: transfer.amount,
@@ -160,21 +169,33 @@ async function executeTransferInternal(supabase: any, tenantId: string, transfer
     source_type: 'TRANSFER',
   });
 
+  if (inError) {
+    throw new Error(`Erro ao registrar entrada da transferência: ${inError.message}`);
+  }
+
   // Atualizar saldos
-  await supabase.rpc('update_bank_account_balance', {
+  const { error: debitError } = await supabase.rpc('update_bank_account_balance', {
     p_account_id: transfer.fromAccountId,
     p_amount: -transfer.amount,
   });
 
-  await supabase.rpc('update_bank_account_balance', {
+  if (debitError) {
+    throw new Error(`Erro ao debitar conta de origem: ${debitError.message}`);
+  }
+
+  const { error: creditError } = await supabase.rpc('update_bank_account_balance', {
     p_account_id: transfer.toAccountId,
     p_amount: transfer.amount,
   });
+
+  if (creditError) {
+    throw new Error(`Erro ao creditar conta de destino: ${creditError.message}`);
+  }
 }
 
 export async function getTransferHistory() {
   const supabase = await createClient();
-  
+
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Unauthorized');
 

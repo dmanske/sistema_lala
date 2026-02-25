@@ -521,7 +521,7 @@ export default function DashboardPage() {
                 <StatCard
                     title="Lucro Estimado"
                     value={formatCurrency(stats.totalServiceProfit + stats.totalProductProfit)}
-                    subtext={`Margem: ${stats.totalRevenue > 0 ? ((stats.totalServiceProfit + stats.totalProductProfit) / stats.totalRevenue * 100).toFixed(1) : 0}%`}
+                    subtext={`Margem: ${stats.totalRevenue > 0 ? (((stats.totalServiceProfit || 0) + (stats.totalProductProfit || 0)) / stats.totalRevenue * 100).toFixed(1) : 0}%`}
                     icon={TrendingUp}
                     color="purple"
                 />
@@ -575,15 +575,15 @@ export default function DashboardPage() {
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="p-3 bg-blue-50 rounded-lg">
                                     <div className="text-xs text-muted-foreground">Taxa de Ocupação</div>
-                                    <div className="text-2xl font-bold text-blue-600">{stats.occupancyRate.toFixed(1)}%</div>
+                                    <div className="text-2xl font-bold text-blue-600">{(stats.occupancyRate || 0).toFixed(1)}%</div>
                                 </div>
                                 <div className="p-3 bg-green-50 rounded-lg">
                                     <div className="text-xs text-muted-foreground">Taxa de Retorno</div>
-                                    <div className="text-2xl font-bold text-green-600">{stats.returnRate.toFixed(1)}%</div>
+                                    <div className="text-2xl font-bold text-green-600">{(stats.returnRate || 0).toFixed(1)}%</div>
                                 </div>
                                 <div className="p-3 bg-purple-50 rounded-lg">
                                     <div className="text-xs text-muted-foreground">Tempo Médio entre Visitas</div>
-                                    <div className="text-2xl font-bold text-purple-600">{stats.avgDaysBetweenVisits.toFixed(0)} dias</div>
+                                    <div className="text-2xl font-bold text-purple-600">{(stats.avgDaysBetweenVisits || 0).toFixed(0)} dias</div>
                                 </div>
                                 <div className="p-3 bg-orange-50 rounded-lg">
                                     <div className="text-xs text-muted-foreground">Novos Clientes</div>
@@ -591,11 +591,11 @@ export default function DashboardPage() {
                                 </div>
                                 <div className="p-3 bg-rose-50 rounded-lg">
                                     <div className="text-xs text-muted-foreground">Taxa de Cancelamento</div>
-                                    <div className="text-2xl font-bold text-rose-600">{stats.cancellationRate.toFixed(1)}%</div>
+                                    <div className="text-2xl font-bold text-rose-600">{(stats.cancellationRate || 0).toFixed(1)}%</div>
                                 </div>
                                 <div className="p-3 bg-amber-50 rounded-lg">
                                     <div className="text-xs text-muted-foreground">Taxa de No-Show</div>
-                                    <div className="text-2xl font-bold text-amber-600">{stats.noShowRate.toFixed(1)}%</div>
+                                    <div className="text-2xl font-bold text-amber-600">{(stats.noShowRate || 0).toFixed(1)}%</div>
                                 </div>
                             </div>
                         </CardContent>
@@ -720,7 +720,7 @@ export default function DashboardPage() {
                                 </div>
                                 <div className="p-3 bg-purple-50 rounded-lg">
                                     <div className="text-xs text-muted-foreground">Margem de Lucro</div>
-                                    <div className="text-xl font-bold text-purple-600">{stats.profitMargin.toFixed(1)}%</div>
+                                    <div className="text-xl font-bold text-purple-600">{(stats.profitMargin || 0).toFixed(1)}%</div>
                                 </div>
                                 <div className={cn(
                                     "p-3 rounded-lg",
