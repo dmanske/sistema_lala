@@ -44,6 +44,7 @@ const SOURCE_ICONS: Record<string, React.ReactNode> = {
     MANUAL: <Settings className="h-4 w-4 text-slate-500" />,
     CREDIT: <Wallet className="h-4 w-4 text-purple-500" />,
     PAYMENT: <HandCoins className="h-4 w-4 text-orange-500" />,
+    RECEIVABLE: <HandCoins className="h-4 w-4 text-green-500" />,
 }
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -53,6 +54,7 @@ const SOURCE_LABELS: Record<string, string> = {
     MANUAL: 'Manual',
     CREDIT: 'Recarga de Crédito',
     PAYMENT: 'Contas a Pagar',
+    RECEIVABLE: 'Contas a Receber',
 }
 
 interface CashListProps {
