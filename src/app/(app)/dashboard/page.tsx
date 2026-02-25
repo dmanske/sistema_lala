@@ -98,6 +98,7 @@ export default function DashboardPage() {
     const [cashMovements, setCashMovements] = useState<CashMovement[]>([]);
     const [professionals, setProfessionals] = useState<Professional[]>([]);
     const [sales, setSales] = useState<any[]>([]);
+    const [accountsPayable, setAccountsPayable] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [periodStart, setPeriodStart] = useState(startOfMonth(new Date()));
     const [periodEnd, setPeriodEnd] = useState(endOfDay(new Date()));
@@ -133,6 +134,11 @@ export default function DashboardPage() {
                 const salesData = await getSaleRepository().findAll();
                 const paidSales = salesData.filter(s => s.status === 'paid');
                 setSales(paidSales);
+
+                // Buscar contas a pagar
+                const { getAccountPayableRepository } = await import('@/infrastructure/repositories/factory');
+                const accountsPayableData = await getAccountPayableRepository().list();
+                setAccountsPayable(accountsPayableData);
             } catch (error) {
                 console.error(error);
             } finally {
@@ -225,23 +231,168 @@ export default function DashboardPage() {
         const now = new Date();
         const futureAppointments = appointments.filter(a => {
             const d = parseLocalDate(a.date);
-            const isFuture = (a.status === 'PENDING' || a.status === 'CONFIRMED') && d && d >= now;
-            
-            // Debug temporário
-            if (a.status === 'PENDING' || a.status === 'CONFIRMED') {
-                console.log('Agendamento:', {
-                    id: a.id,
-                    date: a.date,
-                    parsedDate: d,
-                    status: a.status,
-                    now: now,
-                    isFuture: isFuture,
-                    comparison: d ? d.getTime() - now.getTime() : 'null'
-                });
-            }
-            
-            return isFuture;
+            return (a.status === 'PENDING' || a.status === 'CONFIRMED') && d && d >= now;
         }).length;
+
+        // === NOVAS MÉTRICAS DE NEGÓCIO ===
+        
+        // 1. Taxa de Ocupação (simplificado - baseado em agendamentos vs dias úteis)
+        const daysInPeriod = Math.ceil((periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24));
+        const totalAppointments = appointments.filter(a => {
+            const d = parseLocalDate(a.date);
+            return d && d >= periodStart && d <= periodEnd;
+        }).length;
+        const occupancyRate = daysInPeriod > 0 ? (totalAppointments / (daysInPeriod * professionals.length * 8)) * 100 : 0; // 8 slots por dia
+
+        // 2. Taxa de Retorno - clientes que voltaram no período
+        const clientsInPeriod = new Set(filteredSales.filter(s => s.appointmentId).map(s => {
+            const appt = appointments.find(a => a.id === s.appointmentId);
+            return appt?.clientId;
+        }).filter(Boolean));
+        
+        const returningClients = Array.from(clientsInPeriod).filter(clientId => {
+            const clientSales = sales.filter(s => {
+                const appt = appointments.find(a => a.id === s.appointmentId);
+                return appt?.clientId === clientId && s.status === 'paid';
+            });
+            return clientSales.length > 1;
+        }).length;
+        
+        const returnRate = clientsInPeriod.size > 0 ? (returningClients / clientsInPeriod.size) * 100 : 0;
+
+        // 3. Tempo Médio entre Visitas
+        const clientVisits: Record<string, Date[]> = {};
+        sales.filter(s => s.status === 'paid' && s.appointmentId).forEach(s => {
+            const appt = appointments.find(a => a.id === s.appointmentId);
+            if (appt?.clientId) {
+                const date = parseLocalDate(appt.date);
+                if (date) {
+                    if (!clientVisits[appt.clientId]) clientVisits[appt.clientId] = [];
+                    clientVisits[appt.clientId].push(date);
+                }
+            }
+        });
+        
+        let totalDaysBetweenVisits = 0;
+        let visitPairs = 0;
+        Object.values(clientVisits).forEach(dates => {
+            const sorted = dates.sort((a, b) => a.getTime() - b.getTime());
+            for (let i = 1; i < sorted.length; i++) {
+                const days = (sorted[i].getTime() - sorted[i-1].getTime()) / (1000 * 60 * 60 * 24);
+                totalDaysBetweenVisits += days;
+                visitPairs++;
+            }
+        });
+        const avgDaysBetweenVisits = visitPairs > 0 ? totalDaysBetweenVisits / visitPairs : 0;
+
+        // 4. Novos Clientes no período
+        const newClients = clients.filter(c => {
+            const d = c.createdAt ? new Date(c.createdAt) : null;
+            return d && d >= periodStart && d <= periodEnd;
+        }).length;
+
+        // 5. Taxa de Cancelamento
+        const canceledAppointments = appointments.filter(a => {
+            const d = parseLocalDate(a.date);
+            return a.status === 'CANCELLED' && d && d >= periodStart && d <= periodEnd;
+        }).length;
+        const totalScheduled = totalAppointments + canceledAppointments;
+        const cancellationRate = totalScheduled > 0 ? (canceledAppointments / totalScheduled) * 100 : 0;
+
+        // === MÉTRICAS FINANCEIRAS ===
+        
+        // 6. Contas a Receber Vencidas
+        const overdueReceivables = 0; // TODO: implementar quando tiver contas a receber
+
+        // 7. Contas a Pagar Vencidas
+        const overduePayables = accountsPayable.filter(ap => {
+            const dueDate = parseLocalDate(ap.dueDate);
+            return ap.status === 'pending' && dueDate && dueDate < now;
+        }).reduce((sum, ap) => sum + (ap.amount || 0), 0);
+
+        // 8. Previsão de Receita (baseado em agendamentos futuros)
+        const forecastRevenue = futureAppointments * ticketMedio;
+
+        // 9. Despesas do Mês
+        const monthExpenses = cashMovements.filter(m => m.type === 'OUT').reduce((sum, m) => sum + m.amount, 0);
+
+        // 10. Margem de Lucro Real
+        const realProfit = totalRevenue - monthExpenses;
+        const profitMargin = totalRevenue > 0 ? (realProfit / totalRevenue) * 100 : 0;
+
+        // === MÉTRICAS OPERACIONAIS ===
+        
+        // 11. Produtos Mais Vendidos
+        const productSales: Record<string, { name: string, quantity: number, revenue: number }> = {};
+        filteredSales.forEach(sale => {
+            sale.items?.forEach((item: any) => {
+                if (item.type === 'product') {
+                    const key = item.productId || item.name;
+                    if (!productSales[key]) {
+                        productSales[key] = { name: item.name, quantity: 0, revenue: 0 };
+                    }
+                    productSales[key].quantity += item.quantity;
+                    productSales[key].revenue += item.price * item.quantity;
+                }
+            });
+        });
+        const topProducts = Object.values(productSales)
+            .sort((a, b) => b.quantity - a.quantity)
+            .slice(0, 5)
+            .map(p => ({
+                label: p.name,
+                value: p.quantity,
+                formattedValue: `${p.quantity} un - ${formatCurrency(p.revenue)}`
+            }));
+
+        // 12. Taxa de No-Show
+        const noShowAppointments = appointments.filter(a => {
+            const d = parseLocalDate(a.date);
+            return a.status === 'NO_SHOW' && d && d >= periodStart && d <= periodEnd;
+        }).length;
+        const noShowRate = totalScheduled > 0 ? (noShowAppointments / totalScheduled) * 100 : 0;
+
+        // 13. Horários Mais Populares (simplificado)
+        const hourCounts: Record<number, number> = {};
+        appointments.filter(a => {
+            const d = parseLocalDate(a.date);
+            return d && d >= periodStart && d <= periodEnd;
+        }).forEach(a => {
+            // Assumindo que temos hora no agendamento (se não tiver, usar 9h como padrão)
+            const hour = 9; // TODO: extrair hora real quando disponível
+            hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+        });
+        const popularHours = Object.entries(hourCounts)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 5)
+            .map(([hour, count]) => ({
+                label: `${hour}:00`,
+                value: count,
+                formattedValue: `${count} agendamentos`
+            }));
+
+        // 14. Clientes Inativos (mais de 60 dias sem visita)
+        const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+        const activeClientIds = new Set(
+            sales.filter(s => {
+                const appt = appointments.find(a => a.id === s.appointmentId);
+                const date = appt ? parseLocalDate(appt.date) : null;
+                return date && date >= sixtyDaysAgo;
+            }).map(s => {
+                const appt = appointments.find(a => a.id === s.appointmentId);
+                return appt?.clientId;
+            }).filter(Boolean)
+        );
+        const inactiveClients = clients.filter(c => 
+            c.status === 'ACTIVE' && !activeClientIds.has(c.id)
+        ).length;
+
+        // Agendamentos de Hoje
+        const today = startOfDay(new Date());
+        const todayAppointments = appointments.filter(a => {
+            const d = parseLocalDate(a.date);
+            return d && isSameMonth(d, today) && d.getDate() === today.getDate();
+        });
 
         const totalIn = cashMovements.filter(m => m.type === 'IN').reduce((sum, m) => sum + m.amount, 0);
         const totalOut = cashMovements.filter(m => m.type === 'OUT').reduce((sum, m) => sum + m.amount, 0);
@@ -275,9 +426,28 @@ export default function DashboardPage() {
             totalIn,
             totalOut,
             netCashFlow,
-            professionalStats
+            professionalStats,
+            // Novas métricas de negócio
+            occupancyRate,
+            returnRate,
+            avgDaysBetweenVisits,
+            newClients,
+            cancellationRate,
+            // Novas métricas financeiras
+            overdueReceivables,
+            overduePayables,
+            forecastRevenue,
+            monthExpenses,
+            profitMargin,
+            realProfit,
+            // Novas métricas operacionais
+            topProducts,
+            noShowRate,
+            popularHours,
+            inactiveClients,
+            todayAppointments
         };
-    }, [appointments, products, services, clients, cashMovements, professionals, sales, periodStart, periodEnd]);
+    }, [appointments, products, services, clients, cashMovements, professionals, sales, accountsPayable, periodStart, periodEnd]);
 
     const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
@@ -392,6 +562,88 @@ export default function DashboardPage() {
             {/* Tab Content */}
             {activeTab === 'summary' && (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                    {/* Cards de Métricas de Negócio */}
+                    <Card className="col-span-3">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Activity className="h-5 w-5 text-blue-600" />
+                                Métricas de Negócio
+                            </CardTitle>
+                            <CardDescription>Indicadores operacionais do período</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="p-3 bg-blue-50 rounded-lg">
+                                    <div className="text-xs text-muted-foreground">Taxa de Ocupação</div>
+                                    <div className="text-2xl font-bold text-blue-600">{stats.occupancyRate.toFixed(1)}%</div>
+                                </div>
+                                <div className="p-3 bg-green-50 rounded-lg">
+                                    <div className="text-xs text-muted-foreground">Taxa de Retorno</div>
+                                    <div className="text-2xl font-bold text-green-600">{stats.returnRate.toFixed(1)}%</div>
+                                </div>
+                                <div className="p-3 bg-purple-50 rounded-lg">
+                                    <div className="text-xs text-muted-foreground">Tempo Médio entre Visitas</div>
+                                    <div className="text-2xl font-bold text-purple-600">{stats.avgDaysBetweenVisits.toFixed(0)} dias</div>
+                                </div>
+                                <div className="p-3 bg-orange-50 rounded-lg">
+                                    <div className="text-xs text-muted-foreground">Novos Clientes</div>
+                                    <div className="text-2xl font-bold text-orange-600">{stats.newClients}</div>
+                                </div>
+                                <div className="p-3 bg-rose-50 rounded-lg">
+                                    <div className="text-xs text-muted-foreground">Taxa de Cancelamento</div>
+                                    <div className="text-2xl font-bold text-rose-600">{stats.cancellationRate.toFixed(1)}%</div>
+                                </div>
+                                <div className="p-3 bg-amber-50 rounded-lg">
+                                    <div className="text-xs text-muted-foreground">Taxa de No-Show</div>
+                                    <div className="text-2xl font-bold text-amber-600">{stats.noShowRate.toFixed(1)}%</div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Agendamentos de Hoje */}
+                    <Card className="col-span-4">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Calendar className="h-5 w-5 text-indigo-600" />
+                                Agendamentos de Hoje
+                            </CardTitle>
+                            <CardDescription>{stats.todayAppointments.length} agendamento(s)</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {stats.todayAppointments.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
+                                    <Calendar className="h-10 w-10 mb-2" />
+                                    <p>Nenhum agendamento para hoje</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                                    {stats.todayAppointments.map((appt: any) => {
+                                        const client = clients.find(c => c.id === appt.clientId);
+                                        const prof = professionals.find(p => p.id === appt.professionalId);
+                                        return (
+                                            <div key={appt.id} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg text-sm">
+                                                <div>
+                                                    <div className="font-medium">{client?.name || 'Cliente'}</div>
+                                                    <div className="text-xs text-muted-foreground">{prof?.name || 'Profissional'}</div>
+                                                </div>
+                                                <div className={cn(
+                                                    "px-2 py-1 rounded text-xs font-medium",
+                                                    appt.status === 'CONFIRMED' ? "bg-green-100 text-green-700" :
+                                                    appt.status === 'PENDING' ? "bg-yellow-100 text-yellow-700" :
+                                                    appt.status === 'DONE' ? "bg-blue-100 text-blue-700" :
+                                                    "bg-gray-100 text-gray-700"
+                                                )}>
+                                                    {appt.status}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
                     <div className="col-span-3">
                         <BirthdayCard />
                     </div>
@@ -443,6 +695,47 @@ export default function DashboardPage() {
 
             {activeTab === 'financial' && (
                 <div className="grid gap-4 md:grid-cols-2">
+                    {/* Métricas Financeiras Expandidas */}
+                    <Card className="col-span-2">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <DollarSign className="h-5 w-5 text-emerald-600" />
+                                Indicadores Financeiros
+                            </CardTitle>
+                            <CardDescription>Visão consolidada das finanças</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                <div className="p-3 bg-rose-50 rounded-lg">
+                                    <div className="text-xs text-muted-foreground">Contas a Pagar Vencidas</div>
+                                    <div className="text-xl font-bold text-rose-600">{formatCurrency(stats.overduePayables)}</div>
+                                </div>
+                                <div className="p-3 bg-blue-50 rounded-lg">
+                                    <div className="text-xs text-muted-foreground">Previsão de Receita</div>
+                                    <div className="text-xl font-bold text-blue-600">{formatCurrency(stats.forecastRevenue)}</div>
+                                </div>
+                                <div className="p-3 bg-orange-50 rounded-lg">
+                                    <div className="text-xs text-muted-foreground">Despesas do Mês</div>
+                                    <div className="text-xl font-bold text-orange-600">{formatCurrency(stats.monthExpenses)}</div>
+                                </div>
+                                <div className="p-3 bg-purple-50 rounded-lg">
+                                    <div className="text-xs text-muted-foreground">Margem de Lucro</div>
+                                    <div className="text-xl font-bold text-purple-600">{stats.profitMargin.toFixed(1)}%</div>
+                                </div>
+                                <div className={cn(
+                                    "p-3 rounded-lg",
+                                    stats.realProfit >= 0 ? "bg-emerald-50" : "bg-rose-50"
+                                )}>
+                                    <div className="text-xs text-muted-foreground">Lucro Real</div>
+                                    <div className={cn(
+                                        "text-xl font-bold",
+                                        stats.realProfit >= 0 ? "text-emerald-600" : "text-rose-600"
+                                    )}>{formatCurrency(stats.realProfit)}</div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -491,6 +784,50 @@ export default function DashboardPage() {
 
             {activeTab === 'operational' && (
                 <div className="grid gap-4 md:grid-cols-2">
+                    {/* Produtos Mais Vendidos */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Package className="h-5 w-5 text-blue-600" />
+                                Produtos Mais Vendidos
+                            </CardTitle>
+                            <CardDescription>Top 5 produtos por quantidade</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {stats.topProducts.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
+                                    <Package className="h-10 w-10 mb-2" />
+                                    <p>Nenhuma venda de produto no período</p>
+                                </div>
+                            ) : (
+                                <SimpleBarChart data={stats.topProducts} color="bg-gradient-to-r from-blue-500 to-blue-600" />
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Clientes Inativos */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Users className="h-5 w-5 text-amber-600" />
+                                Clientes Inativos
+                            </CardTitle>
+                            <CardDescription>Sem visita há mais de 60 dias</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-col items-center justify-center h-48">
+                                <div className="text-6xl font-bold text-amber-600">{stats.inactiveClients}</div>
+                                <p className="text-muted-foreground mt-2">clientes inativos</p>
+                                {stats.inactiveClients > 0 && (
+                                    <p className="text-xs text-muted-foreground mt-4 text-center">
+                                        Considere criar uma campanha de reativação
+                                    </p>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Estoque Crítico */}
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-rose-600">
@@ -523,13 +860,14 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
 
+                    {/* Serviços Mais Populares */}
                     <Card>
                         <CardHeader>
                             <CardTitle>Mais Populares</CardTitle>
                             <CardDescription>Serviços mais realizados por volume</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <SimpleBarChart data={stats.topServices} color="bg-gradient-to-r from-blue-500 to-blue-600" />
+                            <SimpleBarChart data={stats.topServices} color="bg-gradient-to-r from-purple-500 to-purple-600" />
                         </CardContent>
                     </Card>
                 </div>
