@@ -49,6 +49,7 @@ import { getSupplierRepository } from "@/infrastructure/repositories/factory";
 import { formatPhone } from "@/core/formatters/phone";
 import { SupplierCard } from "@/components/suppliers/SupplierCard";
 import { DeleteSupplierDialog } from "@/components/suppliers/DeleteSupplierDialog";
+import { SupplierDialog } from "@/components/suppliers/SupplierDialog";
 
 export default function SuppliersPage() {
     const router = useRouter();
@@ -60,6 +61,8 @@ export default function SuppliersPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [supplierToDelete, setSupplierToDelete] = useState<{ id: string; name: string } | null>(null);
+    const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
+    const [editingSupplier, setEditingSupplier] = useState<Supplier | undefined>(undefined);
 
     const ITEMS_PER_PAGE = 8;
     const repo = getSupplierRepository();
@@ -99,7 +102,8 @@ export default function SuppliersPage() {
     );
 
     const handleEdit = (supplier: Supplier) => {
-        router.push(`/suppliers/${supplier.id}/edit`);
+        setEditingSupplier(supplier);
+        setSupplierDialogOpen(true);
     };
 
     const handleDelete = (id: string, name: string) => {
@@ -125,10 +129,10 @@ export default function SuppliersPage() {
     return (
         <div className="space-y-6">
             {/* Header Area */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-violet-600 to-indigo-700 p-8 text-white shadow-2xl shadow-purple-500/20">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 to-purple-700 p-8 text-white shadow-2xl shadow-indigo-500/20">
                 {/* Decorative Elements */}
-                <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-fuchsia-500/20 blur-3xl animate-pulse" />
-                <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl" />
+                <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-purple-400/20 blur-3xl animate-pulse" />
+                <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-indigo-500/10 blur-3xl" />
 
                 <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div className="flex items-center gap-4">
@@ -139,7 +143,7 @@ export default function SuppliersPage() {
                             <h1 className="text-3xl md:text-4xl font-bold tracking-tight font-heading">
                                 Fornecedores
                             </h1>
-                            <p className="text-purple-100 mt-1 flex items-center gap-2">
+                            <p className="text-indigo-100 mt-1 flex items-center gap-2">
                                 <Badge variant="outline" className="text-white border-white/30 bg-white/10 backdrop-blur-sm">
                                     {suppliers.length} Parceiros
                                 </Badge>
@@ -148,17 +152,20 @@ export default function SuppliersPage() {
                         </div>
                     </div>
 
-                    <Button asChild className="rounded-xl bg-white text-violet-700 hover:bg-purple-50 shadow-xl shadow-purple-900/20 px-6 py-6 h-auto text-lg font-bold group border-0">
-                        <Link href="/suppliers/new">
+                    <Button asChild className="rounded-xl bg-white text-indigo-700 hover:bg-indigo-50 shadow-xl shadow-indigo-900/20 px-6 py-6 h-auto text-lg font-bold group border-0">
+                        <button onClick={() => {
+                            setEditingSupplier(undefined);
+                            setSupplierDialogOpen(true);
+                        }}>
                             <Plus className="mr-2 h-5 w-5 transition-transform group-hover:rotate-90" />
                             Novo Fornecedor
-                        </Link>
+                        </button>
                     </Button>
                 </div>
             </div>
 
             {/* Filters/Toolbar */}
-            <div className="bg-card/50 backdrop-blur-xl p-4 sm:p-6 rounded-2xl border border-white/20 shadow-lg shadow-purple-500/5 flex flex-col md:flex-row gap-4 items-stretch md:items-center transition-all hover:shadow-purple-500/10">
+            <div className="bg-card/50 backdrop-blur-xl p-4 sm:p-6 rounded-2xl border border-white/20 shadow-lg shadow-indigo-500/5 flex flex-col md:flex-row gap-4 items-stretch md:items-center transition-all hover:shadow-indigo-500/10">
                 <div className="relative flex-1">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -246,64 +253,83 @@ export default function SuppliersPage() {
                                 paginatedSuppliers.map((supplier) => (
                                     <TableRow
                                         key={supplier.id}
-                                        className="cursor-pointer group hover:bg-slate-50/80 border-slate-50 transition-all"
+                                        className="cursor-pointer group hover:bg-indigo-50/30 border-slate-50 transition-all"
                                         onClick={() => router.push(`/suppliers/${supplier.id}`)}
                                     >
                                         <TableCell className="py-5 px-6">
                                             <div className="flex items-center gap-4">
-                                                <div className={cn(
-                                                    "p-3 rounded-xl transition-all group-hover:scale-110",
-                                                    supplier.status === 'ACTIVE' ? "bg-violet-50 text-violet-600 shadow-sm" : "bg-slate-100 text-slate-400"
-                                                )}>
-                                                    <Truck className="h-5 w-5" />
+                                                {/* Ícone maior com gradiente e status indicator */}
+                                                <div className="relative">
+                                                    <div className={cn(
+                                                        "h-12 w-12 rounded-xl flex items-center justify-center transition-all duration-300 ring-2",
+                                                        supplier.status === 'ACTIVE' 
+                                                            ? "bg-gradient-to-br from-indigo-500 to-purple-600 ring-indigo-100 group-hover:ring-indigo-200" 
+                                                            : "bg-gradient-to-br from-slate-300 to-slate-400 ring-slate-100"
+                                                    )}>
+                                                        <Truck className="h-6 w-6 text-white" />
+                                                    </div>
+                                                    {/* Status Indicator */}
+                                                    <div className={cn(
+                                                        "absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full border-2 border-white",
+                                                        supplier.status === 'ACTIVE' ? "bg-emerald-500" : "bg-slate-400"
+                                                    )} />
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-slate-900 font-bold text-lg group-hover:text-orange-600 transition-colors tracking-tight">{supplier.name}</span>
-                                                    <span className="text-xs text-slate-400 font-medium">Cadastrado há {Math.floor((new Date().getTime() - new Date(supplier.createdAt).getTime()) / (1000 * 60 * 60 * 24))} dias</span>
+                                                    <span className="text-slate-900 font-bold text-base group-hover:text-indigo-600 transition-colors tracking-tight">{supplier.name}</span>
+                                                    <span className="text-xs text-slate-400 font-medium">Parceria há {Math.floor((new Date().getTime() - new Date(supplier.createdAt).getTime()) / (1000 * 60 * 60 * 24))} dias</span>
                                                 </div>
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="flex flex-col gap-1">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="p-1 bg-blue-50 text-blue-600 rounded">
+                                            <div className="flex flex-col gap-2">
+                                                {/* Telefone */}
+                                                <div className="flex items-center gap-2 p-1.5 rounded-lg bg-blue-50 border border-blue-100 w-fit">
+                                                    <div className="p-1 bg-blue-100 text-blue-600 rounded">
                                                         <Phone className="h-3 w-3" />
                                                     </div>
-                                                    <span className="text-slate-700 font-bold text-sm">{supplier.phone ? formatPhone(supplier.phone) : "-"}</span>
+                                                    <span className="text-slate-700 font-bold text-xs pr-1">{supplier.phone ? formatPhone(supplier.phone) : "-"}</span>
                                                 </div>
+                                                {/* Email */}
                                                 {supplier.email && (
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="p-1 bg-slate-100 text-slate-500 rounded">
+                                                    <div className="flex items-center gap-2 p-1.5 rounded-lg bg-purple-50 border border-purple-100 w-fit max-w-[200px]">
+                                                        <div className="p-1 bg-purple-100 text-purple-600 rounded">
                                                             <Mail className="h-3 w-3" />
                                                         </div>
-                                                        <span className="text-xs text-slate-500 font-medium truncate max-w-[180px]">{supplier.email}</span>
+                                                        <span className="text-xs text-slate-600 font-medium truncate">{supplier.email}</span>
                                                     </div>
                                                 )}
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="flex flex-col gap-1">
-                                                <span className="font-mono text-sm font-bold text-slate-600">{supplier.cnpj ? formatCNPJ(supplier.cnpj) : "-"}</span>
+                                            <div className="flex flex-col gap-2">
+                                                {/* CNPJ */}
+                                                <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 w-fit">
+                                                    <span className="font-mono text-xs font-bold text-slate-700">{supplier.cnpj ? formatCNPJ(supplier.cnpj) : "-"}</span>
+                                                </div>
+                                                {/* WhatsApp Badge */}
                                                 {supplier.whatsapp && (
-                                                    <div className="flex gap-1.5 items-center text-emerald-600 font-bold text-[10px] uppercase tracking-tighter">
-                                                        <MessageCircle className="w-3.5 h-3.5" /> WhatsApp Ativo
+                                                    <div className="flex gap-1.5 items-center text-emerald-600 font-bold text-[10px] uppercase tracking-tight bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-1 w-fit">
+                                                        <MessageCircle className="w-3 h-3" /> WhatsApp
                                                     </div>
                                                 )}
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="flex items-center gap-2 text-slate-500 font-medium">
-                                                <Calendar className="h-4 w-4 text-slate-300" />
-                                                {format(new Date(supplier.createdAt), 'dd MMMM yyyy', { locale: ptBR })}
+                                            <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-50 border border-amber-100 w-fit">
+                                                <Calendar className="h-4 w-4 text-amber-600" />
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Desde</span>
+                                                    <span className="text-xs font-bold text-slate-700">{format(new Date(supplier.createdAt), 'dd/MM/yyyy', { locale: ptBR })}</span>
+                                                </div>
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-right px-6">
                                             <div className="flex items-center justify-end gap-3">
                                                 <Badge variant={supplier.status === 'ACTIVE' ? "default" : "secondary"} className={cn(
-                                                    "rounded-lg px-3 py-1 font-bold text-[10px] uppercase tracking-widest",
+                                                    "rounded-lg px-3 py-1.5 font-bold text-[10px] uppercase tracking-widest",
                                                     supplier.status === 'ACTIVE' ? "bg-emerald-500 hover:bg-emerald-600" : "bg-slate-300"
                                                 )}>
-                                                    {supplier.status === 'ACTIVE' ? "Ativo" : "Inativo"}
+                                                    {supplier.status === 'ACTIVE' ? "✓ Ativo" : "○ Inativo"}
                                                 </Badge>
                                                 <ArrowRight className="h-4 w-4 text-slate-300 transform translate-x-[-10px] opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all" />
                                             </div>
@@ -383,6 +409,13 @@ export default function SuppliersPage() {
                 onOpenChange={setDeleteDialogOpen}
                 supplierId={supplierToDelete?.id || ""}
                 supplierName={supplierToDelete?.name || ""}
+                onSuccess={fetchSuppliers}
+            />
+
+            <SupplierDialog
+                isOpen={supplierDialogOpen}
+                onOpenChange={setSupplierDialogOpen}
+                initialData={editingSupplier}
                 onSuccess={fetchSuppliers}
             />
         </div>
