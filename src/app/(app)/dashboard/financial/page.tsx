@@ -1,41 +1,74 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { useEffect, useState, useMemo } from "react";
+import { startOfMonth, endOfMonth } from "date-fns";
 import {
   DollarSign,
   TrendingUp,
   TrendingDown,
   Wallet,
   AlertCircle,
-  Calendar,
   ArrowUpRight,
   ArrowDownRight,
 } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { PeriodFilter } from "@/components/dashboard/PeriodFilter";
+import { DashboardAlerts, Alert } from "@/components/dashboard/DashboardAlerts";
 
 import { FinancialMetricsCards } from "@/components/dashboard/FinancialMetricsCards";
 import { CashFlowChart } from "@/components/dashboard/CashFlowChart";
 import { InflowOutflowChart } from "@/components/dashboard/InflowOutflowChart";
 import { BankAccountsList } from "@/components/dashboard/BankAccountsList";
-import { FinancialAlerts } from "@/components/dashboard/FinancialAlerts";
 
 import { useFinancialDashboard } from "@/hooks/useFinancialDashboard";
 
 export default function FinancialDashboardPage() {
-  const [period, setPeriod] = useState("current_month");
+  const [periodStart, setPeriodStart] = useState(startOfMonth(new Date()));
+  const [periodEnd, setPeriodEnd] = useState(endOfMonth(new Date()));
+  const [activeTab, setActiveTab] = useState<'cashflow' | 'analysis' | 'accounts'>('cashflow');
+  
+  // Converter para o formato esperado pelo hook
+  const period = useMemo(() => {
+    const now = new Date();
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+    
+    if (periodStart.getTime() === monthStart.getTime() && periodEnd.getTime() === monthEnd.getTime()) {
+      return 'current_month';
+    }
+    return 'current_month'; // fallback
+  }, [periodStart, periodEnd]);
+
   const { data, loading, error } = useFinancialDashboard(period);
 
-  if (loading) {
+  const handlePeriodChange = (start: Date, end: Date) => {
+    setPeriodStart(start);
+    setPeriodEnd(end);
+  };
+
+  // Generate alerts
+  const alerts: Alert[] = useMemo(() => {
+    if (!data?.alerts) return [];
+    
+    return data.alerts.map((alert: any, idx: number) => ({
+      id: `alert-${idx}`,
+      type: alert.type || 'warning',
+      title: alert.title || 'Alerta',
+      message: alert.message || '',
+      dismissible: true
+    }));
+  }, [data?.alerts]);
+
+  if (loading && !data) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-          <p className="text-muted-foreground">Carregando dashboard financeiro...</p>
+      <div className="space-y-6">
+        <div className="h-20 bg-muted/30 rounded-lg animate-pulse" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="h-32 bg-muted/30 rounded-lg animate-pulse" />
+          ))}
         </div>
       </div>
     );
@@ -60,76 +93,65 @@ export default function FinancialDashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground font-heading">
+          <h1 className="text-3xl font-bold tracking-tight">
             Dashboard Financeiro
           </h1>
           <p className="text-muted-foreground">
             Visão consolidada do fluxo de caixa e métricas financeiras
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-[180px] bg-white border-slate-200 shadow-sm">
-              <Calendar className="mr-2 h-4 w-4 text-slate-500" />
-              <SelectValue placeholder="Período" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="current_month">Mês Atual</SelectItem>
-              <SelectItem value="last_month">Mês Anterior</SelectItem>
-              <SelectItem value="last_3_months">Últimos 3 Meses</SelectItem>
-              <SelectItem value="current_year">Ano Atual</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
       </div>
-
-      {/* Alertas Financeiros */}
-      {data?.alerts && data.alerts.length > 0 && (
-        <FinancialAlerts alerts={data.alerts} />
-      )}
 
       {/* Métricas Principais */}
       <FinancialMetricsCards metrics={data?.metrics} />
 
-      {/* Gráficos e Análises */}
-      <Tabs defaultValue="cashflow" className="space-y-6">
-        <TabsList className="bg-white border p-1 rounded-xl shadow-sm w-full md:w-auto grid grid-cols-3 md:inline-flex">
-          <TabsTrigger 
-            value="cashflow" 
-            className="rounded-lg data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900"
-          >
-            Fluxo de Caixa
-          </TabsTrigger>
-          <TabsTrigger 
-            value="comparison" 
-            className="rounded-lg data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900"
-          >
-            Entradas vs Saídas
-          </TabsTrigger>
-          <TabsTrigger 
-            value="accounts" 
-            className="rounded-lg data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900"
-          >
-            Contas Bancárias
-          </TabsTrigger>
-        </TabsList>
+      {/* Alerts */}
+      {alerts.length > 0 && <DashboardAlerts alerts={alerts} />}
 
-        <TabsContent value="cashflow" className="space-y-4">
+      {/* Tabs */}
+      <div className="flex items-center gap-2">
+        <Button
+          variant={activeTab === 'cashflow' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('cashflow')}
+        >
+          Fluxo de Caixa
+        </Button>
+        <Button
+          variant={activeTab === 'analysis' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('analysis')}
+        >
+          Análises
+        </Button>
+        <Button
+          variant={activeTab === 'accounts' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('accounts')}
+        >
+          Contas Bancárias
+        </Button>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'cashflow' && (
+        <div className="space-y-4">
           <CashFlowChart data={data?.cashFlowData} />
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="comparison" className="space-y-4">
+      {activeTab === 'analysis' && (
+        <div className="space-y-4">
           <InflowOutflowChart data={data?.inflowOutflowData} />
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="accounts" className="space-y-4">
+      {activeTab === 'accounts' && (
+        <div className="space-y-4">
           <BankAccountsList accounts={data?.bankAccounts} />
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
     </div>
   );
 }

@@ -296,9 +296,6 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            {/* Alerts */}
-            {alerts.length > 0 && <DashboardAlerts alerts={alerts} />}
-
             {/* Main Stats */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <StatCard
@@ -332,26 +329,26 @@ export default function DashboardPage() {
                 />
             </div>
 
+            {/* Alerts */}
+            {alerts.length > 0 && <DashboardAlerts alerts={alerts} />}
+
             {/* Tabs */}
-            <div className="flex items-center gap-2 border-b">
+            <div className="flex items-center gap-2">
                 <Button
-                    variant={activeTab === 'summary' ? 'default' : 'ghost'}
+                    variant={activeTab === 'summary' ? 'default' : 'outline'}
                     onClick={() => setActiveTab('summary')}
-                    className="rounded-b-none"
                 >
                     Resumo
                 </Button>
                 <Button
-                    variant={activeTab === 'financial' ? 'default' : 'ghost'}
+                    variant={activeTab === 'financial' ? 'default' : 'outline'}
                     onClick={() => setActiveTab('financial')}
-                    className="rounded-b-none"
                 >
                     Financeiro
                 </Button>
                 <Button
-                    variant={activeTab === 'operational' ? 'default' : 'ghost'}
+                    variant={activeTab === 'operational' ? 'default' : 'outline'}
                     onClick={() => setActiveTab('operational')}
-                    className="rounded-b-none"
                 >
                     Operacional
                 </Button>

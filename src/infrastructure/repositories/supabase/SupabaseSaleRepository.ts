@@ -274,12 +274,12 @@ export class SupabaseSaleRepository implements SaleRepository {
             p_payments: payments.map(p => ({
                 method: p.method,
                 amount: p.amount,
-                bankAccountId: p.bankAccountId || null  // Convert empty string to null for UUID compatibility
+                bankAccountId: p.bankAccountId || null
             })),
             p_stock_items: stockItems || [],
             p_credit_debit: creditDebit || null,
             p_change_amount: change || 0,
-            p_is_physical_mode: false // Default to false as per new signature
+            p_is_physical_mode: false
         });
 
         if (error) {

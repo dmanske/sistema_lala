@@ -134,13 +134,16 @@ export function Sidebar({ className }: SidebarProps) {
                             </h3>
                             <div className="space-y-1">
                                 {group.items.map((item) => {
-                                    // Verificação mais precisa: rota exata ou sub-rotas, mas não prefixos parciais
-                                    const isActive = pathname === item.href || 
-                                        (pathname.startsWith(item.href + '/') && item.href !== '/cash');
+                                    // Verificação precisa: rota exata ou sub-rotas, mas não prefixos parciais
+                                    // Casos especiais: /dashboard e /cash devem ser exatos
+                                    const isExactMatch = pathname === item.href;
+                                    const isSubRoute = pathname.startsWith(item.href + '/');
                                     
-                                    // Caso especial: /cash só deve estar ativo se for exatamente /cash
-                                    const isExactCash = item.href === '/cash' && pathname === '/cash';
-                                    const finalIsActive = item.href === '/cash' ? isExactCash : isActive;
+                                    // /dashboard só deve estar ativo se for exatamente /dashboard (não /dashboard/financial)
+                                    // /cash só deve estar ativo se for exatamente /cash (não /cash-register)
+                                    const requiresExactMatch = item.href === '/dashboard' || item.href === '/cash';
+                                    
+                                    const finalIsActive = requiresExactMatch ? isExactMatch : (isExactMatch || isSubRoute);
                                     
                                     return (
                                         <Button
