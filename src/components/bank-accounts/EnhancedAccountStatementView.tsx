@@ -5,9 +5,9 @@ import { AccountStatement, MovementWithBalance } from '@/core/domain/BankAccount
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { StatementFilters, FilterValues } from './StatementFilters'
+import { AccountStatementTabs } from './AccountStatementTabs'
 import { ArrowDownCircle, ArrowUpCircle, Download, RefreshCw, TrendingUp, TrendingDown, DollarSign, Hash, ChevronDown, ChevronRight } from 'lucide-react'
-import { format, isSameDay } from 'date-fns'
+import { format, isSameDay, startOfMonth, endOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -25,12 +25,26 @@ interface SaleAppointmentMap {
 }
 
 export function EnhancedAccountStatementView({ statement, onRefresh, loading }: EnhancedAccountStatementViewProps) {
-    const [filters, setFilters] = useState<FilterValues>({
-        type: 'all',
-        method: 'all',
-        source: 'all',
-        searchText: ''
+    const [searchText, setSearchText] = useState('')
+    const [filterType, setFilterType] = useState<'ALL' | 'IN' | 'OUT'>('ALL')
+    const [filterMethod, setFilterMethod] = useState('ALL')
+    
+    // Inicializar período com base nos dados do statement ou mês atual
+    const [currentPeriod, setCurrentPeriod] = useState(() => {
+        if (statement.movements.length > 0) {
+            // Pegar a data mais recente dos movimentos
+            const latestDate = new Date(Math.max(...statement.movements.map(m => new Date(m.occurredAt).getTime())))
+            return {
+                start: startOfMonth(latestDate),
+                end: endOfMonth(latestDate)
+            }
+        }
+        return {
+            start: startOfMonth(new Date()),
+            end: endOfMonth(new Date())
+        }
     })
+    
     const [saleAppointments, setSaleAppointments] = useState<SaleAppointmentMap>({})
 
     // Fetch appointment IDs for all sales
@@ -106,33 +120,26 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
         let result = statement.movements
 
         // Period filter
-        if (filters.startDate) {
-            result = result.filter(m => m.occurredAt >= filters.startDate!)
-        }
-        if (filters.endDate) {
-            result = result.filter(m => m.occurredAt <= filters.endDate!)
+        if (currentPeriod.start && currentPeriod.end) {
+            result = result.filter(m => {
+                const movementDate = new Date(m.occurredAt)
+                return movementDate >= currentPeriod.start && movementDate <= currentPeriod.end
+            })
         }
 
         // Type filter
-        if (filters.type !== 'all') {
-            result = result.filter(m =>
-                filters.type === 'in' ? m.type === 'IN' : m.type === 'OUT'
-            )
+        if (filterType !== 'ALL') {
+            result = result.filter(m => m.type === filterType)
         }
 
         // Method filter
-        if (filters.method !== 'all') {
-            result = result.filter(m => m.method === filters.method)
-        }
-
-        // Source filter
-        if (filters.source !== 'all') {
-            result = result.filter(m => m.sourceType === filters.source)
+        if (filterMethod !== 'ALL') {
+            result = result.filter(m => m.method === filterMethod)
         }
 
         // Search filter
-        if (filters.searchText) {
-            const search = filters.searchText.toLowerCase()
+        if (searchText) {
+            const search = searchText.toLowerCase()
             result = result.filter(m =>
                 m.description?.toLowerCase().includes(search) ||
                 m.customerName?.toLowerCase().includes(search) ||
@@ -141,7 +148,7 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
         }
 
         return result
-    }, [statement.movements, filters])
+    }, [statement.movements, currentPeriod, filterType, filterMethod, searchText])
 
     // State for expanded days
     const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({})
@@ -341,9 +348,18 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
             </div>
 
             {/* Filters */}
-            <StatementFilters
-                onFilterChange={setFilters}
+            <AccountStatementTabs
+                currentStart={currentPeriod.start}
+                currentEnd={currentPeriod.end}
+                searchText={searchText}
+                onSearchChange={setSearchText}
+                filterType={filterType}
+                onFilterTypeChange={setFilterType}
+                filterMethod={filterMethod}
+                onFilterMethodChange={setFilterMethod}
+                onPeriodChange={(start, end) => setCurrentPeriod({ start, end })}
                 resultCount={filteredMovements.length}
+                totalCount={statement.movements.length}
             />
 
             {/* Movements by Date */}
