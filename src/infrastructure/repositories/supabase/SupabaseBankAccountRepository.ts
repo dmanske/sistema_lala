@@ -200,8 +200,45 @@ export class SupabaseBankAccountRepository implements BankAccountRepository {
                 case 'REFUND': return '↩️'
                 case 'MANUAL': return '✏️'
                 case 'CREDIT': return '💳'
+                case 'TRANSFER': return '🔄'
                 default: return '💰'
             }
+        }
+
+        // Buscar informações de transferências para movimentos do tipo TRANSFER
+        const transferMovements = (data || []).filter(row => row.source_type === 'TRANSFER')
+        const transferInfo = new Map<string, { fromAccountName: string; toAccountName: string }>()
+
+        if (transferMovements.length > 0) {
+            // Para cada movimento de transferência, buscar a conta oposta
+            await Promise.all(transferMovements.map(async (movement) => {
+                try {
+                    // Se é uma saída (OUT), buscar a conta de destino
+                    // Se é uma entrada (IN), buscar a conta de origem
+                    const otherAccountId = movement.type === 'OUT' 
+                        ? await this.findTransferDestination(movement.id, movement.occurred_at)
+                        : await this.findTransferOrigin(movement.id, movement.occurred_at)
+
+                    if (otherAccountId) {
+                        const otherAccount = await this.getById(otherAccountId)
+                        if (otherAccount) {
+                            if (movement.type === 'OUT') {
+                                transferInfo.set(movement.id, {
+                                    fromAccountName: account.name,
+                                    toAccountName: otherAccount.name
+                                })
+                            } else {
+                                transferInfo.set(movement.id, {
+                                    fromAccountName: otherAccount.name,
+                                    toAccountName: account.name
+                                })
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error fetching transfer info:', err)
+                }
+            }))
         }
 
         // Calculate running balance
@@ -214,6 +251,8 @@ export class SupabaseBankAccountRepository implements BankAccountRepository {
                 runningBalance -= amount
             }
 
+            const transfer = transferInfo.get(row.id)
+
             return {
                 id: row.id,
                 type: row.type,
@@ -224,7 +263,9 @@ export class SupabaseBankAccountRepository implements BankAccountRepository {
                 description: row.description,
                 occurredAt: new Date(row.occurred_at),
                 balanceAfter: runningBalance,
-                icon: getSourceIcon(row.source_type)
+                icon: getSourceIcon(row.source_type),
+                fromAccountName: transfer?.fromAccountName,
+                toAccountName: transfer?.toAccountName
             }
         })
 
@@ -569,6 +610,46 @@ export class SupabaseBankAccountRepository implements BankAccountRepository {
         })
 
         return balance
+    }
+
+    private async findTransferDestination(movementId: string, occurredAt: string): Promise<string | null> {
+        // Buscar movimento de entrada (IN) que ocorreu próximo ao mesmo momento (até 5 segundos de diferença)
+        const occurredDate = new Date(occurredAt)
+        const beforeTime = new Date(occurredDate.getTime() - 5000).toISOString()
+        const afterTime = new Date(occurredDate.getTime() + 5000).toISOString()
+        
+        const { data } = await this.supabase
+            .from('cash_movements')
+            .select('bank_account_id, occurred_at')
+            .eq('source_type', 'TRANSFER')
+            .eq('type', 'IN')
+            .gte('occurred_at', beforeTime)
+            .lte('occurred_at', afterTime)
+            .neq('id', movementId)
+            .limit(1)
+            .single()
+
+        return data?.bank_account_id || null
+    }
+
+    private async findTransferOrigin(movementId: string, occurredAt: string): Promise<string | null> {
+        // Buscar movimento de saída (OUT) que ocorreu próximo ao mesmo momento (até 5 segundos de diferença)
+        const occurredDate = new Date(occurredAt)
+        const beforeTime = new Date(occurredDate.getTime() - 5000).toISOString()
+        const afterTime = new Date(occurredDate.getTime() + 5000).toISOString()
+        
+        const { data } = await this.supabase
+            .from('cash_movements')
+            .select('bank_account_id, occurred_at')
+            .eq('source_type', 'TRANSFER')
+            .eq('type', 'OUT')
+            .gte('occurred_at', beforeTime)
+            .lte('occurred_at', afterTime)
+            .neq('id', movementId)
+            .limit(1)
+            .single()
+
+        return data?.bank_account_id || null
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

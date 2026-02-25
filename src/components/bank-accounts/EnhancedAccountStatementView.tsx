@@ -419,6 +419,15 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
                                             const colorClass = movement.type === 'IN' ? "text-emerald-600" : "text-rose-600"
                                             const link = getSourceLink(movement)
                                             
+                                            // Formatar descrição para transferências
+                                            let displayDescription = movement.description
+                                            if (movement.sourceType === 'TRANSFER' && movement.fromAccountName && movement.toAccountName) {
+                                                displayDescription = `${movement.fromAccountName} → ${movement.toAccountName}`
+                                                if (movement.description) {
+                                                    displayDescription += ` (${movement.description})`
+                                                }
+                                            }
+                                            
                                             return (
                                                 <div 
                                                     key={movement.id}
@@ -436,7 +445,7 @@ export function EnhancedAccountStatementView({ statement, onRefresh, loading }: 
                                                                 <Icon className="h-3.5 w-3.5" />
                                                             </div>
                                                             <div className="flex flex-col min-w-0">
-                                                                <span className="text-sm font-medium truncate">{movement.description}</span>
+                                                                <span className="text-sm font-medium truncate">{displayDescription}</span>
                                                                 <div className="flex items-center gap-2 mt-0.5">
                                                                     <Badge variant="outline" className="text-xs h-5">
                                                                         {getMethodLabel(movement.method)}

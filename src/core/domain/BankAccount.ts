@@ -51,6 +51,9 @@ export interface MovementWithBalance extends AccountMovement {
     customerName?: string
     supplierName?: string
     icon: string
+    // Transfer data
+    fromAccountName?: string
+    toAccountName?: string
 }
 
 export interface AccountStatement {
