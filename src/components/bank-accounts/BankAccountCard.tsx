@@ -45,6 +45,7 @@ export function BankAccountCard({ account, onEdit, onToggleActive }: BankAccount
     return (
         <div
             className="group relative overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-2 hover:border-primary/20 cursor-pointer"
+            onClick={() => router.push(`/contas/${account.id}`)}
         >
             {/* Gradient Background Decoration */}
             <div
@@ -58,10 +59,7 @@ export function BankAccountCard({ account, onEdit, onToggleActive }: BankAccount
 
             <div className="p-6 relative z-10">
                 {/* Header */}
-                <div
-                    className="flex items-start justify-between mb-4"
-                    onClick={() => router.push(`/contas/${account.id}`)}
-                >
+                <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                         <div
                             className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50 text-2xl shadow-inner border border-white/10 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg"
@@ -96,7 +94,10 @@ export function BankAccountCard({ account, onEdit, onToggleActive }: BankAccount
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-primary/10 hover:text-primary focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary"
-                            onClick={() => onEdit(account)}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit(account);
+                            }}
                             title="Editar"
                             aria-label="Editar conta"
                         >

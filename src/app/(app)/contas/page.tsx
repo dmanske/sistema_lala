@@ -179,7 +179,7 @@ export default function ContasPage() {
                                 <CardTitle className="text-lg">Distribuição de Saldo</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="h-[300px] w-full">
+                                <div className="h-[300px] w-full flex items-center justify-center">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart>
                                             <Pie
@@ -190,6 +190,8 @@ export default function ContasPage() {
                                                 outerRadius={80}
                                                 paddingAngle={5}
                                                 dataKey="value"
+                                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                                labelLine={false}
                                             >
                                                 {chartData.map((entry, index) => (
                                                     <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />
@@ -205,9 +207,22 @@ export default function ContasPage() {
                                                 }}
                                                 itemStyle={{ color: 'hsl(var(--foreground))' }}
                                             />
-                                            <Legend verticalAlign="bottom" height={36} />
                                         </PieChart>
                                     </ResponsiveContainer>
+                                </div>
+                                <div className="mt-4 space-y-2">
+                                    {chartData.map((entry, index) => (
+                                        <div key={index} className="flex items-center justify-between text-sm">
+                                            <div className="flex items-center gap-2">
+                                                <div 
+                                                    className="w-3 h-3 rounded-full" 
+                                                    style={{ backgroundColor: entry.color }}
+                                                />
+                                                <span className="text-muted-foreground">{entry.name}</span>
+                                            </div>
+                                            <span className="font-medium">{formatCurrency(entry.value)}</span>
+                                        </div>
+                                    ))}
                                 </div>
                             </CardContent>
                         </Card>
