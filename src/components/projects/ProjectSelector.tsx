@@ -41,12 +41,15 @@ export function ProjectSelector({
   const activeProjects = projects?.filter((p) => p.status === 'ACTIVE') || [];
 
   return (
-    <Select value={value} onValueChange={onValueChange}>
+    <Select 
+      value={value || undefined} 
+      onValueChange={(val) => onValueChange(val === 'none' ? '' : val)}
+    >
       <SelectTrigger className={className}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="">Nenhum</SelectItem>
+        <SelectItem value="none">Nenhum</SelectItem>
         {activeProjects.map((project) => (
           <SelectItem key={project.id} value={project.id}>
             {project.name} {project.code && `(${project.code})`}

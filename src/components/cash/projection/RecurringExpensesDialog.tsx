@@ -37,6 +37,8 @@ import {
   updateRecurringExpenseAction,
   deleteRecurringExpenseAction,
 } from '@/app/(app)/cash/projection/actions';
+import { CostCenterSelector } from '@/components/cost-centers/CostCenterSelector';
+import { ProjectSelector } from '@/components/projects/ProjectSelector';
 
 interface RecurringExpensesDialogProps {
   open: boolean;
@@ -65,6 +67,8 @@ export function RecurringExpensesDialog({
     startDate: format(new Date(), 'yyyy-MM-dd'),
     endDate: '',
     category: '',
+    costCenterId: '',
+    projectId: '',
   });
   const queryClient = useQueryClient();
 
@@ -80,6 +84,8 @@ export function RecurringExpensesDialog({
         endDate: formData.endDate ? new Date(formData.endDate) : undefined,
         category: formData.category,
         isActive: true,
+        costCenterId: formData.costCenterId || undefined,
+        projectId: formData.projectId || undefined,
       };
 
       if (editingId) {
@@ -108,6 +114,8 @@ export function RecurringExpensesDialog({
       startDate: format(expense.startDate, 'yyyy-MM-dd'),
       endDate: expense.endDate ? format(expense.endDate, 'yyyy-MM-dd') : '',
       category: expense.category,
+      costCenterId: (expense as any).costCenterId || '',
+      projectId: (expense as any).projectId || '',
     });
     setShowForm(true);
   };
@@ -134,6 +142,8 @@ export function RecurringExpensesDialog({
       startDate: format(new Date(), 'yyyy-MM-dd'),
       endDate: '',
       category: '',
+      costCenterId: '',
+      projectId: '',
     });
     setEditingId(null);
     setShowForm(false);
@@ -326,6 +336,30 @@ export function RecurringExpensesDialog({
                     />
                     <p className="text-xs text-muted-foreground">
                       Deixe em branco para despesa sem data final
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="costCenter">Centro de Custos</Label>
+                    <CostCenterSelector
+                      value={formData.costCenterId}
+                      onValueChange={(value) => setFormData({ ...formData, costCenterId: value })}
+                      placeholder="Selecione (opcional)"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Para despesas recorrentes (ex: Operacional, Marketing)
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="project">Projeto</Label>
+                    <ProjectSelector
+                      value={formData.projectId}
+                      onValueChange={(value) => setFormData({ ...formData, projectId: value })}
+                      placeholder="Selecione (opcional)"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Para investimentos pontuais (ex: Reforma, Expansão)
                     </p>
                   </div>
                 </div>

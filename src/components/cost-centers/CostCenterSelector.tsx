@@ -41,12 +41,15 @@ export function CostCenterSelector({
   const activeCostCenters = costCenters?.filter((cc) => cc.isActive) || [];
 
   return (
-    <Select value={value} onValueChange={onValueChange}>
+    <Select 
+      value={value || undefined} 
+      onValueChange={(val) => onValueChange(val === 'none' ? '' : val)}
+    >
       <SelectTrigger className={className}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="">Nenhum</SelectItem>
+        <SelectItem value="none">Nenhum</SelectItem>
         {activeCostCenters.map((cc) => (
           <SelectItem key={cc.id} value={cc.id}>
             {cc.name} {cc.code && `(${cc.code})`}

@@ -92,6 +92,7 @@ export function Sidebar({ className }: SidebarProps) {
                 { name: "Contas a Pagar", icon: Receipt, href: "/accounts-payable", active: true },
                 { name: "Contas a Receber", icon: FileText, href: "/receivables", active: true },
                 { name: "Compras", icon: ShoppingBag, href: "/purchases", active: true },
+                { name: "Relatórios Financeiros", icon: FileText, href: "/reports/financial", active: true },
             ],
         },
         {
