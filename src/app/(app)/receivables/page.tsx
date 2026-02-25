@@ -12,14 +12,24 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { InstallmentStatusBadge } from '@/components/receivables/InstallmentStatusBadge';
 import { ReceivePaymentDialog } from '@/components/receivables/ReceivePaymentDialog';
-import { InstallmentSaleDialog } from '@/components/receivables/InstallmentSaleDialog';
-import { SelectSaleDialog } from '@/components/receivables/SelectSaleDialog';
+import { CreateInstallmentSaleDialog } from '@/components/receivables/CreateInstallmentSaleDialog';
+import { EditInstallmentDialog } from '@/components/receivables/EditInstallmentDialog';
 import { useSaleInstallments } from '@/hooks/useSaleInstallments';
 import { formatCurrency } from '@/lib/utils';
 import { formatBrazilDate } from '@/lib/utils/dateUtils';
-import { DollarSign, AlertCircle, Clock, TrendingUp } from 'lucide-react';
+import { DollarSign, AlertCircle, Clock, TrendingUp, Pencil, Trash2 } from 'lucide-react';
 import type { SaleInstallmentWithDetails } from '@/core/domain/entities/SaleInstallment';
 import { createClient } from '@/lib/supabase/client';
 
@@ -34,12 +44,11 @@ export default function ReceivablesPage() {
     countOverdue: 0,
   });
   const [bankAccounts, setBankAccounts] = useState<Array<{ id: string; name: string }>>([]);
-  const [sales, setSales] = useState<Array<{ id: string; total: number; customer_name: string; created_at: string }>>([]);
   const [selectedInstallment, setSelectedInstallment] = useState<SaleInstallmentWithDetails | null>(null);
   const [receiveDialogOpen, setReceiveDialogOpen] = useState(false);
-  const [selectSaleDialogOpen, setSelectSaleDialogOpen] = useState(false);
-  const [installmentDialogOpen, setInstallmentDialogOpen] = useState(false);
-  const [selectedSale, setSelectedSale] = useState<{ id: string; total: number } | null>(null);
+  const [createSaleDialogOpen, setCreateSaleDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('pending');
   const [loading, setLoading] = useState(true);
 
@@ -75,57 +84,72 @@ export default function ReceivablesPage() {
     }
   };
 
-  const loadSales = async () => {
-    const supabase = createClient();
-    
-    // Buscar vendas que ainda não têm parcelas criadas
-    const { data: allSales } = await supabase
-      .from('sales')
-      .select(`
-        id,
-        total,
-        created_at,
-        customer_id,
-        clients!sales_customer_id_fkey (
-          name
-        )
-      `)
-      .order('created_at', { ascending: false })
-      .limit(50);
-
-    if (allSales) {
-      // Buscar quais vendas já têm parcelas
-      const saleIds = allSales.map(s => s.id);
-      const { data: existingInstallments } = await supabase
-        .from('sale_installments')
-        .select('sale_id')
-        .in('sale_id', saleIds);
-
-      const salesWithInstallments = new Set(existingInstallments?.map(i => i.sale_id) || []);
-
-      // Filtrar apenas vendas sem parcelas
-      const salesWithoutInstallments = allSales
-        .filter(sale => !salesWithInstallments.has(sale.id))
-        .map(sale => ({
-          id: sale.id,
-          total: parseFloat(sale.total),
-          customer_name: (sale.clients as any)?.name || 'Cliente não identificado',
-          created_at: sale.created_at,
-        }));
-
-      setSales(salesWithoutInstallments);
-    }
-  };
-
   useEffect(() => {
     loadData();
     loadBankAccounts();
-    loadSales();
   }, []);
 
   const handleReceivePayment = (installment: SaleInstallmentWithDetails) => {
     setSelectedInstallment(installment);
     setReceiveDialogOpen(true);
+  };
+
+  const handleEditClick = (installment: SaleInstallmentWithDetails) => {
+    setSelectedInstallment(installment);
+    setEditDialogOpen(true);
+  };
+
+  const handleDeleteClick = (installment: SaleInstallmentWithDetails) => {
+    setSelectedInstallment(installment);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedInstallment) return;
+    
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('sale_installments')
+        .delete()
+        .eq('id', selectedInstallment.id);
+
+      if (error) throw error;
+
+      await loadData();
+      setDeleteDialogOpen(false);
+      setSelectedInstallment(null);
+    } catch (error) {
+      console.error('Failed to delete installment:', error);
+      alert('Erro ao excluir parcela. Tente novamente.');
+    }
+  };
+
+  const handleUpdateInstallment = async (data: {
+    amount: number;
+    dueDate: Date;
+  }) => {
+    if (!selectedInstallment) return;
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('sale_installments')
+        .update({
+          amount: data.amount,
+          due_date: data.dueDate.toISOString().split('T')[0],
+        })
+        .eq('id', selectedInstallment.id);
+
+      if (error) throw error;
+
+      await loadData();
+      setEditDialogOpen(false);
+      setSelectedInstallment(null);
+    } catch (error) {
+      console.error('Failed to update installment:', error);
+      throw error;
+    }
   };
 
   const handleSubmitReceipt = async (data: {
@@ -149,20 +173,62 @@ export default function ReceivablesPage() {
     await loadData();
   };
 
-  const handleCreateInstallmentSale = async (installments: Array<{
-    installmentNumber: number;
-    amount: number;
-    dueDate: Date;
-  }>) => {
-    if (!selectedSale) return;
+  const handleCreateNewSale = async (data: {
+    clientId: string;
+    totalAmount: number;
+    description: string;
+    installments: Array<{
+      installmentNumber: number;
+      amount: number;
+      dueDate: Date;
+    }>;
+  }) => {
+    const supabase = createClient();
 
+    // Buscar o usuário logado e seu tenant_id
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    // Buscar o tenant_id do profile do usuário
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('tenant_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      throw new Error('Failed to get user profile');
+    }
+
+    // Criar a venda primeiro
+    const { data: sale, error: saleError } = await supabase
+      .from('sales')
+      .insert({
+        tenant_id: profile.tenant_id,
+        customer_id: data.clientId,
+        subtotal: data.totalAmount,
+        discount: 0,
+        total: data.totalAmount,
+        status: 'paid',
+        notes: data.description,
+        created_by: user.id,
+      })
+      .select('id')
+      .single();
+
+    if (saleError || !sale) {
+      throw new Error('Failed to create sale: ' + (saleError?.message || 'Unknown error'));
+    }
+
+    // Criar as parcelas
     await createInstallmentSale({
-      saleId: selectedSale.id,
-      installments,
+      saleId: sale.id,
+      installments: data.installments,
     });
 
     await loadData();
-    await loadSales(); // Recarregar lista de vendas disponíveis
   };
 
   const handleTabChange = async (value: string) => {
@@ -194,7 +260,7 @@ export default function ReceivablesPage() {
           <h1 className="text-3xl font-bold">Contas a Receber</h1>
           <p className="text-muted-foreground">Controle de parcelas e recebimentos</p>
         </div>
-        <Button onClick={() => setSelectSaleDialogOpen(true)}>
+        <Button onClick={() => setCreateSaleDialogOpen(true)}>
           Nova Venda Parcelada
         </Button>
       </div>
@@ -274,9 +340,9 @@ export default function ReceivablesPage() {
                       <TableHead>Cliente</TableHead>
                       <TableHead>Parcela</TableHead>
                       <TableHead>Vencimento</TableHead>
-                      <TableHead>Valor</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Ações</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -284,8 +350,17 @@ export default function ReceivablesPage() {
                       <TableRow key={installment.id}>
                         <TableCell>{installment.clientName}</TableCell>
                         <TableCell>Parcela {installment.installmentNumber}</TableCell>
-                        <TableCell>{formatBrazilDate(installment.dueDate, 'dd/MM/yyyy')}</TableCell>
-                        <TableCell>{formatCurrency(installment.amount)}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span>{formatBrazilDate(installment.dueDate, 'dd/MM/yyyy')}</span>
+                            {installment.daysOverdue && installment.daysOverdue > 0 && (
+                              <span className="text-xs text-red-600">
+                                {installment.daysOverdue} dia(s) atrasado
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">{formatCurrency(installment.amount)}</TableCell>
                         <TableCell>
                           <InstallmentStatusBadge
                             status={installment.status}
@@ -293,13 +368,35 @@ export default function ReceivablesPage() {
                             daysOverdue={installment.daysOverdue}
                           />
                         </TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            onClick={() => handleReceivePayment(installment)}
-                          >
-                            Receber
-                          </Button>
+                        <TableCell className="text-right">
+                          <div className="flex gap-2 justify-end">
+                            {installment.status === 'PENDING' && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleEditClick(installment)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleReceivePayment(installment)}
+                                >
+                                  Receber
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => handleDeleteClick(installment)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -329,9 +426,9 @@ export default function ReceivablesPage() {
                       <TableHead>Cliente</TableHead>
                       <TableHead>Parcela</TableHead>
                       <TableHead>Vencimento</TableHead>
-                      <TableHead>Valor</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Ações</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -339,8 +436,17 @@ export default function ReceivablesPage() {
                       <TableRow key={installment.id}>
                         <TableCell>{installment.clientName}</TableCell>
                         <TableCell>Parcela {installment.installmentNumber}</TableCell>
-                        <TableCell>{formatBrazilDate(installment.dueDate, 'dd/MM/yyyy')}</TableCell>
-                        <TableCell>{formatCurrency(installment.amount)}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span>{formatBrazilDate(installment.dueDate, 'dd/MM/yyyy')}</span>
+                            {installment.daysOverdue && installment.daysOverdue > 0 && (
+                              <span className="text-xs text-red-600">
+                                {installment.daysOverdue} dia(s) atrasado
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">{formatCurrency(installment.amount)}</TableCell>
                         <TableCell>
                           <InstallmentStatusBadge
                             status={installment.status}
@@ -348,13 +454,35 @@ export default function ReceivablesPage() {
                             daysOverdue={installment.daysOverdue}
                           />
                         </TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            onClick={() => handleReceivePayment(installment)}
-                          >
-                            Receber
-                          </Button>
+                        <TableCell className="text-right">
+                          <div className="flex gap-2 justify-end">
+                            {installment.status === 'PENDING' && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleEditClick(installment)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleReceivePayment(installment)}
+                                >
+                                  Receber
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => handleDeleteClick(installment)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -366,14 +494,20 @@ export default function ReceivablesPage() {
         </TabsContent>
       </Tabs>
 
-      <SelectSaleDialog
-        open={selectSaleDialogOpen}
-        onOpenChange={setSelectSaleDialogOpen}
-        sales={sales}
-        onSelect={(sale) => {
-          setSelectedSale(sale);
-          setInstallmentDialogOpen(true);
+      <CreateInstallmentSaleDialog
+        open={createSaleDialogOpen}
+        onOpenChange={setCreateSaleDialogOpen}
+        onSubmit={handleCreateNewSale}
+      />
+
+      <EditInstallmentDialog
+        open={editDialogOpen}
+        onOpenChange={(open) => {
+          setEditDialogOpen(open);
+          if (!open) setSelectedInstallment(null);
         }}
+        installment={selectedInstallment}
+        onSubmit={handleUpdateInstallment}
       />
 
       <ReceivePaymentDialog
@@ -384,15 +518,26 @@ export default function ReceivablesPage() {
         onSubmit={handleSubmitReceipt}
       />
 
-      {selectedSale && (
-        <InstallmentSaleDialog
-          open={installmentDialogOpen}
-          onOpenChange={setInstallmentDialogOpen}
-          saleId={selectedSale.id}
-          saleTotal={selectedSale.total}
-          onSubmit={handleCreateInstallmentSale}
-        />
-      )}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a parcela {selectedInstallment?.installmentNumber} de {selectedInstallment?.clientName}?
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
