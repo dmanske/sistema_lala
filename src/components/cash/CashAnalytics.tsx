@@ -19,7 +19,7 @@ export function CashAnalytics({ movements, period }: CashAnalyticsProps) {
   const analytics = useMemo(() => {
     // Distribuição por Método
     const byMethod = movements.reduce((acc, m) => {
-      const method = m.paymentMethod;
+      const method = m.method || 'OUTROS';
       if (!acc[method]) {
         acc[method] = { inflow: 0, outflow: 0, net: 0 };
       }

@@ -1,17 +1,10 @@
 import { getCashMovementRepository } from '@/infrastructure/repositories/factory'
 import { GetCashSummary } from '@/core/usecases/cash/GetCashSummary'
 import { ListCashMovements } from '@/core/usecases/cash/ListCashMovements'
-import { DateNavigator } from '@/components/cash/DateNavigator'
 import { CashPageClient } from '@/components/cash/CashPageClient'
 import { startOfMonth, endOfMonth } from 'date-fns'
 import { parseLocalDate } from '@/lib/utils/dateFormatters'
-
-interface CashPageProps {
-    searchParams: Promise<{ start?: string; end?: string }>
-}
-
 import { createClient } from '@/lib/supabase/server'
-// ...
 
 export default async function CashPage({ searchParams }: CashPageProps) {
     const params = await searchParams
@@ -28,7 +21,6 @@ export default async function CashPage({ searchParams }: CashPageProps) {
 
     return (
         <div className="container mx-auto p-4 space-y-4">
-            <DateNavigator startDate={start} endDate={end} />
             <CashPageClient
                 movements={list}
                 summary={summary}

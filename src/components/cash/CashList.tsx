@@ -2,15 +2,8 @@
 
 import { CashMovement } from '@/core/domain/CashMovement'
 import { GroupedMovement, groupMovements } from '@/lib/cash/groupMovements'
+import { groupMovementsByDay, DayGroup } from '@/lib/cash/groupByDate'
 import { CashMovementDetailsDialog } from './CashMovementDetailsDialog'
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow
-} from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/utils"
 import { format } from "date-fns"
@@ -34,7 +27,8 @@ import {
     Package,
     ShoppingCart,
     Wallet,
-    HandCoins
+    HandCoins,
+    Calendar
 } from 'lucide-react'
 
 const SOURCE_ICONS: Record<string, React.ReactNode> = {
@@ -71,12 +65,18 @@ export function CashList({ movements }: CashListProps) {
     const [fiadoAmounts, setFiadoAmounts] = useState<Record<string, number>>({})
     const [salesWithCredit, setSalesWithCredit] = useState<Set<string>>(new Set())
     const [creditAmounts, setCreditAmounts] = useState<Record<string, number>>({})
-
-    // State to track expanded groups
     const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
+    const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({})
 
-    // Group movements
-    const groupedMovements = useMemo(() => groupMovements(movements), [movements])
+    // Agrupar por dia
+    const dayGroups = useMemo(() => groupMovementsByDay(movements), [movements])
+
+    // Auto-expandir o primeiro dia
+    useEffect(() => {
+        if (dayGroups.length > 0 && Object.keys(expandedDays).length === 0) {
+            setExpandedDays({ [dayGroups[0].dateKey]: true })
+        }
+    }, [dayGroups])
 
     const handleViewDetails = (movement: CashMovement) => {
         setSelectedMovement(movement)
@@ -87,6 +87,13 @@ export function CashList({ movements }: CashListProps) {
         setExpandedGroups(prev => ({
             ...prev,
             [groupId]: !prev[groupId]
+        }))
+    }
+
+    const toggleDay = (dateKey: string) => {
+        setExpandedDays(prev => ({
+            ...prev,
+            [dateKey]: !prev[dateKey]
         }))
     }
 
@@ -229,220 +236,181 @@ export function CashList({ movements }: CashListProps) {
         }
     }, [movements])
 
-    return (
-        <div className="rounded-md border bg-card">
-            <Table>
-                <TableHeader>
-                    <TableRow className="bg-muted/50">
-                        <TableHead className="w-[140px]">Data</TableHead>
-                        <TableHead>Descrição</TableHead>
-                        <TableHead className="w-[120px]">Método</TableHead>
-                        <TableHead className="w-[140px]">Tipo</TableHead>
-                        <TableHead className="w-[150px]">Conta</TableHead>
-                        <TableHead className="text-right w-[140px]">Valor</TableHead>
-                        <TableHead className="w-[50px]"></TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {groupedMovements.length === 0 ? (
-                        <TableRow>
-                            <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                                Nenhuma movimentação no período.
-                            </TableCell>
-                        </TableRow>
-                    ) : (
-                        groupedMovements.map((item) => {
-                            if (item._type === 'group') {
-                                const isExpanded = expandedGroups[item.sourceId] || false
-                                const isSale = item.sourceType === 'SALE'
-                                const displayName = isSale
-                                    ? (customerNames[item.sourceId] || 'Cliente')
-                                    : (supplierNames[item.sourceId] || 'Fornecedor')
-                                const Icon = isSale ? ShoppingCart : Package
-                                const hasFiado = isSale && salesWithFiado.has(item.sourceId)
-                                const fiadoAmount = hasFiado ? fiadoAmounts[item.sourceId] : 0
-                                const hasCredit = isSale && salesWithCredit.has(item.sourceId)
-                                const creditAmount = hasCredit ? creditAmounts[item.sourceId] : 0
+    // Renderizar movimento individual
+    const renderMovement = (movement: CashMovement, isNested = false) => {
+        const Icon = movement.type === 'IN' ? ArrowUpCircle : ArrowDownCircle
+        const colorClass = movement.type === 'IN' ? "text-emerald-600" : "text-rose-600"
 
-                                return (
-                                    <Fragment key={`group-${item.sourceId}`}>
-                                        <TableRow
-                                            className={cn(
-                                                "cursor-pointer hover:bg-muted/50 transition-colors",
-                                                isExpanded && "bg-muted/30 border-b-0"
-                                            )}
-                                            onClick={() => toggleGroup(item.sourceId)}
-                                        >
-                                            <TableCell className="font-medium">
-                                                <div className="flex flex-col">
-                                                    <span>{format(new Date(item.date), "dd/MM/yyyy", { locale: ptBR })}</span>
-                                                    <span className="text-xs text-muted-foreground">{format(new Date(item.date), "HH:mm", { locale: ptBR })}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    <div className={cn("p-1.5 rounded-full shrink-0", isSale ? "bg-emerald-100 text-emerald-600" : "bg-blue-100 text-blue-600")}>
-                                                        <Icon className="h-3.5 w-3.5" />
-                                                    </div>
-                                                    <span className="font-medium">{isSale ? 'Venda' : 'Compra'} - {displayName}</span>
-                                                    <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal">
-                                                        {item.movements.length} itens
-                                                    </Badge>
-                                                    {hasFiado && (
-                                                        <Badge variant="destructive" className="text-[10px] h-5 px-1.5 font-medium gap-1">
-                                                            <HandCoins className="h-2.5 w-2.5" />
-                                                            Fiado: {formatCurrency(fiadoAmount)}
-                                                        </Badge>
-                                                    )}
-                                                    {hasCredit && (
-                                                        <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-medium gap-1 bg-purple-100 text-purple-700 hover:bg-purple-100">
-                                                            <Wallet className="h-2.5 w-2.5" />
-                                                            Crédito: {formatCurrency(creditAmount)}
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <span className="text-muted-foreground text-sm italic">Múltiplos</span>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2 text-muted-foreground">
-                                                    {SOURCE_ICONS[item.sourceType] || <Settings className="h-4 w-4" />}
-                                                    <span className="text-sm">{SOURCE_LABELS[item.sourceType] || item.sourceType}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <span className="text-muted-foreground text-sm">-</span>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className={cn("font-bold", isSale ? "text-emerald-600" : "text-rose-600")}>
-                                                    {formatCurrency(item.total)}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                                            </TableCell>
-                                        </TableRow>
+        return (
+            <div 
+                key={movement.id}
+                className={cn(
+                    "flex items-center justify-between py-3 px-4 hover:bg-muted/30 transition-colors border-b last:border-b-0",
+                    isNested && "bg-muted/10 pl-12"
+                )}
+            >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="text-xs text-muted-foreground w-12 shrink-0">
+                        {formatBrazilDate(movement.occurredAt, "HH:mm")}
+                    </div>
+                    
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                        {SOURCE_ICONS[movement.sourceType] || <Settings className="h-4 w-4 text-muted-foreground" />}
+                        <span className="text-sm font-medium truncate">{movement.description || "-"}</span>
+                    </div>
 
-                                        {isExpanded && item.movements.map((movement, idx) => (
-                                            <TableRow key={movement.id} className="bg-muted/10 border-t-0">
-                                                <TableCell className="pl-8 text-xs text-muted-foreground">
-                                                    {formatBrazilDate(movement.occurredAt, "HH:mm")}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <span className="text-sm text-muted-foreground ml-8">{movement.description || "Pagamento parcial"}</span>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {movement.method?.toLowerCase() === 'fiado' ? (
-                                                        <Badge variant="outline" className="font-normal text-xs">
-                                                            <span className="flex items-center gap-1 text-red-600 font-medium">
-                                                                <HandCoins className="h-3 w-3" />
-                                                                Fiado
-                                                            </span>
-                                                        </Badge>
-                                                    ) : (
-                                                        <Badge variant="outline" className="font-normal capitalize text-xs">
-                                                            {movement.method === 'WALLET' ? 'Carteira' :
-                                                                movement.method === 'CASH' ? 'Dinheiro' :
-                                                                    movement.method === 'CARD' ? 'Cartão' :
-                                                                        movement.method === 'PIX' ? 'Pix' :
-                                                                            movement.method === 'TRANSFER' ? 'Transf.' : movement.method}
-                                                        </Badge>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell></TableCell>
-                                                <TableCell>
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {accountNames[movement.bankAccountId] || '...'}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <span className="text-sm font-medium opacity-80">
-                                                        {formatCurrency(movement.amount)}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); handleViewDetails(movement) }}>
-                                                        <Eye className="h-3 w-3 text-muted-foreground" />
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </Fragment>
-                                )
-                            } else {
-                                // Single movement
-                                const movement = item
-                                const Icon = movement.type === 'IN' ? ArrowUpCircle : ArrowDownCircle
-                                const colorClass = movement.type === 'IN' ? "text-emerald-600" : "text-rose-600"
+                    <Badge variant="secondary" className="font-normal capitalize text-xs shrink-0">
+                        {movement.method === 'WALLET' ? 'Carteira' :
+                            movement.method === 'CASH' ? 'Dinheiro' :
+                                movement.method === 'CARD' ? 'Cartão' :
+                                    movement.method === 'PIX' ? 'Pix' :
+                                        movement.method === 'TRANSFER' ? 'Transf.' : movement.method}
+                    </Badge>
+                </div>
 
-                                return (
-                                    <TableRow key={movement.id} className="hover:bg-muted/50">
-                                        <TableCell>
-                                            <div className="flex flex-col">
-                                                <span className="font-medium text-sm">
-                                                    {formatBrazilDate(movement.occurredAt, "dd/MM/yyyy")}
-                                                </span>
-                                                <span className="text-[10px] text-muted-foreground">
-                                                    {formatBrazilDate(movement.occurredAt, "HH:mm")}
-                                                </span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <span className="text-sm font-medium">{movement.description || "-"}</span>
-                                        </TableCell>
-                                        <TableCell>
-                                            {movement.method?.toLowerCase() === 'fiado' ? (
-                                                <Badge variant="secondary" className="font-normal bg-muted text-muted-foreground hover:bg-muted">
-                                                    <span className="flex items-center gap-1 text-red-600 font-medium">
-                                                        <HandCoins className="h-3 w-3" />
-                                                        Fiado
-                                                    </span>
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant="secondary" className="font-normal capitalize bg-muted text-muted-foreground hover:bg-muted">
-                                                    {movement.method === 'WALLET' ? 'Carteira' :
-                                                        movement.method === 'CASH' ? 'Dinheiro' :
-                                                            movement.method === 'CARD' ? 'Cartão' :
-                                                                movement.method === 'PIX' ? 'Pix' :
-                                                                    movement.method === 'TRANSFER' ? 'Transf.' : movement.method}
-                                                </Badge>
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                {SOURCE_ICONS[movement.sourceType] || <Settings className="h-4 w-4 text-muted-foreground" />}
-                                                <span className="text-sm text-muted-foreground">{SOURCE_LABELS[movement.sourceType] || movement.sourceType}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <span className="text-sm text-muted-foreground">
-                                                {accountNames[movement.bankAccountId] || '...'}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className={cn("font-bold flex items-center justify-end gap-1", colorClass)}>
-                                                {movement.type === 'IN' ? <ArrowUpCircle className="h-3 w-3" /> : <ArrowDownCircle className="h-3 w-3" />}
-                                                {formatCurrency(movement.amount)}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => handleViewDetails(movement)}
-                                                className="h-8 w-8 text-muted-foreground"
-                                            >
-                                                <Eye className="h-4 w-4" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                )
-                            }
-                        })
+                <div className="flex items-center gap-3 ml-4">
+                    <div className={cn("font-bold text-sm flex items-center gap-1 w-28 justify-end", colorClass)}>
+                        {movement.type === 'IN' ? <ArrowUpCircle className="h-3 w-3" /> : <ArrowDownCircle className="h-3 w-3" />}
+                        {formatCurrency(movement.amount)}
+                    </div>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleViewDetails(movement)}
+                        className="h-7 w-7 shrink-0"
+                    >
+                        <Eye className="h-3.5 w-3.5" />
+                    </Button>
+                </div>
+            </div>
+        )
+    }
+
+    // Renderizar grupo de venda/compra
+    const renderGroupedMovement = (item: GroupedMovement, dayKey: string) => {
+        const isExpanded = expandedGroups[`${dayKey}-${item.sourceId}`] || false
+        const isSale = item.sourceType === 'SALE'
+        const displayName = isSale
+            ? (customerNames[item.sourceId] || 'Cliente')
+            : (supplierNames[item.sourceId] || 'Fornecedor')
+        const Icon = isSale ? ShoppingCart : Package
+        const hasFiado = isSale && salesWithFiado.has(item.sourceId)
+        const fiadoAmount = hasFiado ? fiadoAmounts[item.sourceId] : 0
+        const hasCredit = isSale && salesWithCredit.has(item.sourceId)
+        const creditAmount = hasCredit ? creditAmounts[item.sourceId] : 0
+
+        return (
+            <Fragment key={`group-${dayKey}-${item.sourceId}`}>
+                <div
+                    className={cn(
+                        "flex items-center justify-between py-3 px-4 cursor-pointer hover:bg-muted/50 transition-colors border-b",
+                        isExpanded && "bg-muted/30"
                     )}
-                </TableBody>
-            </Table>
+                    onClick={() => toggleGroup(`${dayKey}-${item.sourceId}`)}
+                >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="text-xs text-muted-foreground w-12 shrink-0">
+                            {format(new Date(item.date), "HH:mm", { locale: ptBR })}
+                        </div>
+                        
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <div className={cn("p-1.5 rounded-full shrink-0", isSale ? "bg-emerald-100 text-emerald-600" : "bg-blue-100 text-blue-600")}>
+                                <Icon className="h-3.5 w-3.5" />
+                            </div>
+                            <span className="font-medium text-sm">{isSale ? 'Venda' : 'Compra'} - {displayName}</span>
+                            <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal">
+                                {item.movements.length} itens
+                            </Badge>
+                            {hasFiado && (
+                                <Badge variant="destructive" className="text-[10px] h-5 px-1.5 font-medium gap-1">
+                                    <HandCoins className="h-2.5 w-2.5" />
+                                    Fiado: {formatCurrency(fiadoAmount)}
+                                </Badge>
+                            )}
+                            {hasCredit && (
+                                <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-medium gap-1 bg-purple-100 text-purple-700">
+                                    <Wallet className="h-2.5 w-2.5" />
+                                    Crédito: {formatCurrency(creditAmount)}
+                                </Badge>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 ml-4">
+                        <div className={cn("font-bold text-sm w-28 text-right", isSale ? "text-emerald-600" : "text-rose-600")}>
+                            {formatCurrency(item.total)}
+                        </div>
+                        {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+                    </div>
+                </div>
+
+                {isExpanded && item.movements.map((movement) => renderMovement(movement, true))}
+            </Fragment>
+        )
+    }
+
+    if (dayGroups.length === 0) {
+        return (
+            <div className="rounded-lg border bg-card p-12 text-center">
+                <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Nenhuma movimentação no período selecionado.</p>
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-3">
+            {dayGroups.map((dayGroup) => {
+                const isExpanded = expandedDays[dayGroup.dateKey] || false
+                const groupedMovements = groupMovements(dayGroup.movements)
+
+                return (
+                    <div key={dayGroup.dateKey} className="rounded-lg border bg-card overflow-hidden">
+                        {/* Header do Dia */}
+                        <div
+                            className="flex items-center justify-between p-4 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors sticky top-0 z-10"
+                            onClick={() => toggleDay(dayGroup.dateKey)}
+                        >
+                            <div className="flex items-center gap-3">
+                                <Calendar className="h-5 w-5 text-muted-foreground" />
+                                <div>
+                                    <p className="font-semibold capitalize">{dayGroup.displayDate}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {dayGroup.movements.length} {dayGroup.movements.length === 1 ? 'transação' : 'transações'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-4">
+                                <div className="text-right">
+                                    <div className={cn("font-bold", dayGroup.netAmount >= 0 ? "text-emerald-600" : "text-rose-600")}>
+                                        {formatCurrency(dayGroup.netAmount)}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                        <span className="text-emerald-600">+{formatCurrency(dayGroup.totalIn)}</span>
+                                        {' / '}
+                                        <span className="text-rose-600">-{formatCurrency(dayGroup.totalOut)}</span>
+                                    </div>
+                                </div>
+                                {isExpanded ? <ChevronDown className="h-5 w-5 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
+                            </div>
+                        </div>
+
+                        {/* Movimentos do Dia */}
+                        {isExpanded && (
+                            <div className="divide-y">
+                                {groupedMovements.map((item) => {
+                                    if (item._type === 'group') {
+                                        return renderGroupedMovement(item, dayGroup.dateKey)
+                                    } else {
+                                        return renderMovement(item)
+                                    }
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )
+            })}
 
             <CashMovementDetailsDialog
                 open={detailsOpen}

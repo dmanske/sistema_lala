@@ -2,15 +2,16 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { CashMovement } from '@/core/domain/CashMovement'
-import { CashFilters, FilterState } from './CashFilters'
 import { CashList } from './CashList'
 import { CashSummaryCards } from './CashSummaryCards'
 import { CashHeader } from './CashHeader'
 import { ExportButton } from './ExportButton'
+import { MonthTabs } from './MonthTabs'
+import { CashComparison } from './CashComparison'
 import { PaymentMethodSummary } from './PaymentMethodSummary'
 import { AccountSummary } from './AccountSummary'
 import { CashAnalytics } from './CashAnalytics'
-import { filterMovements } from '@/lib/cash/filterMovements'
+import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 
 interface CashSummary {
@@ -29,14 +30,11 @@ interface CashPageClientProps {
 }
 
 export function CashPageClient({ movements, summary, period }: CashPageClientProps) {
-    const [filters, setFilters] = useState<FilterState>({
-        type: 'ALL',
-        method: 'ALL',
-        source: 'ALL',
-        bankAccountId: '__ALL__',
-        searchText: ''
-    })
+    const [searchText, setSearchText] = useState('')
+    const [filterType, setFilterType] = useState<'ALL' | 'IN' | 'OUT'>('ALL')
+    const [filterAccount, setFilterAccount] = useState<string>('__ALL__')
     const [accountNames, setAccountNames] = useState<Record<string, string>>({})
+    const [activeTab, setActiveTab] = useState<'statement' | 'analytics'>('statement')
 
     // Load account names for export
     useEffect(() => {
@@ -57,10 +55,32 @@ export function CashPageClient({ movements, summary, period }: CashPageClientPro
         loadAccountNames()
     }, [])
 
-    // Filter movements
+    // Filter movements by search, type and account
     const filteredMovements = useMemo(() => {
-        return filterMovements(movements, filters)
-    }, [movements, filters])
+        let result = movements
+        
+        // Filter by type
+        if (filterType !== 'ALL') {
+            result = result.filter(m => m.type === filterType)
+        }
+        
+        // Filter by account
+        if (filterAccount !== '__ALL__' && filterAccount !== '') {
+            result = result.filter(m => m.bankAccountId === filterAccount)
+        }
+        
+        // Filter by search
+        if (searchText.trim()) {
+            const search = searchText.toLowerCase()
+            result = result.filter(m => 
+                m.description?.toLowerCase().includes(search) ||
+                m.method?.toLowerCase().includes(search) ||
+                m.sourceType?.toLowerCase().includes(search)
+            )
+        }
+        
+        return result
+    }, [movements, searchText, filterType, filterAccount])
 
     // Calculate filtered summary
     const filteredSummary = useMemo(() => {
@@ -102,7 +122,7 @@ export function CashPageClient({ movements, summary, period }: CashPageClientPro
     }, [filteredMovements, accountNames])
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <CashHeader />
                 <ExportButton
@@ -113,24 +133,72 @@ export function CashPageClient({ movements, summary, period }: CashPageClientPro
                     period={period}
                 />
             </div>
-            <CashFilters
-                filters={filters}
-                onFiltersChange={setFilters}
+
+            {/* Abas de Meses com Filtros Integrados */}
+            <MonthTabs 
+                currentStart={period.start} 
+                currentEnd={period.end}
+                searchText={searchText}
+                onSearchChange={setSearchText}
+                filterType={filterType}
+                onFilterTypeChange={setFilterType}
+                filterAccount={filterAccount}
+                onFilterAccountChange={setFilterAccount}
                 resultCount={filteredMovements.length}
                 totalCount={movements.length}
             />
+
+            {/* Cards de Resumo */}
             <CashSummaryCards summary={filteredSummary} />
-            
-            {/* Summary Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <PaymentMethodSummary movements={filteredMovements} />
-                <AccountSummary movements={filteredMovements} accountNames={accountNames} />
+
+            {/* Abas de Conteúdo */}
+            <div className="flex items-center gap-2 border-b">
+                <Button
+                    variant={activeTab === 'statement' ? 'default' : 'ghost'}
+                    onClick={() => setActiveTab('statement')}
+                    className="rounded-b-none"
+                >
+                    Extrato
+                </Button>
+                <Button
+                    variant={activeTab === 'analytics' ? 'default' : 'ghost'}
+                    onClick={() => setActiveTab('analytics')}
+                    className="rounded-b-none"
+                >
+                    Análise Detalhada
+                </Button>
             </div>
 
-            {/* Analytics */}
-            <CashAnalytics movements={filteredMovements} period={period} />
+            {/* Conteúdo das Abas */}
+            {activeTab === 'statement' ? (
+                <CashList movements={filteredMovements} />
+            ) : (
+                <div className="space-y-6 p-6 border rounded-lg bg-card">
+                    {/* Comparação com Período Anterior */}
+                    <div>
+                        <h3 className="text-sm font-semibold mb-4">Comparação com Período Anterior</h3>
+                        <CashComparison movements={filteredMovements} period={period} />
+                    </div>
 
-            <CashList movements={filteredMovements} />
+                    {/* Resumos por Método e Conta */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div>
+                            <h3 className="text-sm font-semibold mb-4">Por Método de Pagamento</h3>
+                            <PaymentMethodSummary movements={filteredMovements} />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-semibold mb-4">Por Conta Bancária</h3>
+                            <AccountSummary movements={filteredMovements} accountNames={accountNames} />
+                        </div>
+                    </div>
+
+                    {/* Analytics Completo */}
+                    <div>
+                        <h3 className="text-sm font-semibold mb-4">Análise Detalhada</h3>
+                        <CashAnalytics movements={filteredMovements} period={period} />
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
