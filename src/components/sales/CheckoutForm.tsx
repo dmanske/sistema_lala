@@ -51,7 +51,7 @@ const clientRepo = getClientRepository()
 const professionalRepo = getProfessionalRepository()
 
 const updateSaleUseCase = new UpdateSale(saleRepo)
-const paySaleUseCase = new PaySale(saleRepo, productRepo, apptRepo)
+const paySaleUseCase = new PaySale(saleRepo, productRepo, apptRepo, creditRepo)
 const getSaleUseCase = new GetSale(saleRepo)
 const refundSaleUseCase = new RefundSale(saleRepo, productRepo)
 
@@ -110,7 +110,7 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
                     const balance = movements.reduce((acc, m) => {
                         return m.type === 'CREDIT' ? acc + m.amount : acc - m.amount
                     }, 0)
-                    setCreditBalance(Math.max(0, balance))
+                    setCreditBalance(balance) // Permite saldo negativo (dívida)
                     // Load customer data
                     const clientData = await clientRepo.getById(result.customerId)
                     if (clientData) {
@@ -369,6 +369,9 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
     // Note: This is an assumption that a full re-payment is needed.
     const totalPaid = isRefunded ? 0 : (sale.payments?.reduce((acc: number, p: SalePayment) => acc + p.amount, 0) || 0)
     const totalRemaining = Math.max(0, (sale.total ?? 0) - totalPaid)
+    
+    // Calculate debt payment (excess payment that went to debt)
+    const debtPayment = Math.max(0, totalPaid - (sale.total ?? 0))
 
     return (
         <div className="space-y-6">
@@ -709,6 +712,7 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
                     totalPaid={totalPaid}
                     items={sale.items}
                     payments={sale.payments}
+                    debtPayment={debtPayment}
                     onPay={() => {
                         setPaymentOpen(true)
                         if (onPaymentStart) onPaymentStart()

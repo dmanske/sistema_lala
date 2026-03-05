@@ -24,11 +24,10 @@ export class SupabaseCreditRepository implements CreditRepository {
 
     async create(data: CreditMovement & { bankAccountId?: string }): Promise<CreditMovement> {
         // Use RPC to ensure atomicity and Cash Ledger integration
-        // Note: data.id is ignored as RPC/DB generates UUIDs
-        const { data: insertedId, error } = await this.supabase.rpc('add_client_credit', {
+        // RPC now returns the credit_movement_id directly
+        const { data: creditMovementId, error } = await this.supabase.rpc('add_client_credit', {
             p_client_id: data.clientId,
             p_amount: data.amount,
-            p_origin: data.origin,
             p_note: data.note || null,
             p_bank_account_id: data.bankAccountId || null,
         });
@@ -39,13 +38,16 @@ export class SupabaseCreditRepository implements CreditRepository {
         const { data: inserted, error: fetchError } = await this.supabase
             .from('credit_movements')
             .select('*')
-            .eq('id', insertedId)
+            .eq('id', creditMovementId)
             .single();
 
         if (fetchError || !inserted) {
-            // In rare case fetch fails but insert succeeded, return constructed object
-            // but prefer fetching for consistency (created_at, etc)
-            return { ...data, id: insertedId as string };
+            // Fallback: return constructed object
+            return { 
+                ...data, 
+                id: creditMovementId as string,
+                type: 'CREDIT'
+            };
         }
 
         return this.mapFromDb(inserted);

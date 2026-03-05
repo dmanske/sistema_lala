@@ -15,9 +15,10 @@ interface SaleSummaryProps {
     totalPaid?: number
     items?: SaleItem[]
     payments?: SalePayment[]
+    debtPayment?: number // Valor que foi usado para abater dívida
 }
 
-export function SaleSummaryCard({ subtotal, discount, total, onPay, loading, paid, totalPaid, items, payments }: SaleSummaryProps) {
+export function SaleSummaryCard({ subtotal, discount, total, onPay, loading, paid, totalPaid, items, payments, debtPayment }: SaleSummaryProps) {
     // Calculate subtotals
     const servicesSubtotal = items?.filter(i => i.itemType === 'service').reduce((acc, i) => acc + (i.totalPrice || 0), 0) || 0
     const productsSubtotal = items?.filter(i => i.itemType === 'product').reduce((acc, i) => acc + (i.totalPrice || 0), 0) || 0
@@ -72,9 +73,22 @@ export function SaleSummaryCard({ subtotal, discount, total, onPay, loading, pai
                             <span>Já Pago</span>
                             <span>R$ {(totalPaid ?? 0).toFixed(2)}</span>
                         </div>
+                        {debtPayment && debtPayment > 0 && (
+                            <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg -mx-2">
+                                <HandCoins className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 space-y-1">
+                                    <p className="text-sm font-medium text-blue-900">
+                                        Dívida abatida
+                                    </p>
+                                    <p className="text-xs text-blue-700">
+                                        R$ {debtPayment.toFixed(2)} do pagamento foi usado para abater dívida anterior
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                         <div className="flex justify-between text-base font-bold text-slate-700 bg-slate-50 p-2 rounded -mx-2">
                             <span>A Pagar</span>
-                            <span>R$ {((total ?? 0) - (totalPaid ?? 0)).toFixed(2)}</span>
+                            <span>R$ {Math.max(0, (total ?? 0) - (totalPaid ?? 0)).toFixed(2)}</span>
                         </div>
                     </>
                 )}

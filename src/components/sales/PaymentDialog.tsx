@@ -113,10 +113,19 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
             toast.error("Valor inválido")
             return
         }
-        if (amount > remaining + 0.01) {
-            toast.error("Valor excede o restante")
+        
+        // Calcular o máximo permitido: restante do atendimento + dívida (se houver)
+        const maxAllowed = creditBalance < 0 
+            ? remaining + Math.abs(creditBalance) 
+            : remaining
+        
+        // Validar contra o máximo permitido (com margem de 0.01 para arredondamento)
+        if (amount > maxAllowed + 0.01) {
+            const debtPart = creditBalance < 0 ? ` + ${formatCurrency(Math.abs(creditBalance))} de dívida` : ''
+            toast.error(`Valor excede o máximo permitido: ${formatCurrency(remaining)} do atendimento${debtPart}`)
             return
         }
+        
         if (method === 'credit' && amount > availableCredit + 0.01) {
             toast.error("Saldo de crédito insuficiente")
             return
@@ -238,7 +247,9 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
                                                 {getMethodIcon(entry.method)}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <span className="text-sm font-medium text-slate-700">{getMethodLabel(entry.method)}</span>
+                                                <span className="text-sm font-medium text-slate-700">
+                                                    {getMethodLabel(entry.method)}
+                                                </span>
                                                 {entry.cashGiven && entry.cashGiven > entry.amount && (
                                                     <span className="text-xs text-amber-600 ml-2">
                                                         (recebido {formatCurrency(entry.cashGiven)})
@@ -305,6 +316,27 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
                         </div>
                     )}
 
+                    {/* Debt Warning - Show when there's debt */}
+                    {creditBalance < 0 && (
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2 p-3 bg-amber-50 border-2 border-amber-300 rounded-xl">
+                                <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+                                <div className="flex-1">
+                                    <span className="text-sm font-semibold text-amber-800 block">
+                                        Cliente possui dívida em carteira
+                                    </span>
+                                    <span className="text-xs text-amber-600">
+                                        Saldo devedor: {formatCurrency(Math.abs(creditBalance))}
+                                        {customerName && ` • ${customerName}`}
+                                    </span>
+                                </div>
+                            </div>
+                            <p className="text-xs text-slate-600 px-1">
+                                💡 Você pode cobrar o valor do atendimento + dívida tudo junto
+                            </p>
+                        </div>
+                    )}
+
                     {/* Add new payment - only show if not fully paid */}
                     {!isFullyPaid && (
                         <>
@@ -360,7 +392,7 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
                                     ))}
                                 </div>
 
-                                {/* Credit Option */}
+                                {/* Credit Option - Positive Balance */}
                                 {hasCredit && availableCredit > 0 && (
                                     <button
                                         type="button"
@@ -462,13 +494,15 @@ export function PaymentDialog({ open, onOpenChange, totalRemaining, onConfirm, c
                                                 }
                                             }}
                                             placeholder="0,00"
-                                            className="h-14 text-xl font-bold text-center bg-white border-2 border-slate-200 rounded-xl pl-12 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                                            className="h-14 text-xl font-bold text-center bg-white border-2 rounded-xl pl-12 focus:ring-2 border-slate-200 focus:border-purple-400 focus:ring-purple-100"
                                         />
                                     </div>
                                     <p className="text-xs text-slate-500 text-center">
                                         {method === 'credit' 
                                             ? `Máximo: ${formatCurrency(Math.min(remaining, availableCredit))}`
-                                            : `Restante: ${formatCurrency(remaining)}`
+                                            : creditBalance < 0
+                                                ? `Restante: ${formatCurrency(remaining)} | Dívida: ${formatCurrency(Math.abs(creditBalance))} | Total possível: ${formatCurrency(remaining + Math.abs(creditBalance))}`
+                                                : `Restante: ${formatCurrency(remaining)}`
                                         }
                                     </p>
                                 </div>
