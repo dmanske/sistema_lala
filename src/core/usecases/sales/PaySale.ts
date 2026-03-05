@@ -85,8 +85,7 @@ export class PaySale {
                         amount: creditAmount,
                         origin: 'CASH',
                         note: `Pagamento excedente aplicado na dívida (R$ ${creditAmount.toFixed(2)})`,
-                        createdAt: new Date().toISOString(),
-                        bankAccountId
+                        createdAt: new Date().toISOString()
                     });
                 }
             }

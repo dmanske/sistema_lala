@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { toast } from "sonner"
-import { Loader2, Calculator, AlertCircle } from "lucide-react"
+import { Loader2, Calculator, AlertCircle, CreditCard, Banknote } from "lucide-react"
 
 import {
     Dialog,
@@ -31,13 +31,15 @@ import { createClient } from "@/lib/supabase/client"
 import { CashRegisterSummary } from "@/core/domain/entities/CashRegister"
 
 const FormSchema = z.object({
-    cash: z.number().min(0, "Valor não pode ser negativo").optional(),
-    pix: z.number().min(0, "Valor não pode ser negativo").optional(),
-    card: z.number().min(0, "Valor não pode ser negativo").optional(),
-    transfer: z.number().min(0, "Valor não pode ser negativo").optional(),
-    wallet: z.number().min(0, "Valor não pode ser negativo").optional(),
+    cashCounted: z.number().min(0, "Valor não pode ser negativo"),
     notes: z.string().optional(),
 })
+
+interface PaymentMethodTotal {
+    method: string
+    total: number
+    label: string
+}
 
 interface CashClosingDialogProps {
     isOpen: boolean
@@ -53,44 +55,101 @@ export function CashClosingDialog({
     cashRegisterSummary,
 }: CashClosingDialogProps) {
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [totalActual, setTotalActual] = useState(0)
+    const [isLoadingPayments, setIsLoadingPayments] = useState(false)
+    const [paymentTotals, setPaymentTotals] = useState<PaymentMethodTotal[]>([])
+    const [cashExpected, setCashExpected] = useState(0)
     const [difference, setDifference] = useState(0)
     const { user } = useAuth()
 
     const form = useForm<z.infer<typeof FormSchema>>({
         resolver: zodResolver(FormSchema),
         defaultValues: {
-            cash: 0,
-            pix: 0,
-            card: 0,
-            transfer: 0,
-            wallet: 0,
+            cashCounted: 0,
             notes: "",
         },
     })
 
-    const watchedValues = form.watch()
+    const cashCounted = form.watch("cashCounted")
 
+    // Buscar totais por método de pagamento quando o dialog abrir
     useEffect(() => {
-        const total = 
-            (watchedValues.cash || 0) +
-            (watchedValues.pix || 0) +
-            (watchedValues.card || 0) +
-            (watchedValues.transfer || 0) +
-            (watchedValues.wallet || 0)
-        
-        setTotalActual(total)
+        if (isOpen && cashRegisterSummary) {
+            loadPaymentTotals()
+        }
+    }, [isOpen, cashRegisterSummary])
 
-        if (cashRegisterSummary) {
+    // Calcular diferença quando o valor contado mudar
+    useEffect(() => {
+        setDifference(cashCounted - cashExpected)
+    }, [cashCounted, cashExpected])
+
+    const loadPaymentTotals = async () => {
+        if (!cashRegisterSummary) return
+
+        setIsLoadingPayments(true)
+        try {
+            const supabase = createClient()
+            
+            // Converter data para ISO string
+            const openedAtISO = new Date(cashRegisterSummary.cashRegister.openedAt).toISOString()
+            const nowISO = new Date().toISOString()
+            
+            // Buscar totais de pagamentos por método desde a abertura do caixa
+            const { data: payments, error } = await supabase
+                .from('sale_payments')
+                .select('method, amount')
+                .gte('paid_at', openedAtISO)
+                .lte('paid_at', nowISO)
+
+            if (error) throw error
+
+            // Agrupar por método
+            const totals: Record<string, number> = {}
+            payments?.forEach(payment => {
+                const method = payment.method.toLowerCase()
+                totals[method] = (totals[method] || 0) + Number(payment.amount)
+            })
+
+            // Converter para array com labels
+            const methodLabels: Record<string, string> = {
+                pix: 'PIX',
+                card: 'Cartão',
+                transfer: 'Transferência',
+                wallet: 'Carteira Digital',
+                cash: 'Dinheiro',
+                credit: 'Crédito',
+                fiado: 'Fiado'
+            }
+
+            const totalsArray: PaymentMethodTotal[] = Object.entries(totals)
+                .filter(([method]) => method !== 'cash' && method !== 'credit' && method !== 'fiado')
+                .map(([method, total]) => ({
+                    method,
+                    total,
+                    label: methodLabels[method] || method
+                }))
+                .sort((a, b) => b.total - a.total)
+
+            setPaymentTotals(totalsArray)
+
+            // Calcular dinheiro esperado
+            const cashFromSales = totals.cash || 0
             const expected = 
                 cashRegisterSummary.cashRegister.initialBalance +
                 cashRegisterSummary.totalSuprimento -
                 cashRegisterSummary.totalSangria +
-                cashRegisterSummary.totalSales
-            
-            setDifference(total - expected)
+                cashFromSales
+
+            setCashExpected(expected)
+            form.setValue('cashCounted', expected)
+
+        } catch (error) {
+            console.error('Error loading payment totals:', error)
+            toast.error('Erro ao carregar totais de pagamento')
+        } finally {
+            setIsLoadingPayments(false)
         }
-    }, [watchedValues, cashRegisterSummary])
+    }
 
     async function onSubmit(data: z.infer<typeof FormSchema>) {
         if (!user || !cashRegisterSummary) {
@@ -103,23 +162,28 @@ export function CashClosingDialog({
             const supabase = createClient()
             const useCase = new FecharCaixa(supabase)
 
-            await useCase.execute({
+            const result = await useCase.execute({
                 cashRegisterId: cashRegisterSummary.cashRegister.id,
                 closedBy: user.id,
                 breakdown: {
-                    cash: data.cash,
-                    pix: data.pix,
-                    card: data.card,
-                    transfer: data.transfer,
-                    wallet: data.wallet,
+                    cash: data.cashCounted,
                 },
                 notes: data.notes,
             })
 
+            console.log('✅ Caixa fechado com sucesso:', result)
             toast.success("Caixa fechado com sucesso!")
+            
+            // Resetar o form
             form.reset()
+            
+            console.log('🔄 Chamando onSuccess para atualizar estado...')
+            // Chamar onSuccess ANTES de fechar o dialog
+            await onSuccess()
+            
+            console.log('✅ Estado atualizado, fechando dialog...')
+            // Fechar o dialog após atualizar
             onOpenChange(false)
-            onSuccess()
         } catch (error) {
             console.error(error)
             const errorMessage = error instanceof Error ? error.message : "Erro ao fechar caixa"
@@ -131,12 +195,6 @@ export function CashClosingDialog({
 
     if (!cashRegisterSummary) return null
 
-    const expectedBalance = 
-        cashRegisterSummary.cashRegister.initialBalance +
-        cashRegisterSummary.totalSuprimento -
-        cashRegisterSummary.totalSangria +
-        cashRegisterSummary.totalSales
-
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
@@ -146,217 +204,195 @@ export function CashClosingDialog({
                         Fechar Caixa
                     </DialogTitle>
                     <DialogDescription>
-                        Conte o dinheiro em caixa e informe os valores por método de pagamento.
+                        Conte o dinheiro físico em caixa. Os pagamentos digitais já estão registrados automaticamente.
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 space-y-2">
-                    <p className="text-sm font-medium text-blue-900">Resumo do Turno</p>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                            <span className="text-blue-600">Saldo Inicial:</span>
-                            <span className="ml-2 font-medium">R$ {cashRegisterSummary.cashRegister.initialBalance.toFixed(2)}</span>
-                        </div>
-                        <div>
-                            <span className="text-blue-600">Suprimentos:</span>
-                            <span className="ml-2 font-medium text-green-600">+ R$ {cashRegisterSummary.totalSuprimento.toFixed(2)}</span>
-                        </div>
-                        <div>
-                            <span className="text-blue-600">Sangrias:</span>
-                            <span className="ml-2 font-medium text-red-600">- R$ {cashRegisterSummary.totalSangria.toFixed(2)}</span>
-                        </div>
-                        <div>
-                            <span className="text-blue-600">Vendas:</span>
-                            <span className="ml-2 font-medium text-green-600">+ R$ {cashRegisterSummary.totalSales.toFixed(2)}</span>
-                        </div>
+                {isLoadingPayments ? (
+                    <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
-                    <div className="pt-2 border-t border-blue-300">
-                        <span className="text-sm font-semibold text-blue-900">Saldo Esperado:</span>
-                        <span className="ml-2 text-lg font-bold text-blue-900">R$ {expectedBalance.toFixed(2)}</span>
-                    </div>
-                </div>
-
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                        <div className="space-y-3">
-                            <p className="text-sm font-medium">Contagem por Método de Pagamento</p>
-                            
-                            <FormField
-                                control={form.control}
-                                name="cash"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Dinheiro (R$)</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="number"
-                                                step="0.01"
-                                                placeholder="0,00"
-                                                {...field}
-                                                onChange={e => field.onChange(Number(e.target.value) || 0)}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="pix"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>PIX (R$)</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="number"
-                                                step="0.01"
-                                                placeholder="0,00"
-                                                {...field}
-                                                onChange={e => field.onChange(Number(e.target.value) || 0)}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="card"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Cartão (R$)</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="number"
-                                                step="0.01"
-                                                placeholder="0,00"
-                                                {...field}
-                                                onChange={e => field.onChange(Number(e.target.value) || 0)}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="transfer"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Transferência (R$)</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="number"
-                                                step="0.01"
-                                                placeholder="0,00"
-                                                {...field}
-                                                onChange={e => field.onChange(Number(e.target.value) || 0)}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="wallet"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Carteira Digital (R$)</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="number"
-                                                step="0.01"
-                                                placeholder="0,00"
-                                                {...field}
-                                                onChange={e => field.onChange(Number(e.target.value) || 0)}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
-                        <div className={`p-4 rounded-lg border ${
-                            Math.abs(difference) < 0.01 
-                                ? 'bg-green-50 border-green-200' 
-                                : difference > 0 
-                                ? 'bg-yellow-50 border-yellow-200' 
-                                : 'bg-red-50 border-red-200'
-                        }`}>
-                            <div className="flex items-center gap-2 mb-2">
-                                {Math.abs(difference) >= 0.01 && (
-                                    <AlertCircle className="h-4 w-4" />
-                                )}
-                                <p className="text-sm font-medium">Resultado da Contagem</p>
+                ) : (
+                    <>
+                        {/* Pagamentos Digitais - Já Registrados */}
+                        {paymentTotals.length > 0 && (
+                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 space-y-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
+                                        <CreditCard className="h-4 w-4 text-white" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-semibold text-blue-900">Pagamentos Digitais</p>
+                                        <p className="text-xs text-blue-600">Já registrados automaticamente</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    {paymentTotals.map((payment) => (
+                                        <div key={payment.method} className="flex justify-between items-center bg-white/50 p-2 rounded">
+                                            <span className="text-sm text-blue-700">{payment.label}</span>
+                                            <span className="text-sm font-semibold text-blue-900">
+                                                R$ {payment.total.toFixed(2)}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="pt-2 border-t border-blue-300">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm font-semibold text-blue-900">Total Digital:</span>
+                                        <span className="text-base font-bold text-blue-900">
+                                            R$ {paymentTotals.reduce((sum, p) => sum + p.total, 0).toFixed(2)}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="space-y-1 text-sm">
-                                <div className="flex justify-between">
-                                    <span>Total Contado:</span>
-                                    <span className="font-semibold">R$ {totalActual.toFixed(2)}</span>
+                        )}
+
+                        {/* Resumo do Dinheiro Físico */}
+                        <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 space-y-2">
+                            <div className="flex items-center gap-2 mb-3">
+                                <div className="h-8 w-8 rounded-full bg-amber-500 flex items-center justify-center">
+                                    <Banknote className="h-4 w-4 text-white" />
                                 </div>
-                                <div className="flex justify-between">
-                                    <span>Saldo Esperado:</span>
-                                    <span className="font-semibold">R$ {expectedBalance.toFixed(2)}</span>
+                                <div>
+                                    <p className="text-sm font-semibold text-amber-900">Dinheiro Físico Esperado</p>
+                                    <p className="text-xs text-amber-600">Baseado nas movimentações do turno</p>
                                 </div>
-                                <div className="flex justify-between pt-2 border-t">
-                                    <span className="font-semibold">Diferença:</span>
-                                    <span className={`font-bold ${
-                                        Math.abs(difference) < 0.01 
-                                            ? 'text-green-600' 
-                                            : difference > 0 
-                                            ? 'text-yellow-600' 
-                                            : 'text-red-600'
-                                    }`}>
-                                        {difference > 0 ? '+' : ''} R$ {difference.toFixed(2)}
-                                        {Math.abs(difference) < 0.01 && ' (Caixa OK)'}
-                                        {difference > 0 && Math.abs(difference) >= 0.01 && ' (Sobra)'}
-                                        {difference < 0 && Math.abs(difference) >= 0.01 && ' (Falta)'}
-                                    </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div className="bg-white/50 p-2 rounded">
+                                    <span className="text-amber-600">Saldo Inicial:</span>
+                                    <span className="ml-2 font-medium">R$ {cashRegisterSummary.cashRegister.initialBalance.toFixed(2)}</span>
+                                </div>
+                                <div className="bg-white/50 p-2 rounded">
+                                    <span className="text-amber-600">Vendas em Dinheiro:</span>
+                                    <span className="ml-2 font-medium text-green-600">+ R$ {(paymentTotals.find(p => p.method === 'cash')?.total || 0).toFixed(2)}</span>
+                                </div>
+                                <div className="bg-white/50 p-2 rounded">
+                                    <span className="text-amber-600">Suprimentos:</span>
+                                    <span className="ml-2 font-medium text-green-600">+ R$ {cashRegisterSummary.totalSuprimento.toFixed(2)}</span>
+                                </div>
+                                <div className="bg-white/50 p-2 rounded">
+                                    <span className="text-amber-600">Sangrias:</span>
+                                    <span className="ml-2 font-medium text-red-600">- R$ {cashRegisterSummary.totalSangria.toFixed(2)}</span>
+                                </div>
+                            </div>
+                            <div className="pt-2 border-t border-amber-300">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm font-semibold text-amber-900">Dinheiro Esperado:</span>
+                                    <span className="text-lg font-bold text-amber-900">R$ {cashExpected.toFixed(2)}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <FormField
-                            control={form.control}
-                            name="notes"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Observações (opcional)</FormLabel>
-                                    <FormControl>
-                                        <Textarea
-                                            placeholder="Adicione observações sobre o fechamento..."
-                                            className="resize-none"
-                                            rows={3}
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                                {/* Campo de Contagem de Dinheiro */}
+                                <div className="space-y-3">
+                                    <FormField
+                                        control={form.control}
+                                        name="cashCounted"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-base font-semibold">
+                                                    💰 Quanto tem de DINHEIRO FÍSICO no caixa?
+                                                </FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        placeholder="0,00"
+                                                        className="text-xl font-bold text-center h-14"
+                                                        {...field}
+                                                        onChange={e => field.onChange(Number(e.target.value) || 0)}
+                                                    />
+                                                </FormControl>
+                                                <p className="text-xs text-muted-foreground text-center">
+                                                    Conte as notas e moedas físicas no caixa
+                                                </p>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
 
-                        <div className="flex justify-end gap-3 pt-4">
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                onClick={() => onOpenChange(false)}
-                                disabled={isSubmitting}
-                            >
-                                Cancelar
-                            </Button>
-                            <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Fechar Caixa
-                            </Button>
-                        </div>
-                    </form>
-                </Form>
+                                {/* Resultado da Contagem */}
+                                <div className={`p-4 rounded-lg border ${
+                                    Math.abs(difference) < 0.01 
+                                        ? 'bg-green-50 border-green-200' 
+                                        : difference > 0 
+                                        ? 'bg-yellow-50 border-yellow-200' 
+                                        : 'bg-red-50 border-red-200'
+                                }`}>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        {Math.abs(difference) >= 0.01 && (
+                                            <AlertCircle className="h-4 w-4" />
+                                        )}
+                                        <p className="text-sm font-medium">Resultado da Contagem</p>
+                                    </div>
+                                    <div className="space-y-1 text-sm">
+                                        <div className="flex justify-between">
+                                            <span>Dinheiro Contado:</span>
+                                            <span className="font-semibold">R$ {cashCounted.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Dinheiro Esperado:</span>
+                                            <span className="font-semibold">R$ {cashExpected.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between pt-2 border-t">
+                                            <span className="font-semibold">Diferença:</span>
+                                            <span className={`font-bold ${
+                                                Math.abs(difference) < 0.01 
+                                                    ? 'text-green-600' 
+                                                    : difference > 0 
+                                                    ? 'text-yellow-600' 
+                                                    : 'text-red-600'
+                                            }`}>
+                                                {difference > 0 ? '+' : ''} R$ {difference.toFixed(2)}
+                                                {Math.abs(difference) < 0.01 && ' (Caixa OK ✅)'}
+                                                {difference > 0 && Math.abs(difference) >= 0.01 && ' (Sobra)'}
+                                                {difference < 0 && Math.abs(difference) >= 0.01 && ' (Falta)'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <FormField
+                                    control={form.control}
+                                    name="notes"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Observações (opcional)</FormLabel>
+                                            <FormControl>
+                                                <Textarea
+                                                    placeholder="Adicione observações sobre o fechamento..."
+                                                    className="resize-none"
+                                                    rows={3}
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <div className="flex justify-end gap-3 pt-4">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={() => onOpenChange(false)}
+                                        disabled={isSubmitting}
+                                    >
+                                        Cancelar
+                                    </Button>
+                                    <Button type="submit" disabled={isSubmitting}>
+                                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        Fechar Caixa
+                                    </Button>
+                                </div>
+                            </form>
+                        </Form>
+                    </>
+                )}
             </DialogContent>
         </Dialog>
     )

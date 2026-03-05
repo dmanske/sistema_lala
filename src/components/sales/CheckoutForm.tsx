@@ -315,6 +315,13 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
     // ... (handlePayment logic remains)
     const handlePayment = async (payments: { method: PaymentMethod; amount: number; change?: number; bankAccountId: string }[]) => {
         if (!sale) return
+        
+        // Proteção contra duplo clique
+        if (paymentConfirming) {
+            console.log('⚠️ Payment already in progress, ignoring duplicate request')
+            return
+        }
+        
         setPaymentConfirming(true)
         try {
             console.log('Starting payment process...', { saleId: sale.id, payments })
@@ -325,10 +332,18 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
                 createdBy: 'current-user', // Should ideally come from auth context
             })
 
-            console.log('Payment successful, fetching updated sale...')
+            console.log('✅ Payment successful! Sale ID:', sale.id)
+            console.log('🔄 Aguardando propagação do banco...')
+            
+            // Aguardar 500ms para garantir que o banco propagou a mudança
+            await new Promise(resolve => setTimeout(resolve, 500))
+            
+            console.log('🔄 Fetching updated sale...')
             
             // Update local state after successful payment
             await fetchSale()
+            
+            console.log('✅ Sale refreshed, new status should be "paid"')
 
             const methodCount = payments.length
             toast.success(methodCount > 1 ? `Pagamento registrado (${methodCount} formas)!` : "Pagamento registrado com sucesso!")

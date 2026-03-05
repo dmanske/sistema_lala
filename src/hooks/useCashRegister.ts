@@ -11,14 +11,16 @@ export function useCashRegister() {
     const [error, setError] = useState<string | null>(null)
 
     const fetchCurrentCashRegister = useCallback(async () => {
+        console.log('📡 [useCashRegister] Buscando caixa atual...')
         try {
             const supabase = createClient()
             const useCase = new ObterCaixaAtual(supabase)
             const summary = await useCase.execute()
+            console.log('📦 [useCashRegister] Caixa recebido:', summary ? `ID: ${summary.cashRegister.id}, Status: ${summary.cashRegister.status}` : 'null')
             setCurrentCashRegister(summary)
             setError(null)
         } catch (err) {
-            console.error("Error fetching current cash register:", err)
+            console.error("❌ [useCashRegister] Error fetching current cash register:", err)
             setError(err instanceof Error ? err.message : "Erro ao buscar caixa atual")
         }
     }, [])
@@ -42,12 +44,14 @@ export function useCashRegister() {
     }, [])
 
     const refresh = useCallback(async () => {
+        console.log('🔄 [useCashRegister] Iniciando refresh...')
         setIsLoading(true)
         await Promise.all([
             fetchCurrentCashRegister(),
             fetchHistory({ status: 'CLOSED' })
         ])
         setIsLoading(false)
+        console.log('✅ [useCashRegister] Refresh concluído')
     }, [fetchCurrentCashRegister, fetchHistory])
 
     useEffect(() => {

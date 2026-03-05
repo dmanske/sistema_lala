@@ -44,18 +44,10 @@ export class FecharCaixa {
             throw new Error('Closed by user ID is required')
         }
 
-        // Validate that at least one breakdown value is provided
-        const hasBreakdown = Object.values(input.breakdown).some(value => value !== undefined && value > 0)
-        if (!hasBreakdown) {
-            throw new Error('At least one payment method breakdown value must be provided')
+        // Validate that cash value is provided (it's the only required field now)
+        if (input.breakdown.cash === undefined || input.breakdown.cash < 0) {
+            throw new Error('Cash amount must be provided and cannot be negative')
         }
-
-        // Validate that all breakdown values are non-negative
-        Object.entries(input.breakdown).forEach(([method, value]) => {
-            if (value !== undefined && value < 0) {
-                throw new Error(`Breakdown value for ${method} cannot be negative`)
-            }
-        })
     }
 
     private calculateTotalFromBreakdown(breakdown: CashClosingInput['breakdown']): number {
