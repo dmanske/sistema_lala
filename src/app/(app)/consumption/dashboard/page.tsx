@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
     Droplets, Package, Users, TrendingUp, ArrowLeft,
-    AlertTriangle, Clock, BarChart3, History,
+    AlertTriangle, BarChart3, History,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -252,129 +252,6 @@ export default function ConsumptionDashboardPage() {
                 </Card>
             )}
 
-            {/* Charts Row */}
-            <div className="grid gap-4 md:grid-cols-2">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <BarChart3 className="h-5 w-5 text-teal-600" />
-                            Mais Utilizados
-                        </CardTitle>
-                        <CardDescription>Produtos com mais registros de uso</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {stats.topByUsage.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
-                                <Droplets className="h-10 w-10 mb-2 text-teal-200" />
-                                <p>Nenhum uso registrado</p>
-                            </div>
-                        ) : (
-                            <SimpleBarChart data={stats.topByUsage} color="bg-gradient-to-r from-teal-500 to-cyan-500" />
-                        )}
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Users className="h-5 w-5 text-violet-600" />
-                            Por Clientes
-                        </CardTitle>
-                        <CardDescription>Produtos usados em mais clientes distintos</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {stats.topByClients.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
-                                <Users className="h-10 w-10 mb-2 text-violet-200" />
-                                <p>Nenhum uso registrado</p>
-                            </div>
-                        ) : (
-                            <SimpleBarChart data={stats.topByClients} color="bg-gradient-to-r from-violet-500 to-purple-500" />
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Detalhes por Produto */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Package className="h-5 w-5 text-teal-600" />
-                        Detalhes por Produto
-                    </CardTitle>
-                    <CardDescription>Visão individual de cada produto de consumo</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-3">
-                        {stats.productDetails.map(p => {
-                            const statusColor = p.percentage >= 90 ? "rose" : p.percentage >= 70 ? "amber" : p.percentage >= 50 ? "orange" : "emerald";
-                            const bgColors: Record<string, string> = {
-                                rose: "bg-rose-50 border-rose-200", amber: "bg-amber-50 border-amber-200",
-                                orange: "bg-orange-50 border-orange-200", emerald: "bg-emerald-50 border-emerald-200",
-                            };
-                            const barColors: Record<string, string> = {
-                                rose: "bg-rose-500", amber: "bg-amber-500", orange: "bg-orange-500", emerald: "bg-emerald-500",
-                            };
-                            return (
-                                <div key={p.id} className={cn("p-4 rounded-xl border", bgColors[statusColor])}>
-                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <Droplets className="h-4 w-4 text-teal-600" />
-                                                <span className="font-bold text-slate-800">{p.name}</span>
-                                            </div>
-                                            <div className="text-xs text-slate-500">
-                                                {p.contentAmount}{p.measurementUnit} por {p.unitLabel}
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                                            <div>
-                                                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Estoque</div>
-                                                <div className={cn("text-lg font-bold", (p.stockQuantity ?? 0) === 0 ? "text-rose-600" : "text-slate-800")}>
-                                                    {p.stockQuantity ?? 0}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Consumidos</div>
-                                                <div className="text-lg font-bold text-slate-800">{p.totalUnitsConsumed}</div>
-                                            </div>
-                                            <div>
-                                                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Usos</div>
-                                                <div className="text-lg font-bold text-violet-600">{p.logCount}</div>
-                                            </div>
-                                            <div>
-                                                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Clientes</div>
-                                                <div className="text-lg font-bold text-violet-600">{p.distinctClients ?? 0}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="mt-3">
-                                        <div className="flex justify-between text-xs mb-1">
-                                            <span className="text-slate-600">{p.currentConsumed.toFixed(1)}{p.measurementUnit} / {p.contentAmount}{p.measurementUnit}</span>
-                                            <span className="font-bold text-slate-600">{p.percentage.toFixed(0)}%</span>
-                                        </div>
-                                        <div className="h-2 w-full bg-white/60 rounded-full overflow-hidden">
-                                            <div className={cn("h-full rounded-full transition-all", barColors[statusColor])} style={{ width: `${p.percentage}%` }} />
-                                        </div>
-                                    </div>
-                                    {p.lastUse && (
-                                        <div className="mt-2 flex items-center gap-4 text-[11px] text-slate-500">
-                                            <span className="flex items-center gap-1">
-                                                <Clock className="h-3 w-3" />
-                                                Último uso: {format(new Date(p.lastUse), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                                            </span>
-                                            {p.firstUse && (
-                                                <span>Primeiro uso: {format(new Date(p.firstUse), "dd/MM/yyyy", { locale: ptBR })}</span>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </CardContent>
-            </Card>
-
             {/* Histórico por Tubo — com abas por produto */}
             {products.length > 0 && (
                 <Card>
@@ -493,6 +370,209 @@ export default function ConsumptionDashboardPage() {
                     </CardContent>
                 </Card>
             )}
+
+            {/* Charts Row */}
+            <div className="grid gap-4 md:grid-cols-2">
+                {/* Pizza — Mais Utilizados */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <BarChart3 className="h-5 w-5 text-teal-600" />
+                            Mais Utilizados
+                        </CardTitle>
+                        <CardDescription>Proporção de uso entre produtos</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {stats.topByUsage.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
+                                <Droplets className="h-10 w-10 mb-2 text-teal-200" />
+                                <p>Nenhum uso registrado</p>
+                            </div>
+                        ) : (() => {
+                            const pieColors = ["#14b8a6", "#8b5cf6", "#f59e0b", "#f43f5e", "#3b82f6", "#10b981", "#ec4899"];
+                            const total = stats.topByUsage.reduce((s, d) => s + d.value, 0);
+                            let cumAngle = 0;
+                            const slices = stats.topByUsage.map((item, i) => {
+                                const angle = total > 0 ? (item.value / total) * 360 : 0;
+                                const startAngle = cumAngle;
+                                cumAngle += angle;
+                                const midAngle = ((startAngle + angle / 2) * Math.PI) / 180;
+                                const startRad = (startAngle * Math.PI) / 180;
+                                const endRad = ((startAngle + angle) * Math.PI) / 180;
+                                const largeArc = angle > 180 ? 1 : 0;
+                                const r = 70;
+                                const cx = 90, cy = 90;
+                                const x1 = cx + r * Math.cos(startRad - Math.PI / 2);
+                                const y1 = cy + r * Math.sin(startRad - Math.PI / 2);
+                                const x2 = cx + r * Math.cos(endRad - Math.PI / 2);
+                                const y2 = cy + r * Math.sin(endRad - Math.PI / 2);
+                                const path = total === item.value
+                                    ? `M ${cx},${cy - r} A ${r},${r} 0 1,1 ${cx - 0.01},${cy - r} Z`
+                                    : `M ${cx},${cy} L ${x1},${y1} A ${r},${r} 0 ${largeArc},1 ${x2},${y2} Z`;
+                                return { ...item, path, color: pieColors[i % pieColors.length], pct: total > 0 ? ((item.value / total) * 100).toFixed(0) : "0", midAngle };
+                            });
+                            return (
+                                <div className="flex items-center gap-4">
+                                    <svg width="180" height="180" viewBox="0 0 180 180" className="shrink-0">
+                                        {slices.map((s, i) => (
+                                            <path key={i} d={s.path} fill={s.color} stroke="white" strokeWidth="2" className="transition-all duration-500 hover:opacity-80" />
+                                        ))}
+                                        <circle cx="90" cy="90" r="35" fill="white" />
+                                        <text x="90" y="86" textAnchor="middle" className="text-xs font-bold fill-slate-700" fontSize="13">{total}</text>
+                                        <text x="90" y="100" textAnchor="middle" className="fill-slate-400" fontSize="9">usos</text>
+                                    </svg>
+                                    <div className="flex-1 space-y-2">
+                                        {slices.map((s, i) => (
+                                            <div key={i} className="flex items-center gap-2 text-sm">
+                                                <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                                                <span className="text-slate-700 font-medium truncate flex-1">{s.label}</span>
+                                                <span className="text-slate-500 text-xs shrink-0">{s.pct}%</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })()}
+                    </CardContent>
+                </Card>
+
+                {/* Radar visual — Por Clientes */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Users className="h-5 w-5 text-violet-600" />
+                            Por Clientes
+                        </CardTitle>
+                        <CardDescription>Produtos usados em mais clientes distintos</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {stats.topByClients.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
+                                <Users className="h-10 w-10 mb-2 text-violet-200" />
+                                <p>Nenhum uso registrado</p>
+                            </div>
+                        ) : (() => {
+                            const maxVal = Math.max(...stats.topByClients.map(d => d.value));
+                            const colors = ["#8b5cf6", "#a78bfa", "#c4b5fd", "#ddd6fe", "#ede9fe"];
+                            return (
+                                <div className="space-y-4 pt-3">
+                                    {stats.topByClients.map((item, i) => {
+                                        const pct = maxVal > 0 ? (item.value / maxVal) * 100 : 0;
+                                        return (
+                                            <div key={i} className="space-y-1.5">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-sm font-medium text-slate-700 truncate flex-1">{item.label}</span>
+                                                    <span className="text-sm font-bold text-violet-600 ml-2">{item.value} cliente{item.value !== 1 ? "s" : ""}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="h-8 flex-1 bg-slate-50 rounded-lg overflow-hidden relative">
+                                                        <div
+                                                            className="h-full rounded-lg transition-all duration-700 ease-out flex items-center justify-end pr-2"
+                                                            style={{ width: `${Math.max(pct, 8)}%`, backgroundColor: colors[i % colors.length] }}
+                                                        >
+                                                            {pct > 25 && (
+                                                                <div className="flex -space-x-1">
+                                                                    {Array.from({ length: Math.min(item.value, 5) }).map((_, j) => (
+                                                                        <div key={j} className="h-4 w-4 rounded-full bg-white/40 border border-white/60 flex items-center justify-center">
+                                                                            <Users className="h-2.5 w-2.5 text-white" />
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        })()}
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Detalhes por Produto — Gráficos visuais */}
+            <div className="grid gap-4 md:grid-cols-2">
+                {/* Donut — Consumo Atual */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Package className="h-5 w-5 text-teal-600" />
+                            Consumo Atual
+                        </CardTitle>
+                        <CardDescription>Percentual consumido do tubo atual</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-wrap justify-center gap-6 py-2">
+                            {stats.productDetails.map(p => {
+                                const pct = p.percentage;
+                                const radius = 36;
+                                const circumference = 2 * Math.PI * radius;
+                                const offset = circumference - (pct / 100) * circumference;
+                                const color = pct >= 90 ? "#f43f5e" : pct >= 70 ? "#f59e0b" : pct >= 50 ? "#f97316" : "#10b981";
+                                return (
+                                    <div key={p.id} className="flex flex-col items-center gap-1.5">
+                                        <div className="relative">
+                                            <svg width="88" height="88" viewBox="0 0 88 88">
+                                                <circle cx="44" cy="44" r={radius} fill="none" stroke="#e2e8f0" strokeWidth="8" />
+                                                <circle
+                                                    cx="44" cy="44" r={radius} fill="none"
+                                                    stroke={color} strokeWidth="8" strokeLinecap="round"
+                                                    strokeDasharray={circumference} strokeDashoffset={offset}
+                                                    transform="rotate(-90 44 44)"
+                                                    className="transition-all duration-1000 ease-out"
+                                                />
+                                            </svg>
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <span className="text-sm font-bold text-slate-700">{pct.toFixed(0)}%</span>
+                                            </div>
+                                        </div>
+                                        <span className="text-xs font-medium text-slate-600 text-center max-w-[90px] truncate">{p.name}</span>
+                                        <span className="text-[10px] text-slate-400">{p.currentConsumed.toFixed(0)}/{p.contentAmount}{p.measurementUnit}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Gauge cards — Estoque */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Droplets className="h-5 w-5 text-emerald-600" />
+                            Estoque por Produto
+                        </CardTitle>
+                        <CardDescription>Unidades em estoque e total consumido</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-2 gap-3">
+                            {stats.productDetails.map(p => {
+                                const stock = p.stockQuantity ?? 0;
+                                const total = stock + p.totalUnitsConsumed;
+                                const stockPct = total > 0 ? (stock / total) * 100 : 0;
+                                const bgColor = stock === 0 ? "bg-rose-50 border-rose-200" : stock <= 2 ? "bg-amber-50 border-amber-200" : "bg-emerald-50 border-emerald-200";
+                                const textColor = stock === 0 ? "text-rose-600" : stock <= 2 ? "text-amber-600" : "text-emerald-600";
+                                return (
+                                    <div key={p.id} className={cn("p-3 rounded-xl border text-center", bgColor)}>
+                                        <div className={cn("text-2xl font-bold", textColor)}>{stock}</div>
+                                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">em estoque</div>
+                                        <div className="text-xs font-medium text-slate-600 mt-1.5 truncate">{p.name}</div>
+                                        <div className="mt-2 h-1.5 w-full bg-white/60 rounded-full overflow-hidden">
+                                            <div
+                                                className={cn("h-full rounded-full transition-all duration-700", stock === 0 ? "bg-rose-400" : stock <= 2 ? "bg-amber-400" : "bg-emerald-400")}
+                                                style={{ width: `${stockPct}%` }}
+                                            />
+                                        </div>
+                                        <div className="text-[10px] text-slate-400 mt-1">{p.totalUnitsConsumed} consumido{p.totalUnitsConsumed !== 1 ? "s" : ""}</div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     );
 }
