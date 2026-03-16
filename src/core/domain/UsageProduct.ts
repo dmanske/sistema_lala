@@ -10,18 +10,23 @@ export const UsageProductSchema = z.object({
     currentConsumed: z.number().min(0).default(0),
     totalUnitsConsumed: z.number().min(0).default(0),
     distinctClients: z.number().min(0).default(0).optional(),
+    currentTubeClients: z.number().min(0).default(0).optional(),
+    lastResetAt: z.string().optional(),
     createdAt: z.string(),
     updatedAt: z.string().optional(),
 });
 
 export type UsageProduct = z.infer<typeof UsageProductSchema>;
 
-export const CreateUsageProductSchema = UsageProductSchema.omit({
-    id: true,
-    createdAt: true,
-    updatedAt: true,
-    currentConsumed: true,
-    totalUnitsConsumed: true,
+export const CreateUsageProductSchema = z.object({
+    name: z.string().min(1, "Nome é obrigatório"),
+    contentAmount: z.number().positive("Conteúdo deve ser maior que 0"),
+    measurementUnit: z.enum(['g', 'ml', 'un']),
+    unitLabel: z.string().min(1, "Rótulo é obrigatório"),
+    stockQuantity: z.number().min(0),
+    distinctClients: z.number().min(0).optional(),
+    currentTubeClients: z.number().min(0).optional(),
+    lastResetAt: z.string().optional(),
 });
 
 export type CreateUsageProductInput = z.infer<typeof CreateUsageProductSchema>;
@@ -36,6 +41,7 @@ export const UsageProductLogSchema = z.object({
     amountUsed: z.number().positive("Quantidade deve ser maior que 0"),
     notes: z.string().optional(),
     formulaChangeReason: z.string().optional(),
+    tubeNumber: z.number().optional(),
     createdAt: z.string(),
     // Joined fields
     productName: z.string().optional(),

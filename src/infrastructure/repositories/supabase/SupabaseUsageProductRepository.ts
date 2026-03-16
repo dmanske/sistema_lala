@@ -24,6 +24,7 @@ export class SupabaseUsageProductRepository implements UsageProductRepository {
             currentConsumed: parseFloat(row.current_consumed || '0'),
             totalUnitsConsumed: row.total_units_consumed || 0,
             stockQuantity: row.stock_quantity ?? 1,
+            lastResetAt: row.last_reset_at,
             createdAt: row.created_at,
             updatedAt: row.updated_at,
         };
@@ -39,6 +40,7 @@ export class SupabaseUsageProductRepository implements UsageProductRepository {
             amountUsed: parseFloat(row.amount_used),
             notes: row.notes,
             formulaChangeReason: row.formula_change_reason,
+            tubeNumber: row.tube_number ?? 1,
             createdAt: row.created_at,
             productName: row.usage_products?.name,
             measurementUnit: row.usage_products?.measurement_unit,
@@ -56,18 +58,30 @@ export class SupabaseUsageProductRepository implements UsageProductRepository {
         if (products.length > 0) {
             const { data: logData } = await this.supabase
                 .from('usage_product_logs')
-                .select('usage_product_id, client_id');
+                .select('usage_product_id, client_id, created_at');
             if (logData && logData.length > 0) {
                 const clientsByProduct = new Map<string, Set<string>>();
+                const currentTubeClientsByProduct = new Map<string, Set<string>>();
                 for (const log of logData) {
                     if (!log.client_id) continue;
+                    // Total distinct clients
                     if (!clientsByProduct.has(log.usage_product_id)) {
                         clientsByProduct.set(log.usage_product_id, new Set());
                     }
                     clientsByProduct.get(log.usage_product_id)!.add(log.client_id);
+
+                    // Current tube clients (logs since last_reset_at)
+                    const product = products.find(p => p.id === log.usage_product_id);
+                    if (product?.lastResetAt && new Date(log.created_at) >= new Date(product.lastResetAt)) {
+                        if (!currentTubeClientsByProduct.has(log.usage_product_id)) {
+                            currentTubeClientsByProduct.set(log.usage_product_id, new Set());
+                        }
+                        currentTubeClientsByProduct.get(log.usage_product_id)!.add(log.client_id);
+                    }
                 }
                 for (const product of products) {
                     product.distinctClients = clientsByProduct.get(product.id)?.size || 0;
+                    product.currentTubeClients = currentTubeClientsByProduct.get(product.id)?.size || 0;
                 }
             }
         }
@@ -105,6 +119,7 @@ export class SupabaseUsageProductRepository implements UsageProductRepository {
         if (input.stockQuantity !== undefined) updateData.stock_quantity = input.stockQuantity;
         if (input.currentConsumed !== undefined) updateData.current_consumed = input.currentConsumed;
         if (input.totalUnitsConsumed !== undefined) updateData.total_units_consumed = input.totalUnitsConsumed;
+        if (input.lastResetAt !== undefined) updateData.last_reset_at = input.lastResetAt;
 
         const { data, error } = await this.supabase
             .from('usage_products').update(updateData).eq('id', id).select().single();
@@ -121,6 +136,10 @@ export class SupabaseUsageProductRepository implements UsageProductRepository {
     async addLog(input: CreateUsageProductLogInput): Promise<UsageProductLog> {
         const tenantId = await this.getTenantId();
 
+        // Get current product to determine tube number
+        const product = await this.getById(input.usageProductId);
+        const currentTubeNumber = product ? product.totalUnitsConsumed + 1 : 1;
+
         // 1. Insert log
         const { data, error } = await this.supabase.from('usage_product_logs').insert({
             tenant_id: tenantId,
@@ -131,11 +150,11 @@ export class SupabaseUsageProductRepository implements UsageProductRepository {
             amount_used: input.amountUsed,
             notes: input.notes || null,
             formula_change_reason: input.formulaChangeReason || null,
+            tube_number: currentTubeNumber,
         }).select('*, usage_products(name, measurement_unit)').single();
         if (error) throw new Error(`Failed to add log: ${error.message}`);
 
-        // 2. Update consumption on the product
-        const product = await this.getById(input.usageProductId);
+        // 2. Update consumption on the product (product already fetched above)
         if (product) {
             let newConsumed = product.currentConsumed + input.amountUsed;
             let newUnits = product.totalUnitsConsumed;
@@ -148,11 +167,18 @@ export class SupabaseUsageProductRepository implements UsageProductRepository {
                 if (newStock > 0) newStock--;
             }
 
-            await this.update(input.usageProductId, {
+            const updateData: Partial<UsageProduct> = {
                 currentConsumed: parseFloat(newConsumed.toFixed(2)),
                 totalUnitsConsumed: newUnits,
                 stockQuantity: newStock,
-            });
+            };
+
+            // If units changed, a new tube started — update lastResetAt
+            if (newUnits > product.totalUnitsConsumed) {
+                updateData.lastResetAt = new Date().toISOString();
+            }
+
+            await this.update(input.usageProductId, updateData);
         }
 
         return this.mapLogFromDb(data);
@@ -176,6 +202,52 @@ export class SupabaseUsageProductRepository implements UsageProductRepository {
             .order('created_at', { ascending: false });
         if (error) throw new Error(`Failed to fetch client logs: ${error.message}`);
         return (data || []).map((r: any) => this.mapLogFromDb(r));
+    }
+
+    async getAllLogs(): Promise<UsageProductLog[]> {
+        const { data, error } = await this.supabase
+            .from('usage_product_logs')
+            .select('*, usage_products(name, measurement_unit)')
+            .order('created_at', { ascending: false });
+        if (error) throw new Error(`Failed to fetch all logs: ${error.message}`);
+        return (data || []).map((r: any) => ({
+            ...this.mapLogFromDb(r),
+            clientName: undefined, // will be enriched separately if needed
+            professionalName: undefined,
+        }));
+    }
+
+    async getAllLogsWithDetails(): Promise<(UsageProductLog & { clientName?: string; professionalName?: string })[]> {
+        const { data, error } = await this.supabase
+            .from('usage_product_logs')
+            .select(`
+                *,
+                usage_products(name, measurement_unit),
+                clients(name),
+                professionals(name)
+            `)
+            .order('created_at', { ascending: false });
+        if (error) throw new Error(`Failed to fetch logs with details: ${error.message}`);
+        return (data || []).map((r: any) => ({
+            ...this.mapLogFromDb(r),
+            clientName: r.clients?.name,
+            professionalName: r.professionals?.name,
+        }));
+    }
+
+    async getLogsByProduct(productId: string): Promise<UsageProductLog[]> {
+        const { data, error } = await this.supabase
+            .from('usage_product_logs')
+            .select('*, usage_products(name, measurement_unit), clients(name), professionals(name)')
+            .eq('usage_product_id', productId)
+            .order('tube_number', { ascending: true })
+            .order('created_at', { ascending: true });
+        if (error) throw new Error(`Failed to fetch product logs: ${error.message}`);
+        return (data || []).map((r: any) => ({
+            ...this.mapLogFromDb(r),
+            clientName: r.clients?.name,
+            professionalName: r.professionals?.name,
+        }));
     }
 
     async getLastFormulaForClient(clientId: string): Promise<UsageProductLog[]> {

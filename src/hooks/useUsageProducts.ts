@@ -48,8 +48,16 @@ export function useUsageProducts() {
         return repo.getLogsByClient(clientId);
     }, [repo]);
 
+    const getLogsByProduct = useCallback(async (productId: string) => {
+        return repo.getLogsByProduct(productId);
+    }, [repo]);
+
     const getLastFormulaForClient = useCallback(async (clientId: string) => {
         return repo.getLastFormulaForClient(clientId);
+    }, [repo]);
+
+    const getAllLogsWithDetails = useCallback(async () => {
+        return repo.getAllLogsWithDetails();
     }, [repo]);
 
     useEffect(() => { fetchProducts(); }, [fetchProducts]);
@@ -57,6 +65,7 @@ export function useUsageProducts() {
     return {
         products, loading, fetchProducts,
         addProduct, updateProduct, deleteProduct,
-        addLog, getLogsByAppointment, getLogsByClient, getLastFormulaForClient,
+        addLog, getLogsByAppointment, getLogsByClient, getLogsByProduct, getLastFormulaForClient,
+        getAllLogsWithDetails,
     };
 }

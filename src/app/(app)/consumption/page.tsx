@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, LayoutGrid, LayoutList, Droplets } from "lucide-react";
+import { Plus, Search, LayoutGrid, LayoutList, Droplets, BarChart3 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useUsageProducts } from "@/hooks/useUsageProducts";
@@ -12,7 +13,8 @@ import { UsageProduct } from "@/core/domain/UsageProduct";
 import { toast } from "sonner";
 
 export default function ConsumptionPage() {
-    const { products, loading, addProduct, updateProduct, deleteProduct, fetchProducts } = useUsageProducts();
+    const router = useRouter();
+    const { products, loading, addProduct, updateProduct, deleteProduct, fetchProducts, getLogsByProduct } = useUsageProducts();
     const [search, setSearch] = useState("");
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<UsageProduct | undefined>(undefined);
@@ -53,6 +55,7 @@ export default function ConsumptionPage() {
                 currentConsumed: 0,
                 totalUnitsConsumed: product.totalUnitsConsumed + 1,
                 stockQuantity: Math.max((product.stockQuantity ?? 1) - 1, 0),
+                lastResetAt: new Date().toISOString(),
             });
             toast.success(`Novo ${product.unitLabel} iniciado!`);
         } catch {
@@ -67,16 +70,26 @@ export default function ConsumptionPage() {
                     <h1 className="text-3xl font-bold tracking-tight text-foreground font-heading">Controle de Consumo</h1>
                     <p className="text-muted-foreground">Gerencie produtos de uso interno (tintas, oxidantes, etc.)</p>
                 </div>
-                <Button onClick={handleNew} className="bg-teal-600 hover:bg-teal-700 text-white rounded-xl shadow-lg shadow-teal-500/20 hover:shadow-teal-500/40 transition-all">
-                    <Plus className="mr-2 h-4 w-4" /> Novo Produto
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={() => router.push("/consumption/dashboard")} className="rounded-xl border-teal-200 text-teal-700 hover:bg-teal-50">
+                        <BarChart3 className="mr-2 h-4 w-4" /> Dashboard
+                    </Button>
+                    <Button onClick={handleNew} className="bg-teal-600 hover:bg-teal-700 text-white rounded-xl shadow-lg shadow-teal-500/20 hover:shadow-teal-500/40 transition-all">
+                        <Plus className="mr-2 h-4 w-4" /> Novo Produto
+                    </Button>
+                </div>
             </div>
 
             <div className="md:hidden flex justify-between items-center">
                 <h1 className="text-2xl font-bold font-heading">Consumo</h1>
-                <Button size="sm" onClick={handleNew} className="bg-teal-600 rounded-lg">
-                    <Plus className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={() => router.push("/consumption/dashboard")} className="rounded-lg border-teal-200 text-teal-700">
+                        <BarChart3 className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" onClick={handleNew} className="bg-teal-600 rounded-lg">
+                        <Plus className="h-4 w-4" />
+                    </Button>
+                </div>
             </div>
 
             <div className="bg-card/50 backdrop-blur-xl p-4 sm:p-6 rounded-2xl border border-white/20 shadow-lg shadow-teal-500/5 flex flex-col md:flex-row gap-4 items-stretch md:items-center transition-all hover:shadow-teal-500/10">
@@ -107,6 +120,7 @@ export default function ConsumptionPage() {
                                 onEdit={handleEdit}
                                 onDelete={handleDelete}
                                 onReset={handleReset}
+                                onLoadHistory={getLogsByProduct}
                             />
                         ))}
                     </div>
