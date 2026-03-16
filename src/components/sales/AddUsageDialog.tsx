@@ -73,9 +73,6 @@ export function AddUsageDialog({ open, onOpenChange, usageProducts, lastFormula,
     }
 
     const handleConfirm = () => {
-        if (formulaChanged && items.length > 0 && !formulaChangeReason.trim()) {
-            return // validation handled in UI
-        }
         onConfirm(items, formulaChanged, formulaChangeReason)
         onOpenChange(false)
     }
@@ -209,7 +206,7 @@ export function AddUsageDialog({ open, onOpenChange, usageProducts, lastFormula,
                     {formulaChanged && items.length > 0 && (
                         <div className="space-y-1">
                             <Label className="text-xs text-amber-700 font-medium">
-                                Motivo da alteração na fórmula *
+                                Motivo da alteração na fórmula (opcional)
                             </Label>
                             <Textarea
                                 placeholder="Ex: Cliente pediu tom mais claro, Mudança de marca do oxidante..."
@@ -218,9 +215,6 @@ export function AddUsageDialog({ open, onOpenChange, usageProducts, lastFormula,
                                 className="min-h-16 text-sm border-amber-300 focus:border-amber-500"
                                 maxLength={300}
                             />
-                            {formulaChanged && items.length > 0 && !formulaChangeReason.trim() && (
-                                <p className="text-xs text-red-500">Obrigatório informar o motivo da alteração</p>
-                            )}
                         </div>
                     )}
                 </div>
@@ -229,7 +223,6 @@ export function AddUsageDialog({ open, onOpenChange, usageProducts, lastFormula,
                     <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
                     <Button
                         onClick={handleConfirm}
-                        disabled={formulaChanged && items.length > 0 && !formulaChangeReason.trim()}
                         className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
                     >
                         <Droplets className="mr-2 h-4 w-4" />

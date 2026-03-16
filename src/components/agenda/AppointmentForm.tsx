@@ -240,6 +240,10 @@ export function AppointmentForm({ isOpen, onOpenChange, initialData, clientId, d
                     status: "CONFIRMED",
                     notes: ""
                 });
+                // Auto-select professional if only one exists
+                if (professionals.length === 1) {
+                    form.setValue("professionalId", professionals[0].id);
+                }
                 // Sync endTime
                 const [sh, sm] = targetTime.split(':').map(Number);
                 const totalEnd = sh * 60 + sm + 30;

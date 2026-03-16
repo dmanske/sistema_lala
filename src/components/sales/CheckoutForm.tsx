@@ -412,12 +412,6 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
         
         setPaymentConfirming(true)
         try {
-            // Validate formula change reason if needed
-            if (usageItems.length > 0 && formulaChanged && !formulaChangeReason.trim()) {
-                toast.error("A fórmula foi alterada. Informe o motivo antes de finalizar.")
-                setPaymentConfirming(false)
-                return
-            }
 
             console.log('Starting payment process...', { saleId: sale.id, payments })
             
@@ -455,7 +449,7 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
                                 professionalId: appointment?.professionalId || undefined,
                                 amountUsed: item.amountUsed,
                                 notes: item.notes || undefined,
-                                formulaChangeReason: formulaChanged ? formulaChangeReason : undefined,
+                                formulaChangeReason: formulaChanged && formulaChangeReason.trim() ? formulaChangeReason : undefined,
                             })
                         }
                     }
