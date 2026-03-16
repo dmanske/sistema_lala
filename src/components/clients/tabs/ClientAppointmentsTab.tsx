@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, User, Save, Loader2, StickyNote, CreditCard, Droplets } from "lucide-react";
+import { Calendar, Clock, User, Save, Loader2, StickyNote, CreditCard, Droplets, ChevronDown, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Appointment } from "@/core/domain/Appointment";
@@ -208,101 +208,144 @@ export function ClientAppointmentsTab({ clientId }: ClientAppointmentsTabProps) 
                             </p>
                         </div>
                     ) : (
-                        <div className="divide-y divide-white/20">
-                            {appointments.map((apt) => {
-                                const sale = appointmentSales.get(apt.id);
-                                return (
-                                    <div key={apt.id} className="p-6 hover:bg-white/40 transition-colors group">
-                                        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                                            <div className="flex flex-col items-center justify-center min-w-[70px] bg-white/50 border border-white/20 rounded-xl py-2 px-3 shadow-sm group-hover:bg-white group-hover:shadow-md transition-all">
-                                                <span className="text-lg font-bold text-primary leading-none">{apt.startTime}</span>
-                                                <span className="text-[10px] uppercase font-bold text-slate-400 mt-1">
-                                                    {format(new Date(apt.date + 'T00:00:00'), 'dd/MM', { locale: ptBR })}
-                                                </span>
-                                            </div>
-
-                                            <div className="flex-1 space-y-2 w-full">
-                                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-bold text-slate-800 font-heading text-lg">
-                                                            {apt.status === 'DONE' && apt.finalizedServices
-                                                                ? apt.finalizedServices.map(s => s.name).join(", ")
-                                                                : apt.services.map(id => services.find(s => s.id === id)?.name || id).join(", ")
-                                                            }
-                                                        </span>
-                                                        {getStatusBadge(apt.status)}
-                                                    </div>
-                                                    {sale && (
-                                                        <div className="text-right space-y-0.5">
-                                                            <span className="text-xs text-slate-500 font-bold uppercase tracking-wider block">Total</span>
-                                                            <span className="text-lg font-bold text-emerald-600">
-                                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sale.total)}
-                                                            </span>
-                                                            {sale.payments && sale.payments.length > 0 && (
-                                                                <div className="flex items-center gap-1 justify-end text-xs text-slate-600">
-                                                                    <CreditCard className="h-3 w-3" />
-                                                                    <span>{getPaymentMethodLabel(sale.payments[0].method)}</span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-slate-500">
-                                                    <div className="flex items-center gap-1.5 text-xs font-medium">
-                                                        <User className="h-3.5 w-3.5 text-purple-500" />
-                                                        <span>{professionals.find(p => p.id === apt.professionalId)?.name || 'Profissional'}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5 text-xs font-medium">
-                                                        <Clock className="h-3.5 w-3.5 text-blue-500" />
-                                                        <span>{apt.durationMinutes} minutos</span>
-                                                    </div>
-                                                </div>
-
-                                                {/* Observação do Agendamento */}
-                                                {apt.notes && (
-                                                    <div className="mt-3 text-sm bg-amber-50/50 border border-amber-100 p-3 rounded-xl text-slate-700 relative">
-                                                        <div className="absolute top-3 left-3 w-1 h-1 rounded-full bg-amber-400"></div>
-                                                        <span className="font-bold text-xs text-amber-600 uppercase tracking-wider block mb-1 pl-3">Observação do Agendamento</span>
-                                                        <p className="pl-3 leading-relaxed">{apt.notes}</p>
-                                                    </div>
-                                                )}
-
-                                                {/* Fórmula de Consumo */}
-                                                {(() => {
-                                                    const aptLogs = usageLogs.filter(l => l.appointmentId === apt.id);
-                                                    if (aptLogs.length === 0) return null;
-                                                    return (
-                                                        <div className="mt-3 p-3 bg-violet-50/50 border border-violet-100 rounded-xl">
-                                                            <div className="flex items-center gap-1.5 mb-1.5">
-                                                                <Droplets className="h-3.5 w-3.5 text-violet-600" />
-                                                                <span className="text-xs font-bold text-violet-800 uppercase tracking-wider">Fórmula utilizada</span>
-                                                            </div>
-                                                            <div className="space-y-0.5 pl-5">
-                                                                {aptLogs.map((log, i) => (
-                                                                    <div key={i} className="text-sm text-violet-700">
-                                                                        • {log.productName || "Produto"}: {log.amountUsed}{log.measurementUnit || 'g'}
-                                                                        {log.notes && <span className="text-violet-500 ml-1">({log.notes})</span>}
-                                                                    </div>
-                                                                ))}
-                                                                {aptLogs.find(l => l.formulaChangeReason) && (
-                                                                    <div className="mt-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded px-2 py-1">
-                                                                        📝 Motivo da alteração: {aptLogs.find(l => l.formulaChangeReason)?.formulaChangeReason}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })()}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="border-b border-slate-200/60 bg-slate-50/40">
+                                        <th className="text-left py-3 px-4 font-semibold text-slate-500 text-xs uppercase tracking-wider w-8"></th>
+                                        <th className="text-left py-3 px-4 font-semibold text-slate-500 text-xs uppercase tracking-wider">Data</th>
+                                        <th className="text-left py-3 px-4 font-semibold text-slate-500 text-xs uppercase tracking-wider">Serviço</th>
+                                        <th className="text-left py-3 px-4 font-semibold text-slate-500 text-xs uppercase tracking-wider">Profissional</th>
+                                        <th className="text-center py-3 px-4 font-semibold text-slate-500 text-xs uppercase tracking-wider">Status</th>
+                                        <th className="text-right py-3 px-4 font-semibold text-slate-500 text-xs uppercase tracking-wider">Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {appointments.map((apt) => {
+                                        const sale = appointmentSales.get(apt.id);
+                                        const aptLogs = usageLogs.filter(l => l.appointmentId === apt.id);
+                                        const hasDetails = !!(apt.notes || aptLogs.length > 0);
+                                        return (
+                                            <AppointmentRow
+                                                key={apt.id}
+                                                apt={apt}
+                                                sale={sale}
+                                                aptLogs={aptLogs}
+                                                hasDetails={hasDetails}
+                                                services={services}
+                                                professionals={professionals}
+                                                getStatusBadge={getStatusBadge}
+                                                getPaymentMethodLabel={getPaymentMethodLabel}
+                                            />
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
                         </div>
                     )}
                 </CardContent>
             </Card>
         </div>
+    );
+}
+
+/* Compact expandable row for each appointment */
+function AppointmentRow({
+    apt, sale, aptLogs, hasDetails, services, professionals, getStatusBadge, getPaymentMethodLabel
+}: {
+    apt: Appointment;
+    sale: Sale | undefined;
+    aptLogs: UsageProductLog[];
+    hasDetails: boolean;
+    services: Service[];
+    professionals: Professional[];
+    getStatusBadge: (s: Appointment["status"]) => React.ReactNode;
+    getPaymentMethodLabel: (m: PaymentMethod) => string;
+}) {
+    const [open, setOpen] = useState(false);
+
+    const serviceName = apt.status === 'DONE' && apt.finalizedServices
+        ? apt.finalizedServices.map(s => s.name).join(", ")
+        : apt.services.map(id => services.find(s => s.id === id)?.name || id).join(", ");
+
+    const profName = professionals.find(p => p.id === apt.professionalId)?.name || '—';
+
+    return (
+        <>
+            <tr
+                className={`border-b border-slate-100/60 hover:bg-white/50 transition-colors ${hasDetails ? 'cursor-pointer' : ''}`}
+                onClick={() => hasDetails && setOpen(!open)}
+            >
+                <td className="py-3 px-4 text-slate-400">
+                    {hasDetails && (
+                        open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />
+                    )}
+                </td>
+                <td className="py-3 px-4 whitespace-nowrap">
+                    <div className="font-semibold text-slate-800">{format(new Date(apt.date + 'T00:00:00'), 'dd/MM/yy', { locale: ptBR })}</div>
+                    <div className="text-xs text-slate-400">{apt.startTime}</div>
+                </td>
+                <td className="py-3 px-4">
+                    <span className="font-medium text-slate-700 line-clamp-1">{serviceName}</span>
+                    {aptLogs.length > 0 && (
+                        <span className="ml-1.5 inline-flex items-center">
+                            <Droplets className="h-3 w-3 text-violet-400" />
+                        </span>
+                    )}
+                </td>
+                <td className="py-3 px-4 text-slate-600">{profName}</td>
+                <td className="py-3 px-4 text-center">{getStatusBadge(apt.status)}</td>
+                <td className="py-3 px-4 text-right whitespace-nowrap">
+                    {sale ? (
+                        <div>
+                            <span className="font-semibold text-emerald-600">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sale.total)}
+                            </span>
+                            {sale.payments && sale.payments.length > 0 && (
+                                <div className="text-[11px] text-slate-400 flex items-center gap-1 justify-end">
+                                    <CreditCard className="h-3 w-3" />
+                                    {getPaymentMethodLabel(sale.payments[0].method)}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <span className="text-slate-300">—</span>
+                    )}
+                </td>
+            </tr>
+            {open && hasDetails && (
+                <tr className="bg-slate-50/30">
+                    <td colSpan={6} className="px-6 py-3 space-y-2">
+                        {apt.notes && (
+                            <div className="text-sm bg-amber-50/60 border border-amber-100 p-2.5 rounded-lg text-slate-700">
+                                <span className="font-semibold text-xs text-amber-600 uppercase tracking-wider mr-2">Obs:</span>
+                                {apt.notes}
+                            </div>
+                        )}
+                        {aptLogs.length > 0 && (
+                            <div className="text-sm bg-violet-50/60 border border-violet-100 p-2.5 rounded-lg">
+                                <div className="flex items-center gap-1.5 mb-1">
+                                    <Droplets className="h-3.5 w-3.5 text-violet-600" />
+                                    <span className="text-xs font-semibold text-violet-800 uppercase tracking-wider">Fórmula</span>
+                                </div>
+                                <div className="pl-5 space-y-0.5">
+                                    {aptLogs.map((log, i) => (
+                                        <div key={i} className="text-violet-700">
+                                            • {log.productName || "Produto"}: {log.amountUsed}{log.measurementUnit || 'g'}
+                                            {log.notes && <span className="text-violet-500 ml-1">({log.notes})</span>}
+                                        </div>
+                                    ))}
+                                    {aptLogs.find(l => l.formulaChangeReason) && (
+                                        <div className="mt-1 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded px-2 py-1 inline-block">
+                                            📝 {aptLogs.find(l => l.formulaChangeReason)?.formulaChangeReason}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </td>
+                </tr>
+            )}
+        </>
     );
 }
