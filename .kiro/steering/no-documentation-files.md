@@ -1,5 +1,6 @@
 ---
 inclusion: auto
+description: "Regra para não criar documentos de análise automaticamente"
 ---
 
 # Regra: Não Criar Documentos de Análise

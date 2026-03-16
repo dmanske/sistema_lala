@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Trash2, Plus, ShoppingBag, Pencil } from "lucide-react"
+import { Trash2, Plus, ShoppingBag, Pencil, Droplets, AlertTriangle } from "lucide-react"
 import { AddProductDialog } from "./AddProductDialog"
 import { AddServiceDialog } from "./AddServiceDialog"
+import { AddUsageDialog } from "./AddUsageDialog"
 import { PaymentDialog } from "./PaymentDialog"
 import { SaleSummaryCard } from "./SaleSummaryCard"
 import { CheckoutHeader } from "./CheckoutHeader"
@@ -19,11 +20,16 @@ import { ServiceTimeline } from "./ServiceTimeline"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { useProducts } from "@/hooks/useProducts"
+import { useUsageProducts } from "@/hooks/useUsageProducts"
 import { Product } from "@/core/domain/Product"
+import { UsageProductLog } from "@/core/domain/UsageProduct"
 import { Client } from "@/core/domain/Client"
 import { Appointment } from "@/core/domain/Appointment"
 import { Professional } from "@/core/domain/Professional"
 import { cn } from "@/lib/utils"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 import { UpdateSale } from "@/core/usecases/sales/UpdateSale"
 import { PaySale } from "@/core/usecases/sales/PaySale"
@@ -66,6 +72,7 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
     const [loading, setLoading] = useState(true)
     const [addProductOpen, setAddProductOpen] = useState(false)
     const [addServiceOpen, setAddServiceOpen] = useState(false)
+    const [addUsageOpen, setAddUsageOpen] = useState(false)
     const [paymentOpen, setPaymentOpen] = useState(false)
     const [paymentConfirming, setPaymentConfirming] = useState(false)
     const [refundConfirming, setRefundConfirming] = useState(false)
@@ -75,6 +82,23 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
     const [appointment, setAppointment] = useState<Appointment | null>(null)
     const [professional, setProfessional] = useState<Professional | null>(null)
     const [notes, setNotes] = useState<string>("")
+
+    // Usage products (consumption control)
+    const [usageItems, setUsageItems] = useState<Array<{
+        usageProductId: string;
+        amountUsed: number;
+        notes: string;
+    }>>([])
+    const [lastFormula, setLastFormula] = useState<UsageProductLog[] | null>(null)
+    const [formulaChanged, setFormulaChanged] = useState(false)
+    const [formulaChangeReason, setFormulaChangeReason] = useState("")
+    const [formulaDiffs, setFormulaDiffs] = useState<string[]>([])
+
+    const {
+        products: usageProducts,
+        addLog: addUsageLog,
+        getLastFormulaForClient
+    } = useUsageProducts()
 
     // ... (fetchSale logic remains same)
     const fetchSale = useCallback(async () => {
@@ -145,6 +169,55 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
     useEffect(() => {
         fetchSale()
     }, [fetchSale])
+
+    // Fetch last formula when client is loaded
+    useEffect(() => {
+        if (client?.id) {
+            getLastFormulaForClient(client.id).then(formula => {
+                setLastFormula(formula)
+            })
+        }
+    }, [client?.id, getLastFormulaForClient])
+
+    // Detect formula changes
+    useEffect(() => {
+        if (!lastFormula || lastFormula.length === 0) {
+            if (usageItems.length > 0) {
+                setFormulaChanged(true)
+                setFormulaDiffs(["🆕 Primeira fórmula registrada para esta cliente"])
+            } else {
+                setFormulaChanged(false)
+                setFormulaDiffs([])
+            }
+            return
+        }
+
+        const diffs: string[] = []
+        const prevMap = new Map(lastFormula.map(p => [p.usageProductId, p]))
+        const currMap = new Map(usageItems.filter(i => i.usageProductId).map(c => [c.usageProductId, c]))
+
+        for (const item of usageItems) {
+            if (!item.usageProductId) continue
+            const prev = prevMap.get(item.usageProductId)
+            const product = usageProducts.find(p => p.id === item.usageProductId)
+            const name = product?.name || "Produto"
+            if (!prev) {
+                diffs.push(`🆕 Adicionado: ${name} (${item.amountUsed}${product?.measurementUnit || ''})`)
+            } else if (prev.amountUsed !== item.amountUsed) {
+                diffs.push(`📝 Alterado: ${name} — ${prev.amountUsed}${product?.measurementUnit || ''} → ${item.amountUsed}${product?.measurementUnit || ''}`)
+            }
+        }
+
+        for (const prev of lastFormula) {
+            if (!currMap.has(prev.usageProductId)) {
+                const product = usageProducts.find(p => p.id === prev.usageProductId)
+                diffs.push(`❌ Removido: ${product?.name || prev.productName || "Produto"}`)
+            }
+        }
+
+        setFormulaChanged(diffs.length > 0)
+        setFormulaDiffs(diffs)
+    }, [usageItems, lastFormula, usageProducts])
 
     const handleUpdateItems = async (items: SaleItem[]) => {
         try {
@@ -312,6 +385,21 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
         }
     }
 
+    // Usage product handlers
+    const addUsageItem = () => {
+        setUsageItems([...usageItems, { usageProductId: "", amountUsed: 0, notes: "" }])
+    }
+
+    const removeUsageItem = (index: number) => {
+        setUsageItems(usageItems.filter((_, i) => i !== index))
+    }
+
+    const updateUsageItem = (index: number, field: string, value: any) => {
+        const updated = [...usageItems]
+        updated[index] = { ...updated[index], [field]: value }
+        setUsageItems(updated)
+    }
+
     // ... (handlePayment logic remains)
     const handlePayment = async (payments: { method: PaymentMethod; amount: number; change?: number; bankAccountId: string }[]) => {
         if (!sale) return
@@ -324,6 +412,13 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
         
         setPaymentConfirming(true)
         try {
+            // Validate formula change reason if needed
+            if (usageItems.length > 0 && formulaChanged && !formulaChangeReason.trim()) {
+                toast.error("A fórmula foi alterada. Informe o motivo antes de finalizar.")
+                setPaymentConfirming(false)
+                return
+            }
+
             console.log('Starting payment process...', { saleId: sale.id, payments })
             
             await paySaleUseCase.execute({
@@ -347,6 +442,29 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
 
             const methodCount = payments.length
             toast.success(methodCount > 1 ? `Pagamento registrado (${methodCount} formas)!` : "Pagamento registrado com sucesso!")
+
+            // Log usage products after successful payment
+            if (usageItems.length > 0 && sale.appointmentId) {
+                try {
+                    for (const item of usageItems) {
+                        if (item.usageProductId && item.amountUsed > 0) {
+                            await addUsageLog({
+                                usageProductId: item.usageProductId,
+                                appointmentId: sale.appointmentId,
+                                clientId: sale.customerId || undefined,
+                                professionalId: appointment?.professionalId || undefined,
+                                amountUsed: item.amountUsed,
+                                notes: item.notes || undefined,
+                                formulaChangeReason: formulaChanged ? formulaChangeReason : undefined,
+                            })
+                        }
+                    }
+                    toast.success("Consumo de produtos registrado!")
+                } catch (error) {
+                    console.error("Error logging usage products:", error)
+                    toast.error("Erro ao registrar consumo de produtos")
+                }
+            }
 
             if (onSuccess) onSuccess()
         } catch (error: any) {
@@ -417,11 +535,14 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
                     </h2>
                     {!isPaid && !isRefunded && (
                         <div className="flex gap-2">
+                            <Button onClick={() => setAddProductOpen(true)} variant="outline" size="sm">
+                                <Plus className="mr-2 h-4 w-4" /> Adicionar Produto
+                            </Button>
                             <Button onClick={() => setAddServiceOpen(true)} variant="outline" size="sm">
                                 <Plus className="mr-2 h-4 w-4" /> Adicionar Serviço
                             </Button>
-                            <Button onClick={() => setAddProductOpen(true)} variant="outline" size="sm">
-                                <Plus className="mr-2 h-4 w-4" /> Adicionar Produto
+                            <Button onClick={() => setAddUsageOpen(true)} variant="outline" size="sm" className="text-blue-600 border-blue-200 hover:bg-blue-50">
+                                <Droplets className="mr-2 h-4 w-4" /> Consumo
                             </Button>
                         </div>
                     )}
@@ -717,6 +838,31 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
                         )}
                     </div>
                 )}
+
+                {/* Resumo Produtos de Consumo */}
+                {!isRefunded && usageItems.length > 0 && (
+                    <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <Droplets className="h-4 w-4 text-blue-500" />
+                            Consumo Registrado ({usageItems.length} {usageItems.length === 1 ? 'produto' : 'produtos'})
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                            {usageItems.map((item, i) => {
+                                const p = usageProducts.find(up => up.id === item.usageProductId)
+                                return p ? (
+                                    <Badge key={i} variant="secondary" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                                        {p.name}: {item.amountUsed}{p.measurementUnit}
+                                    </Badge>
+                                ) : null
+                            })}
+                        </div>
+                        {!isPaid && (
+                            <Button variant="ghost" size="sm" className="text-xs text-blue-600" onClick={() => setAddUsageOpen(true)}>
+                                Editar consumo
+                            </Button>
+                        )}
+                    </div>
+                )}
             </div>
 
             <div className="space-y-4">
@@ -773,6 +919,19 @@ export function CheckoutForm({ saleId, onSuccess, onPaymentStart }: CheckoutForm
                 open={addServiceOpen}
                 onOpenChange={setAddServiceOpen}
                 onAdd={addService}
+            />
+
+            <AddUsageDialog
+                open={addUsageOpen}
+                onOpenChange={setAddUsageOpen}
+                usageProducts={usageProducts}
+                lastFormula={lastFormula}
+                initialItems={usageItems}
+                onConfirm={(items, changed, reason) => {
+                    setUsageItems(items)
+                    setFormulaChanged(changed)
+                    setFormulaChangeReason(reason)
+                }}
             />
 
             <PaymentDialog

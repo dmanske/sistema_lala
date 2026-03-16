@@ -27,7 +27,7 @@ export function AppointmentInfoCard({ appointment, professional }: AppointmentIn
             case 'NO_SHOW':
                 return 'bg-gray-500/10 text-gray-700 border-gray-200'
             case 'BLOCKED':
-                return 'bg-purple-500/10 text-purple-700 border-purple-200'
+                return 'bg-orange-500/10 text-orange-700 border-orange-200'
             default:
                 return 'bg-gray-500/10 text-gray-700 border-gray-200'
         }

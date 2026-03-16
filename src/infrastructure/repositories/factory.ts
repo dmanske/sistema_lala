@@ -194,6 +194,22 @@ export function getCashMovementRepository(client?: SupabaseClient): CashMovement
     return cashMovementRepo;
 }
 
+// Singleton for UsageProductRepository
+let usageProductRepo: UsageProductRepository | null = null;
+import { UsageProductRepository } from '@/core/repositories/UsageProductRepository';
+import { SupabaseUsageProductRepository } from './supabase/SupabaseUsageProductRepository';
+
+export function getUsageProductRepository(): UsageProductRepository {
+    if (!usageProductRepo) {
+        if (useSupabase()) {
+            usageProductRepo = new SupabaseUsageProductRepository();
+        } else {
+            throw new Error('Usage Product module is only available with Supabase backend.');
+        }
+    }
+    return usageProductRepo;
+}
+
 /**
  * Reset all singletons (useful for testing or switching backends)
  */
@@ -210,6 +226,7 @@ export function resetRepositories(): void {
     creditRepo = null;
     stockMovementRepo = null;
     cashMovementRepo = null;
+    usageProductRepo = null;
     bankAccountRepo = null;
     cashRegisterRepo = null;
     accountPayableRepo = null;

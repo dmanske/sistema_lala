@@ -131,17 +131,17 @@ const getCardStyle = (status: string, index: number): CardStyle => {
         };
     }
 
-    // BLOCKED = Cinza com padrão listrado (Bloqueado)
+    // BLOCKED = Laranja claro com padrão listrado (Bloqueado)
     if (status === "BLOCKED") {
         return {
-            bg: "bg-slate-100",
-            border: "border-slate-300 border-dashed",
-            text: "text-slate-500",
-            accent: "bg-slate-400",
+            bg: "bg-orange-50",
+            border: "border-orange-300 border-dashed",
+            text: "text-orange-600",
+            accent: "bg-orange-400",
             shadow: "none",
             opacity: "opacity-90",
             customStyle: {
-                backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 10px, #f1f5f9 10px, #f1f5f9 20px)"
+                backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 10px, #fff7ed 10px, #fff7ed 20px)"
             }
         };
     }
@@ -683,7 +683,7 @@ export default function AgendaPage() {
             DONE: "bg-emerald-100 text-emerald-700 border-emerald-200",
             CANCELED: "bg-slate-100 text-slate-700 border-slate-200",
             NO_SHOW: "bg-rose-100 text-rose-700 border-rose-200",
-            BLOCKED: "bg-slate-200 text-slate-600 border-slate-300",
+            BLOCKED: "bg-orange-100 text-orange-700 border-orange-200",
         };
 
         return (
@@ -755,11 +755,11 @@ export default function AgendaPage() {
 
                 <div className={cn("flex flex-col h-full justify-center", isCompactMode ? "pl-0.5 gap-0" : "pl-1 gap-0.5")}>
                     {apt.status === "BLOCKED" ? (
-                        <div className={cn("flex items-center justify-center h-full gap-2 opacity-60", isCompactMode && "gap-1")}>
-                            <div className={cn("bg-slate-200 rounded-full flex items-center justify-center", isCompactMode ? "h-3 w-3" : "h-4 w-4")}>
-                                <div className={cn("bg-slate-400 rounded-sm", isCompactMode ? "w-1.5 h-1.5" : "w-2 h-2")} />
+                        <div className={cn("flex items-center justify-center h-full gap-2 opacity-70", isCompactMode && "gap-1")}>
+                            <div className={cn("bg-orange-200 rounded-full flex items-center justify-center", isCompactMode ? "h-3 w-3" : "h-4 w-4")}>
+                                <div className={cn("bg-orange-400 rounded-sm", isCompactMode ? "w-1.5 h-1.5" : "w-2 h-2")} />
                             </div>
-                            <span className={cn("font-semibold text-slate-500 uppercase tracking-widest", isCompactMode ? "text-[8px]" : "text-[10px]")}>
+                            <span className={cn("font-semibold text-orange-500 uppercase tracking-widest", isCompactMode ? "text-[8px]" : "text-[10px]")}>
                                 {isCompactMode ? "Bloq" : "Bloqueado"}
                             </span>
                         </div>
@@ -821,15 +821,15 @@ export default function AgendaPage() {
                     {apt.status === "BLOCKED" ? (
                         /* ===== BLOCKED SLOT POPOVER ===== */
                         <div>
-                            <div className="p-4 border-b border-slate-100 bg-slate-50/80">
+                            <div className="p-4 border-b border-orange-100 bg-orange-50/80">
                                 <div className="flex items-center gap-3">
-                                    <div className="h-12 w-12 rounded-full bg-slate-200 flex items-center justify-center">
-                                        <Clock className="h-6 w-6 text-slate-500" />
+                                    <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
+                                        <Clock className="h-6 w-6 text-orange-500" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <h4 className="font-bold text-slate-700 text-lg">Horário Bloqueado</h4>
+                                        <h4 className="font-bold text-orange-700 text-lg">Horário Bloqueado</h4>
                                         <div className="flex items-center gap-2 mt-0.5">
-                                            <Badge variant="outline" className="bg-slate-200 text-slate-600 border-slate-300 text-[10px] uppercase tracking-wide font-medium px-2 py-0.5">
+                                            <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-200 text-[10px] uppercase tracking-wide font-medium px-2 py-0.5">
                                                 Bloqueado
                                             </Badge>
                                         </div>

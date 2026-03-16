@@ -1,5 +1,6 @@
 ---
 inclusion: auto
+description: "Workflow de planejamento de features com fases estruturadas"
 ---
 
 # Feature Planning Workflow - Regra Global

@@ -25,7 +25,8 @@ import {
     TrendingUp,
     Settings,
     FolderTree,
-    Briefcase
+    Briefcase,
+    Droplets
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -78,6 +79,7 @@ export function Sidebar({ className }: SidebarProps) {
             items: [
                 { name: "Serviços", icon: Scissors, href: "/services", active: true },
                 { name: "Produtos", icon: Package, href: "/products", active: true },
+                { name: "Controle de Consumo", icon: Droplets, href: "/consumption", active: true },
             ],
         },
         {

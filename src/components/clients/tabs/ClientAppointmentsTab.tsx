@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, User, Save, Loader2, StickyNote, CreditCard } from "lucide-react";
+import { Calendar, Clock, User, Save, Loader2, StickyNote, CreditCard, Droplets } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Appointment } from "@/core/domain/Appointment";
@@ -13,11 +13,11 @@ import { getAppointmentRepository, getClientRepository, getSaleRepository, getSe
 import { Sale, PaymentMethod } from "@/core/domain/sales/types";
 import { Service } from "@/core/domain/Service";
 import { Professional } from "@/core/domain/Professional";
-import { cn } from "@/lib/utils";
+import { UsageProductLog } from "@/core/domain/UsageProduct";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Label } from "@/components/ui/label";
+import { useUsageProducts } from "@/hooks/useUsageProducts";
 
 interface ClientAppointmentsTabProps {
     clientId: string;
@@ -29,6 +29,8 @@ export function ClientAppointmentsTab({ clientId }: ClientAppointmentsTabProps) 
     const [professionals, setProfessionals] = useState<Professional[]>([]);
     const [services, setServices] = useState<Service[]>([]);
     const [loading, setLoading] = useState(true);
+    const [usageLogs, setUsageLogs] = useState<UsageProductLog[]>([]);
+    const { getLogsByClient } = useUsageProducts();
 
     // Notes
     const [clientNotes, setClientNotes] = useState("");
@@ -76,6 +78,14 @@ export function ClientAppointmentsTab({ clientId }: ClientAppointmentsTabProps) 
 
             if (clientData) {
                 setClientNotes(clientData.notes || "");
+            }
+
+            // Fetch usage logs for this client
+            try {
+                const logs = await getLogsByClient(clientId);
+                setUsageLogs(logs);
+            } catch (e) {
+                console.error("Error fetching usage logs:", e);
             }
 
         } catch (error) {
@@ -257,6 +267,33 @@ export function ClientAppointmentsTab({ clientId }: ClientAppointmentsTabProps) 
                                                         <p className="pl-3 leading-relaxed">{apt.notes}</p>
                                                     </div>
                                                 )}
+
+                                                {/* Fórmula de Consumo */}
+                                                {(() => {
+                                                    const aptLogs = usageLogs.filter(l => l.appointmentId === apt.id);
+                                                    if (aptLogs.length === 0) return null;
+                                                    return (
+                                                        <div className="mt-3 p-3 bg-violet-50/50 border border-violet-100 rounded-xl">
+                                                            <div className="flex items-center gap-1.5 mb-1.5">
+                                                                <Droplets className="h-3.5 w-3.5 text-violet-600" />
+                                                                <span className="text-xs font-bold text-violet-800 uppercase tracking-wider">Fórmula utilizada</span>
+                                                            </div>
+                                                            <div className="space-y-0.5 pl-5">
+                                                                {aptLogs.map((log, i) => (
+                                                                    <div key={i} className="text-sm text-violet-700">
+                                                                        • {log.productName || "Produto"}: {log.amountUsed}{log.measurementUnit || 'g'}
+                                                                        {log.notes && <span className="text-violet-500 ml-1">({log.notes})</span>}
+                                                                    </div>
+                                                                ))}
+                                                                {aptLogs.find(l => l.formulaChangeReason) && (
+                                                                    <div className="mt-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded px-2 py-1">
+                                                                        📝 Motivo da alteração: {aptLogs.find(l => l.formulaChangeReason)?.formulaChangeReason}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
                                         </div>
                                     </div>
