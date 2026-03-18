@@ -80,6 +80,7 @@ export function NewPurchaseDialog({ open, onOpenChange, onSuccess }: NewPurchase
     const [installmentsCount, setInstallmentsCount] = useState(1);
     const [firstDueDate, setFirstDueDate] = useState<string>("");
     const [installmentInterval, setInstallmentInterval] = useState(30);
+    const [installments, setInstallments] = useState<{ number: number; total: number; value: number; dueDate: string }[]>([]);
 
     const form = useForm<PurchaseFormInput>({
         resolver: zodResolver(PurchaseFormSchema),
@@ -132,24 +133,23 @@ export function NewPurchaseDialog({ open, onOpenChange, onSuccess }: NewPurchase
         return acc + (qty * cost);
     }, 0) || 0;
 
-    // Calculate installments preview
-    const installmentsPreview = React.useMemo(() => {
+    // Recalculate installments when inputs change
+    useEffect(() => {
         if (isPaid || !firstDueDate || paymentType === 'single') {
-            return [];
+            setInstallments([]);
+            return;
         }
 
         const count = paymentType === 'installment' ? installmentsCount : 1;
-        const installments = [];
         const baseValue = Math.floor((grandTotal / count) * 100) / 100;
         const remainder = grandTotal - (baseValue * count);
+        const newInstallments = [];
 
         for (let i = 0; i < count; i++) {
             const dueDate = new Date(firstDueDate);
             dueDate.setDate(dueDate.getDate() + (i * installmentInterval));
-            
             const value = i === count - 1 ? baseValue + remainder : baseValue;
-            
-            installments.push({
+            newInstallments.push({
                 number: i + 1,
                 total: count,
                 value,
@@ -157,8 +157,12 @@ export function NewPurchaseDialog({ open, onOpenChange, onSuccess }: NewPurchase
             });
         }
 
-        return installments;
+        setInstallments(newInstallments);
     }, [isPaid, firstDueDate, paymentType, installmentsCount, grandTotal, installmentInterval]);
+
+    const handleInstallmentDateChange = (index: number, newDate: string) => {
+        setInstallments(prev => prev.map((inst, i) => i === index ? { ...inst, dueDate: newDate } : inst));
+    };
 
     useEffect(() => {
         if (isPaid && form.getValues("paidAmount") === 0) {
@@ -188,6 +192,7 @@ export function NewPurchaseDialog({ open, onOpenChange, onSuccess }: NewPurchase
                 installmentsCount?: number;
                 firstDueDate?: string;
                 installmentInterval?: number;
+                customInstallments?: typeof installments;
             } = {
                 ...data,
                 paymentMethod: isPaid ? data.paymentMethod : undefined,
@@ -200,6 +205,7 @@ export function NewPurchaseDialog({ open, onOpenChange, onSuccess }: NewPurchase
                 installmentsCount: !isPaid && paymentType === 'installment' ? installmentsCount : 1,
                 firstDueDate: !isPaid ? firstDueDate : undefined,
                 installmentInterval: !isPaid && paymentType === 'installment' ? installmentInterval : undefined,
+                customInstallments: !isPaid && installments.length > 0 ? installments : undefined,
             };
             
             await createUseCase.execute(input);
@@ -496,19 +502,25 @@ export function NewPurchaseDialog({ open, onOpenChange, onSuccess }: NewPurchase
                                         )}
                                     </div>
 
-                                    {installmentsPreview.length > 0 && (
+                                    {installments.length > 0 && (
                                         <div className="bg-white p-3 rounded-lg border">
                                             <p className="text-sm font-semibold mb-2">Parcelas que serão criadas:</p>
                                             <div className="space-y-1.5">
-                                                {installmentsPreview.map((inst) => (
-                                                    <div key={inst.number} className="flex justify-between items-center text-sm">
-                                                        <span className="text-muted-foreground">{inst.number}/{inst.total}</span>
-                                                        <span className="font-medium">
+                                                {installments.map((inst, idx) => (
+                                                    <div key={inst.number} className="flex justify-between items-center gap-3 text-sm">
+                                                        <span className="text-muted-foreground w-10 shrink-0">{inst.number}/{inst.total}</span>
+                                                        <span className="font-medium w-24 shrink-0">
                                                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(inst.value)}
                                                         </span>
-                                                        <span className="text-muted-foreground">
-                                                            {new Date(inst.dueDate).toLocaleDateString('pt-BR')}
-                                                        </span>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="text-muted-foreground text-xs">Venc:</span>
+                                                            <Input
+                                                                type="date"
+                                                                value={inst.dueDate}
+                                                                onChange={(e) => handleInstallmentDateChange(idx, e.target.value)}
+                                                                className="h-7 rounded-lg text-xs px-2 w-36"
+                                                            />
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>

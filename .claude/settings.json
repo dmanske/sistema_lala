@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /Users/dmanske/Documents/GitHub/sistema_lala/src -name *parcel* -o -name *installment*)"
+    ]
+  }
+}

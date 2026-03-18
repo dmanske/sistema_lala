@@ -20,16 +20,17 @@ export class CreatePurchaseWithInstallments {
         installmentsCount?: number;
         firstDueDate?: string;
         installmentInterval?: number;
+        customInstallments?: InstallmentData[];
     }): Promise<Purchase> {
         // 1. Create Purchase Record (RPC function already creates stock movements)
         const purchase = await this.purchaseRepo.create(input);
 
         // 2. Create Accounts Payable if not paid immediately
-        if (input.paymentType !== 'IMMEDIATE' && input.firstDueDate) {
-            const installments = this.calculateInstallments(
+        if (input.paymentType !== 'IMMEDIATE' && (input.firstDueDate || input.customInstallments)) {
+            const installments = input.customInstallments ?? this.calculateInstallments(
                 purchase.total,
                 input.installmentsCount || 1,
-                input.firstDueDate,
+                input.firstDueDate!,
                 input.installmentInterval || 30
             );
 
