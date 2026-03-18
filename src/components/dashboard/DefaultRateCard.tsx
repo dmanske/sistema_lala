@@ -1,6 +1,5 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -11,125 +10,70 @@ interface DefaultRateData {
   defaultRate: number;
 }
 
-interface DefaultRateCardProps {
-  data?: DefaultRateData;
-}
+const brl = (v: number) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value);
-};
-
-export function DefaultRateCard({ data }: DefaultRateCardProps) {
+export function DefaultRateCard({ data }: { data?: DefaultRateData }) {
   if (!data) {
     return (
-      <Card className="border-slate-200 shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <div className="p-2 bg-rose-50 rounded-lg">
-              <AlertTriangle className="h-4 w-4 text-rose-600" />
-            </div>
-            Inadimplência
-          </CardTitle>
-          <CardDescription>Contas vencidas e não pagas</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-32 text-muted-foreground">
-            <p>Carregando dados...</p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="bg-card rounded-2xl border border-border shadow-sm p-5 animate-pulse">
+        <div className="h-3 w-24 bg-slate-200 rounded mb-4" />
+        <div className="h-10 w-20 bg-slate-200 rounded mb-3" />
+        <div className="h-3 w-32 bg-slate-200 rounded" />
+      </div>
     );
   }
 
   const { totalOverdue, totalReceivables, overdueCount, defaultRate } = data;
+  const rateColor = defaultRate > 10 ? 'text-rose-600' : defaultRate > 5 ? 'text-amber-600' : 'text-emerald-600';
+  const iconBg = defaultRate > 10 ? 'bg-rose-50' : defaultRate > 5 ? 'bg-amber-50' : 'bg-emerald-50';
+  const iconColor = defaultRate > 10 ? 'text-rose-500' : defaultRate > 5 ? 'text-amber-500' : 'text-emerald-500';
 
   return (
-    <Card className={cn(
-      "border-slate-200 shadow-sm hover:shadow-md transition-shadow",
-      defaultRate > 10 && "border-rose-200 bg-rose-50/30"
-    )}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <div className={cn(
-            "p-2 rounded-lg",
-            defaultRate > 10 ? "bg-rose-100" : "bg-rose-50"
-          )}>
-            <AlertTriangle className={cn(
-              "h-4 w-4",
-              defaultRate > 10 ? "text-rose-700" : "text-rose-600"
-            )} />
-          </div>
-          Inadimplência
-        </CardTitle>
-        <CardDescription>Contas vencidas e não pagas</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {/* Taxa de Inadimplência */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Taxa de Inadimplência</p>
-              <p className={cn(
-                "text-3xl font-bold",
-                defaultRate > 10 ? "text-rose-700" : 
-                defaultRate > 5 ? "text-orange-600" : 
-                "text-emerald-600"
-              )}>
-                {defaultRate.toFixed(1)}%
-              </p>
-            </div>
-            <div className={cn(
-              "p-3 rounded-full",
-              defaultRate > 10 ? "bg-rose-100" : 
-              defaultRate > 5 ? "bg-orange-100" : 
-              "bg-emerald-100"
-            )}>
-              <TrendingDown className={cn(
-                "h-6 w-6",
-                defaultRate > 10 ? "text-rose-600" : 
-                defaultRate > 5 ? "text-orange-600" : 
-                "text-emerald-600"
-              )} />
-            </div>
-          </div>
-
-          {/* Valores */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 bg-rose-50 rounded-lg border border-rose-100">
-              <p className="text-xs text-muted-foreground mb-1">Valor Vencido</p>
-              <p className="text-lg font-bold text-rose-600">
-                {formatCurrency(totalOverdue)}
-              </p>
-            </div>
-            <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-              <p className="text-xs text-muted-foreground mb-1">Parcelas Vencidas</p>
-              <p className="text-lg font-bold text-slate-700">
-                {overdueCount}
-              </p>
-            </div>
-          </div>
-
-          {/* Total a Receber */}
-          <div className="pt-3 border-t">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Total a Receber</span>
-              <span className="font-semibold">{formatCurrency(totalReceivables)}</span>
-            </div>
-          </div>
-
-          {/* Alerta */}
-          {defaultRate > 10 && (
-            <div className="p-2 bg-rose-100 rounded-lg border border-rose-200">
-              <p className="text-xs text-rose-700 font-medium">
-                ⚠️ Taxa de inadimplência acima do recomendado (10%)
-              </p>
-            </div>
-          )}
+    <div className={cn('bg-card rounded-2xl border shadow-sm p-5', defaultRate > 10 ? 'border-rose-200' : 'border-border')}>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Inadimplência</span>
+          <p className="text-xs text-slate-400 mt-0.5">Contas vencidas e não pagas</p>
         </div>
-      </CardContent>
-    </Card>
+        <div className={cn('h-9 w-9 rounded-xl flex items-center justify-center', iconBg)}>
+          <AlertTriangle className={cn('h-4 w-4', iconColor)} />
+        </div>
+      </div>
+
+      {/* Taxa */}
+      <div className="flex items-end justify-between mb-4">
+        <div>
+          <p className="text-xs text-slate-400 mb-0.5">Taxa de Inadimplência</p>
+          <p className={cn('text-3xl font-bold', rateColor)}>{defaultRate.toFixed(1)}%</p>
+        </div>
+        <div className={cn('h-10 w-10 rounded-full flex items-center justify-center', iconBg)}>
+          <TrendingDown className={cn('h-5 w-5', iconColor)} />
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <div className="bg-rose-50 rounded-xl p-3 border border-rose-100">
+          <p className="text-xs text-slate-400 mb-1">Valor Vencido</p>
+          <p className="text-sm font-bold text-rose-600">{brl(totalOverdue)}</p>
+        </div>
+        <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+          <p className="text-xs text-slate-400 mb-1">Parcelas</p>
+          <p className="text-sm font-bold text-slate-700">{overdueCount}</p>
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center pt-3 border-t border-border text-xs">
+        <span className="text-slate-400">Total a Receber</span>
+        <span className="font-semibold text-slate-700">{brl(totalReceivables)}</span>
+      </div>
+
+      {defaultRate > 10 && (
+        <div className="mt-3 p-2.5 bg-rose-50 rounded-xl border border-rose-200">
+          <p className="text-xs text-rose-700 font-medium">Taxa acima do recomendado (10%). Ação necessária.</p>
+        </div>
+      )}
+    </div>
   );
 }

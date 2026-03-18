@@ -1,22 +1,10 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { startOfMonth, endOfMonth } from "date-fns";
-import {
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  Wallet,
-  AlertCircle,
-  ArrowUpRight,
-  ArrowDownRight,
-} from "lucide-react";
+import { BarChart2, AlertCircle, Loader2 } from "lucide-react";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { PeriodFilter } from "@/components/dashboard/PeriodFilter";
 import { DashboardAlerts, Alert } from "@/components/dashboard/DashboardAlerts";
-
 import { FinancialMetricsCards } from "@/components/dashboard/FinancialMetricsCards";
 import { CashFlowChart } from "@/components/dashboard/CashFlowChart";
 import { InflowOutflowChart } from "@/components/dashboard/InflowOutflowChart";
@@ -24,53 +12,47 @@ import { BankAccountsList } from "@/components/dashboard/BankAccountsList";
 import { DefaultRateCard } from "@/components/dashboard/DefaultRateCard";
 import { ExpenseTypeCard } from "@/components/dashboard/ExpenseTypeCard";
 import { SimplifiedDRECard } from "@/components/dashboard/SimplifiedDRECard";
-
 import { useFinancialDashboard } from "@/hooks/useFinancialDashboard";
 
+const TABS = [
+  { id: 'cashflow', label: 'Fluxo de Caixa' },
+  { id: 'analysis', label: 'Análises' },
+  { id: 'accounts', label: 'Contas Bancárias' },
+] as const;
+
+type TabId = typeof TABS[number]['id'];
+
 export default function FinancialDashboardPage() {
-  const [periodStart, setPeriodStart] = useState(startOfMonth(new Date()));
-  const [periodEnd, setPeriodEnd] = useState(endOfMonth(new Date()));
-  const [activeTab, setActiveTab] = useState<'cashflow' | 'analysis' | 'accounts'>('cashflow');
-  
-  // Converter para o formato esperado pelo hook
-  const period = useMemo(() => {
-    const now = new Date();
-    const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
-    
-    if (periodStart.getTime() === monthStart.getTime() && periodEnd.getTime() === monthEnd.getTime()) {
-      return 'current_month';
-    }
-    return 'current_month'; // fallback
-  }, [periodStart, periodEnd]);
+  const [periodStart] = useState(startOfMonth(new Date()));
+  const [periodEnd] = useState(endOfMonth(new Date()));
+  const [activeTab, setActiveTab] = useState<TabId>('cashflow');
 
-  const { data, loading, error } = useFinancialDashboard(period);
+  const { data, loading, error } = useFinancialDashboard('current_month');
 
-  const handlePeriodChange = (start: Date, end: Date) => {
-    setPeriodStart(start);
-    setPeriodEnd(end);
-  };
-
-  // Generate alerts
   const alerts: Alert[] = useMemo(() => {
     if (!data?.alerts) return [];
-    
     return data.alerts.map((alert: any, idx: number) => ({
       id: `alert-${idx}`,
       type: alert.type || 'warning',
       title: alert.title || 'Alerta',
       message: alert.message || '',
-      dismissible: true
+      dismissible: true,
     }));
   }, [data?.alerts]);
 
   if (loading && !data) {
     return (
-      <div className="space-y-6">
-        <div className="h-20 bg-muted/30 rounded-lg animate-pulse" />
+      <div className="space-y-6 pb-10">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-200 animate-pulse" />
+          <div className="space-y-2">
+            <div className="h-6 w-48 bg-muted/40 rounded-lg animate-pulse" />
+            <div className="h-4 w-64 bg-muted/30 rounded-lg animate-pulse" />
+          </div>
+        </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="h-32 bg-muted/30 rounded-lg animate-pulse" />
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-32 bg-card rounded-2xl border border-border animate-pulse" />
           ))}
         </div>
       </div>
@@ -80,72 +62,60 @@ export default function FinancialDashboardPage() {
   if (error) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="h-5 w-5" />
-              Erro ao carregar dados
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">{error}</p>
-          </CardContent>
-        </Card>
+        <div className="bg-card rounded-2xl border border-border shadow-sm p-8 max-w-md text-center">
+          <div className="h-12 w-12 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="h-6 w-6 text-red-500" />
+          </div>
+          <h3 className="text-base font-semibold text-slate-800 mb-2">Erro ao carregar dados</h3>
+          <p className="text-sm text-slate-500">{error}</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 pb-10">
+
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex items-center gap-4">
+        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-200">
+          <BarChart2 className="h-6 w-6 text-white" />
+        </div>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Dashboard Financeiro
-          </h1>
-          <p className="text-muted-foreground">
-            Visão consolidada do fluxo de caixa e métricas financeiras
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-800">Dashboard Financeiro</h1>
+          <p className="text-sm text-slate-500">Visão consolidada do fluxo financeiro</p>
         </div>
       </div>
 
-      {/* Métricas Principais */}
+      {/* Métricas */}
       <FinancialMetricsCards metrics={data?.metrics} />
 
       {/* Alerts */}
       {alerts.length > 0 && <DashboardAlerts alerts={alerts} />}
 
       {/* Tabs */}
-      <div className="flex items-center gap-2">
-        <Button
-          variant={activeTab === 'cashflow' ? 'default' : 'outline'}
-          onClick={() => setActiveTab('cashflow')}
-        >
-          Fluxo de Caixa
-        </Button>
-        <Button
-          variant={activeTab === 'analysis' ? 'default' : 'outline'}
-          onClick={() => setActiveTab('analysis')}
-        >
-          Análises
-        </Button>
-        <Button
-          variant={activeTab === 'accounts' ? 'default' : 'outline'}
-          onClick={() => setActiveTab('accounts')}
-        >
-          Contas Bancárias
-        </Button>
+      <div className="flex items-center gap-1 bg-card border border-border shadow-sm rounded-xl p-1 w-fit">
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeTab === tab.id
+                ? 'bg-violet-600 text-white shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Tab Content */}
       {activeTab === 'cashflow' && (
-        <div className="space-y-4">
-          {/* Cards de Insights */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <DefaultRateCard data={data?.insights?.defaultRate} />
-            <ExpenseTypeCard data={data?.insights?.expenseType} />
-            <SimplifiedDRECard data={data?.insights?.simplifiedDRE} />
-          </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          <DefaultRateCard data={data?.insights?.defaultRate} />
+          <ExpenseTypeCard data={data?.insights?.expenseType} />
+          <SimplifiedDRECard data={data?.insights?.simplifiedDRE} />
         </div>
       )}
 
@@ -157,9 +127,7 @@ export default function FinancialDashboardPage() {
       )}
 
       {activeTab === 'accounts' && (
-        <div className="space-y-4">
-          <BankAccountsList accounts={data?.bankAccounts} />
-        </div>
+        <BankAccountsList accounts={data?.bankAccounts} />
       )}
     </div>
   );
