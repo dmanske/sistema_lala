@@ -730,14 +730,9 @@ export default function AgendaPage() {
                     ...(style as any).customStyle
                 }}
                 onMouseDown={canDrag ? (e) => handleDragStart(e, apt) : undefined}
-                onMouseEnter={() => {
-                    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-                    setHoveredAppointmentId(apt.id);
-                }}
-                onMouseLeave={() => {
-                    hoverTimeoutRef.current = setTimeout(() => {
-                        setHoveredAppointmentId(null);
-                    }, 200);
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setHoveredAppointmentId(prev => prev === apt.id ? null : apt.id);
                 }}
             >
                 {/* Accent Bar Left (Visual indicator) */}
@@ -809,14 +804,6 @@ export default function AgendaPage() {
                     className="w-80 p-0 rounded-2xl shadow-xl z-50 border-slate-100 bg-white/80 backdrop-blur-xl"
                     align="start"
                     sideOffset={5}
-                    onMouseEnter={() => {
-                        if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-                    }}
-                    onMouseLeave={() => {
-                        hoverTimeoutRef.current = setTimeout(() => {
-                            setHoveredAppointmentId(null);
-                        }, 200);
-                    }}
                 >
                     {apt.status === "BLOCKED" ? (
                         /* ===== BLOCKED SLOT POPOVER ===== */
