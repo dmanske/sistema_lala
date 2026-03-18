@@ -3,24 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-    Plus, Search, ShoppingBag, Calendar, Package, ArrowRight,
-    Loader2, Filter
+    Plus, Search, ShoppingBag, Calendar, Package,
+    ArrowRight, Filter, TrendingDown, Clock, CheckCircle2,
+    AlertCircle, ChevronRight,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { NewPurchaseDialog } from "@/components/purchases/NewPurchaseDialog";
 import { Input } from "@/components/ui/input";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
     Select,
     SelectContent,
@@ -30,10 +20,38 @@ import {
 } from "@/components/ui/select";
 
 import { Purchase, calculatePaymentSummary } from "@/core/domain/Purchase";
-import { Supplier } from "@/core/domain/Supplier";
 import { getPurchaseRepository, getSupplierRepository } from "@/infrastructure/repositories/factory";
 import { formatDate, parseLocalDate } from "@/lib/utils/dateFormatters";
-import { PaymentStatusBadge } from "@/components/purchases/PaymentStatusBadge";
+
+const brl = (v: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+
+const getInitials = (name: string) =>
+    name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+
+const statusConfig = {
+    PAID: {
+        label: 'Pago',
+        icon: CheckCircle2,
+        className: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+        iconClass: 'text-emerald-400',
+        dot: 'bg-emerald-400',
+    },
+    PARTIAL: {
+        label: 'Parcial',
+        icon: AlertCircle,
+        className: 'bg-amber-50 text-amber-600 border-amber-200',
+        iconClass: 'text-amber-400',
+        dot: 'bg-amber-400',
+    },
+    PENDING: {
+        label: 'Pendente',
+        icon: Clock,
+        className: 'bg-red-50 text-red-500 border-red-200',
+        iconClass: 'text-red-400',
+        dot: 'bg-red-400',
+    },
+} as const;
 
 export default function PurchasesPage() {
     const router = useRouter();
@@ -53,13 +71,9 @@ export default function PurchasesPage() {
                 purchaseRepo.getAll(),
                 supplierRepo.getAll()
             ]);
-
-            // Create Supplier Map
             const sMap = new Map<string, string>();
             sList.forEach(s => sMap.set(s.id, s.name));
             setSuppliers(sMap);
-
-            // Sort by Date Desc
             const sorted = pList.sort((a, b) => {
                 const dateA = parseLocalDate(a.date)?.getTime() || 0;
                 const dateB = parseLocalDate(b.date)?.getTime() || 0;
@@ -73,171 +87,114 @@ export default function PurchasesPage() {
         }
     };
 
-    useEffect(() => {
-        loadData();
-    }, []);
+    useEffect(() => { loadData(); }, []);
 
     const filteredPurchases = purchases.filter(p => {
         const supplierName = suppliers.get(p.supplierId)?.toLowerCase() || "";
-        const idMatch = p.id.toLowerCase().includes(search.toLowerCase());
-        const supplierMatch = supplierName.includes(search.toLowerCase());
-        const searchMatch = idMatch || supplierMatch;
-        
+        const searchMatch = p.id.toLowerCase().includes(search.toLowerCase()) || supplierName.includes(search.toLowerCase());
         const statusMatch = statusFilter === "ALL" || p.paymentStatus === statusFilter;
-        
         return searchMatch && statusMatch;
     });
 
-    const getInitials = (name: string) => {
-        return name
-            .split(' ')
-            .map(n => n[0])
-            .slice(0, 2)
-            .join('')
-            .toUpperCase();
-    };
+    const totalValue = purchases.reduce((sum, p) => sum + p.total, 0);
+    const pending = purchases.filter(p => p.paymentStatus === 'PENDING' || p.paymentStatus === 'PARTIAL');
+    const pendingValue = pending.reduce((sum, p) => sum + calculatePaymentSummary(p).remaining, 0);
+    const lastPurchase = purchases[0];
 
     return (
-        <div className="space-y-6 pb-20">
-            <div className="hidden md:flex justify-between items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground font-heading">Entradas de Estoque</h1>
-                    <p className="text-muted-foreground">
-                        Histórico de compras e entradas de produtos.
-                    </p>
+        <div className="space-y-6 pb-10">
+
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-200">
+                        <Package className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight text-slate-800">Entradas de Estoque</h1>
+                        <p className="text-sm text-slate-500">Histórico de compras e entradas de produtos</p>
+                    </div>
                 </div>
-                <Button 
+                <Button
                     onClick={() => setIsDialogOpen(true)}
-                    className="rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all"
+                    className="rounded-xl h-10 px-5 bg-gradient-to-r from-emerald-500 to-green-600 shadow-lg shadow-emerald-200 hover:shadow-emerald-300 transition-shadow"
                 >
-                    <Plus className="mr-2 h-4 w-4" />
+                    <Plus className="h-4 w-4 mr-2" />
                     Nova Entrada
                 </Button>
             </div>
 
-            {/* Mobile Header */}
-            <div className="md:hidden flex justify-between items-center">
-                <h1 className="text-2xl font-bold font-heading">Compras</h1>
-                <Button 
-                    onClick={() => setIsDialogOpen(true)}
-                    size="sm" 
-                    className="rounded-xl"
-                >
-                    <Plus className="h-4 w-4" />
-                </Button>
-            </div>
-
-            <NewPurchaseDialog 
-                open={isDialogOpen} 
+            <NewPurchaseDialog
+                open={isDialogOpen}
                 onOpenChange={setIsDialogOpen}
-                onSuccess={() => {
-                    loadData();
-                    router.refresh();
-                }}
+                onSuccess={() => { loadData(); router.refresh(); }}
             />
 
-            {/* Metrics Cards */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-100">
-                    <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-white/40 to-transparent blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Total de Compras</p>
-                                <p className="text-3xl font-bold text-slate-900 tracking-tight mt-2">{purchases.length}</p>
-                                <p className="text-xs text-slate-600 mt-2 font-medium">Entradas registradas</p>
-                            </div>
-                            <div className="p-2.5 bg-purple-50 rounded-xl shadow-sm transition-transform duration-300 group-hover:scale-110">
-                                <ShoppingBag className="h-4 w-4 text-purple-600" />
-                            </div>
+            {/* Stats */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total de Compras</span>
+                        <div className="h-8 w-8 rounded-xl bg-purple-50 flex items-center justify-center">
+                            <ShoppingBag className="h-4 w-4 text-purple-400" />
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+                    <p className="text-2xl font-bold text-slate-800">{purchases.length}</p>
+                    <p className="text-xs text-slate-400 mt-1">Entradas registradas</p>
+                </div>
 
-                <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-gradient-to-br from-emerald-500/10 to-green-500/10 border border-emerald-100">
-                    <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-white/40 to-transparent blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Valor Total</p>
-                                <p className="text-3xl font-bold text-slate-900 tracking-tight mt-2">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                                        purchases.reduce((sum, p) => sum + p.total, 0)
-                                    )}
-                                </p>
-                                <p className="text-xs text-slate-600 mt-2 font-medium">Investido em estoque</p>
-                            </div>
-                            <div className="p-2.5 bg-emerald-50 rounded-xl shadow-sm transition-transform duration-300 group-hover:scale-110">
-                                <Package className="h-4 w-4 text-emerald-600" />
-                            </div>
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Valor Total</span>
+                        <div className="h-8 w-8 rounded-xl bg-emerald-50 flex items-center justify-center">
+                            <TrendingDown className="h-4 w-4 text-emerald-400" />
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+                    <p className="text-2xl font-bold text-slate-800">{brl(totalValue)}</p>
+                    <p className="text-xs text-slate-400 mt-1">Investido em estoque</p>
+                </div>
 
-                <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-100">
-                    <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-white/40 to-transparent blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Última Compra</p>
-                                <p className="text-xl font-bold text-slate-900 tracking-tight mt-2 truncate">
-                                    {purchases.length > 0
-                                        ? suppliers.get(purchases[0].supplierId) || "N/A"
-                                        : "N/A"
-                                    }
-                                </p>
-                                <p className="text-xs text-slate-600 mt-2 font-medium">
-                                    {purchases.length > 0
-                                        ? formatDate(purchases[0].date)
-                                        : "Sem compras"
-                                    }
-                                </p>
-                            </div>
-                            <div className="p-2.5 bg-blue-50 rounded-xl shadow-sm transition-transform duration-300 group-hover:scale-110">
-                                <Calendar className="h-4 w-4 text-blue-600" />
-                            </div>
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Última Compra</span>
+                        <div className="h-8 w-8 rounded-xl bg-blue-50 flex items-center justify-center">
+                            <Calendar className="h-4 w-4 text-blue-400" />
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+                    <p className="text-base font-bold text-slate-800 truncate">
+                        {lastPurchase ? (suppliers.get(lastPurchase.supplierId) || 'N/A') : '—'}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">
+                        {lastPurchase ? formatDate(lastPurchase.date) : 'Sem compras'}
+                    </p>
+                </div>
 
-                <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-gradient-to-br from-orange-500/10 to-amber-500/10 border border-orange-100">
-                    <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-white/40 to-transparent blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Pagamentos Pendentes</p>
-                                <p className="text-3xl font-bold text-slate-900 tracking-tight mt-2">
-                                    {purchases.filter(p => p.paymentStatus === 'PENDING' || p.paymentStatus === 'PARTIAL').length}
-                                </p>
-                                <p className="text-xs text-slate-600 mt-2 font-medium">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                                        purchases
-                                            .filter(p => p.paymentStatus === 'PENDING' || p.paymentStatus === 'PARTIAL')
-                                            .reduce((sum, p) => sum + p.total, 0)
-                                    )}
-                                </p>
-                            </div>
-                            <div className="p-2.5 bg-orange-50 rounded-xl shadow-sm transition-transform duration-300 group-hover:scale-110">
-                                <Loader2 className="h-4 w-4 text-orange-600" />
-                            </div>
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pendente</span>
+                        <div className="h-8 w-8 rounded-xl bg-amber-50 flex items-center justify-center">
+                            <Clock className="h-4 w-4 text-amber-400" />
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+                    <p className="text-2xl font-bold text-amber-600">{pending.length}</p>
+                    <p className="text-xs text-slate-400 mt-1">{brl(pendingValue)} em aberto</p>
+                </div>
             </div>
 
-            <div className="bg-card/50 backdrop-blur-xl p-4 sm:p-6 rounded-2xl border border-white/20 shadow-lg shadow-purple-500/5 flex flex-col md:flex-row gap-4">
+            {/* Filters */}
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <Input
-                        placeholder="Buscar por fornecedor ou ID..."
-                        className="pl-9 bg-white/40 border-white/20 focus:bg-white/60 rounded-xl"
+                        placeholder="Buscar por fornecedor..."
+                        className="pl-9 rounded-xl border-slate-200 bg-slate-50 focus:bg-white"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-full md:w-[200px] bg-white/40 border-white/20 rounded-xl">
-                        <Filter className="h-4 w-4 mr-2" />
+                    <SelectTrigger className="w-full sm:w-[180px] rounded-xl border-slate-200 bg-slate-50">
+                        <Filter className="h-4 w-4 mr-2 text-slate-400" />
                         <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -249,111 +206,104 @@ export default function PurchasesPage() {
                 </Select>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="hover:bg-transparent border-slate-100 bg-slate-50/50">
-                                <TableHead className="font-heading font-semibold text-slate-700">Data</TableHead>
-                                <TableHead className="font-heading font-semibold text-slate-700">Fornecedor</TableHead>
-                                <TableHead className="font-heading font-semibold text-slate-700 text-center">Itens</TableHead>
-                                <TableHead className="font-heading font-semibold text-slate-700 text-right">Total</TableHead>
-                                <TableHead className="font-heading font-semibold text-slate-700 text-right">Saldo</TableHead>
-                                <TableHead className="font-heading font-semibold text-slate-700 text-center">Status</TableHead>
-                                <TableHead className="font-heading font-semibold text-slate-700 w-[50px]"></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {isLoading ? (
-                                Array.from({ length: 5 }).map((_, i) => (
-                                    <TableRow key={i} className="border-slate-100">
-                                        <TableCell><div className="h-4 w-24 bg-slate-100 rounded animate-pulse" /></TableCell>
-                                        <TableCell><div className="h-4 w-32 bg-slate-100 rounded animate-pulse" /></TableCell>
-                                        <TableCell><div className="h-4 w-12 bg-slate-100 rounded animate-pulse mx-auto" /></TableCell>
-                                        <TableCell><div className="h-4 w-20 bg-slate-100 rounded animate-pulse ml-auto" /></TableCell>
-                                        <TableCell><div className="h-4 w-20 bg-slate-100 rounded animate-pulse ml-auto" /></TableCell>
-                                        <TableCell><div className="h-4 w-16 bg-slate-100 rounded animate-pulse mx-auto" /></TableCell>
-                                        <TableCell></TableCell>
-                                    </TableRow>
-                                ))
-                            ) : filteredPurchases.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={7} className="h-32 text-center border-slate-100">
-                                        <div className="flex flex-col items-center justify-center text-muted-foreground">
-                                            <ShoppingBag className="h-10 w-10 text-slate-300 mb-2" />
-                                            <p className="font-medium text-slate-600">Nenhuma compra encontrada</p>
-                                            <p className="text-xs text-slate-500 mt-1">
-                                                {statusFilter !== "ALL" 
-                                                    ? "Tente alterar o filtro de status"
-                                                    : "Registre sua primeira entrada de estoque"
-                                                }
-                                            </p>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                filteredPurchases.map((purchase) => {
-                                    const supplierName = suppliers.get(purchase.supplierId) || "Fornecedor desconhecido";
-                                    const paymentSummary = calculatePaymentSummary(purchase);
-                                    const remainingAmount = paymentSummary.remaining;
-                                    
-                                    return (
-                                        <TableRow
-                                            key={purchase.id}
-                                            className="cursor-pointer group hover:bg-slate-50 border-slate-100 transition-colors"
-                                            onClick={() => router.push(`/purchases/${purchase.id}`)}
-                                        >
-                                            <TableCell className="font-medium text-slate-700">
-                                                <div className="flex items-center gap-2">
-                                                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                                                    {formatDate(purchase.date)}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    <Avatar className="h-7 w-7 border border-slate-200">
-                                                        <AvatarFallback className="text-[10px] bg-orange-50 text-orange-600 font-semibold">
-                                                            {getInitials(supplierName)}
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                    <span className="font-medium text-slate-700">{supplierName}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                <Badge variant="secondary" className="bg-slate-100 text-slate-700 font-semibold">
-                                                    {purchase.items ? purchase.items.reduce((s, i) => s + i.quantity, 0) : 0}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <span className="font-bold text-slate-900">
-                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(purchase.total)}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                {remainingAmount > 0 ? (
-                                                    <span className="font-semibold text-red-600">
-                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(remainingAmount)}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-xs text-slate-400">-</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                <PaymentStatusBadge
-                                                    status={purchase.paymentStatus}
-                                                    totalAmount={paymentSummary.total}
-                                                    paidAmount={paymentSummary.paid}
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })
+            {/* List */}
+            <div className="space-y-3">
+                <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+                    {filteredPurchases.length} {filteredPurchases.length === 1 ? 'entrada' : 'entradas'}
+                </h2>
+
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                    {isLoading ? (
+                        <div className="divide-y divide-slate-50">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                                <div key={i} className="flex items-center gap-4 px-5 py-4">
+                                    <div className="h-9 w-9 rounded-xl bg-slate-100 animate-pulse shrink-0" />
+                                    <div className="flex-1 space-y-1.5">
+                                        <div className="h-3.5 w-32 bg-slate-100 rounded animate-pulse" />
+                                        <div className="h-3 w-20 bg-slate-100 rounded animate-pulse" />
+                                    </div>
+                                    <div className="h-3.5 w-20 bg-slate-100 rounded animate-pulse" />
+                                </div>
+                            ))}
+                        </div>
+                    ) : filteredPurchases.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-center">
+                            <div className="h-16 w-16 rounded-3xl bg-slate-100 flex items-center justify-center mb-4">
+                                <ShoppingBag className="h-8 w-8 text-slate-300" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-slate-700 mb-1">Nenhuma entrada encontrada</h3>
+                            <p className="text-sm text-slate-400 mb-6 max-w-xs">
+                                {statusFilter !== "ALL" || search
+                                    ? "Tente alterar os filtros de busca"
+                                    : "Registre sua primeira entrada de estoque"}
+                            </p>
+                            {!search && statusFilter === "ALL" && (
+                                <Button
+                                    onClick={() => setIsDialogOpen(true)}
+                                    className="rounded-xl h-10 px-6 bg-gradient-to-r from-emerald-500 to-green-600 shadow-lg shadow-emerald-200"
+                                >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Nova Entrada
+                                </Button>
                             )}
-                        </TableBody>
-                    </Table>
+                        </div>
+                    ) : (
+                        <div className="divide-y divide-slate-50">
+                            {filteredPurchases.map((purchase) => {
+                                const supplierName = suppliers.get(purchase.supplierId) || "Fornecedor desconhecido";
+                                const paymentSummary = calculatePaymentSummary(purchase);
+                                const status = statusConfig[purchase.paymentStatus as keyof typeof statusConfig] ?? statusConfig.PENDING;
+                                const StatusIcon = status.icon;
+                                const itemCount = purchase.items ? purchase.items.reduce((s, i) => s + i.quantity, 0) : 0;
+
+                                return (
+                                    <div
+                                        key={purchase.id}
+                                        className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50/60 cursor-pointer transition-colors group"
+                                        onClick={() => router.push(`/purchases/${purchase.id}`)}
+                                    >
+                                        {/* Avatar */}
+                                        <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 text-sm font-bold text-emerald-600">
+                                            {getInitials(supplierName)}
+                                        </div>
+
+                                        {/* Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-semibold text-slate-700 truncate">{supplierName}</p>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <Calendar className="h-3 w-3 text-slate-300 shrink-0" />
+                                                <p className="text-xs text-slate-400">{formatDate(purchase.date)}</p>
+                                                <span className="text-slate-200">·</span>
+                                                <Package className="h-3 w-3 text-slate-300 shrink-0" />
+                                                <p className="text-xs text-slate-400">{itemCount} {itemCount === 1 ? 'item' : 'itens'}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Remaining */}
+                                        {paymentSummary.remaining > 0 && (
+                                            <div className="hidden sm:block text-right shrink-0">
+                                                <p className="text-xs text-slate-400">Saldo</p>
+                                                <p className="text-sm font-semibold text-red-500">{brl(paymentSummary.remaining)}</p>
+                                            </div>
+                                        )}
+
+                                        {/* Total */}
+                                        <p className="text-sm font-bold text-slate-700 shrink-0 w-24 text-right">
+                                            {brl(purchase.total)}
+                                        </p>
+
+                                        {/* Status */}
+                                        <span className={`hidden sm:inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border shrink-0 ${status.className}`}>
+                                            <StatusIcon className={`h-3 w-3 ${status.iconClass}`} />
+                                            {status.label}
+                                        </span>
+
+                                        <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-slate-500 shrink-0 transition-colors" />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
