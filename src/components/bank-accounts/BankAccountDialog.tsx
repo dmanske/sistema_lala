@@ -12,7 +12,7 @@ import { ColorPicker } from './ColorPicker'
 import { LogoPicker } from './LogoPicker'
 import { Star, Building2, CreditCard, Wallet } from 'lucide-react'
 
-import { BankLogos } from './BankLogos'
+import { BankLogos, BANK_PRESETS } from './BankLogos'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 
@@ -38,8 +38,15 @@ interface FormData {
     isFavorite: boolean
 }
 
+const TYPE_OPTIONS = [
+    { id: 'BANK' as BankAccountType, label: 'Conta Bancária', icon: Building2, color: '#3B82F6' },
+    { id: 'CARD' as BankAccountType, label: 'Cartão de Crédito', icon: CreditCard, color: '#EF4444' },
+    { id: 'WALLET' as BankAccountType, label: 'Carteira / Dinheiro', icon: Wallet, color: '#10B981' },
+]
+
 export function BankAccountDialog({ open, onOpenChange, account, onSave }: BankAccountDialogProps) {
     const [loading, setLoading] = useState(false)
+    const [headerImgFailed, setHeaderImgFailed] = useState(false)
     const isEdit = !!account
 
     const { register, handleSubmit, formState: { errors }, setValue, watch, reset } = useForm<FormData>({
@@ -58,6 +65,11 @@ export function BankAccountDialog({ open, onOpenChange, account, onSave }: BankA
     const selectedColor = watch('color')
     const selectedIcon = watch('icon')
     const isFavorite = watch('isFavorite')
+
+    // Reset header img state when icon changes
+    useEffect(() => {
+        setHeaderImgFailed(false)
+    }, [selectedIcon])
 
     // Reset form when account changes
     useEffect(() => {
@@ -133,65 +145,119 @@ export function BankAccountDialog({ open, onOpenChange, account, onSave }: BankA
     }
 
     const LogoComponent = BankLogos[selectedIcon] || BankLogos['generic-bank']
+    const selectedPreset = BANK_PRESETS.find(p => p.id === selectedIcon)
+    const headerHasImage = !!selectedPreset?.imageUrl && !headerImgFailed
+    const typeLabel = TYPE_OPTIONS.find(t => t.id === selectedType)?.label ?? ''
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-[700px] max-h-[85vh] h-full flex flex-col p-0 gap-0 overflow-hidden">
-                <DialogHeader className="p-4 border-b shrink-0 bg-background z-10">
-                    <DialogTitle className="text-lg font-semibold flex items-center gap-2">
+            <DialogContent className="max-w-[700px] max-h-[90vh] h-full flex flex-col p-0 gap-0 overflow-hidden">
+
+                {/* ── Header ── */}
+                <DialogHeader className="shrink-0">
+                    {/* Colored accent strip */}
+                    <div
+                        className="h-1 w-full transition-all duration-300"
+                        style={{ background: `linear-gradient(90deg, ${selectedColor}, ${selectedColor}66)` }}
+                    />
+
+                    <div className="px-6 py-4 flex items-center gap-4">
+                        {/* Large logo preview */}
                         <div
-                            className="h-8 w-8 flex items-center justify-center rounded-md transition-all shadow-sm"
-                            style={{ backgroundColor: `${selectedColor}15`, color: selectedColor }}
+                            className="h-[52px] w-[52px] flex-shrink-0 flex items-center justify-center rounded-2xl transition-all duration-300"
+                            style={{
+                                backgroundColor: `${selectedColor}18`,
+                                boxShadow: `0 4px 16px ${selectedColor}30`,
+                            }}
                         >
-                            <LogoComponent className="h-5 w-5" />
+                            {headerHasImage ? (
+                                <img
+                                    src={selectedPreset!.imageUrl}
+                                    alt={selectedPreset!.name}
+                                    className="w-8 h-8 object-contain"
+                                    onError={() => setHeaderImgFailed(true)}
+                                />
+                            ) : (
+                                <LogoComponent className="w-7 h-7" style={{ color: selectedColor }} />
+                            )}
                         </div>
-                        {isEdit ? 'Editar Conta' : 'Nova Conta'}
-                    </DialogTitle>
+
+                        <div className="flex-1 min-w-0">
+                            <DialogTitle className="text-xl font-bold leading-tight">
+                                {isEdit ? 'Editar Conta' : 'Nova Conta'}
+                            </DialogTitle>
+                            <p className="text-sm text-muted-foreground mt-0.5">{typeLabel}</p>
+                        </div>
+
+                        {/* Favorite toggle in header */}
+                        <button
+                            type="button"
+                            onClick={() => setValue('isFavorite', !isFavorite)}
+                            className={cn(
+                                "p-2 rounded-full transition-all",
+                                isFavorite
+                                    ? "text-yellow-500 bg-yellow-100 hover:bg-yellow-200"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            )}
+                            title={isFavorite ? 'Remover dos favoritos' : 'Marcar como favorita'}
+                        >
+                            <Star className={cn("w-4 h-4", isFavorite && "fill-current")} />
+                        </button>
+                    </div>
                 </DialogHeader>
 
                 <ScrollArea className="flex-1 w-full">
-                    <form onSubmit={handleSubmit(onSubmit)} className="p-4 space-y-6">
+                    <form onSubmit={handleSubmit(onSubmit)} className="px-6 pb-2 pt-4 space-y-5">
 
                         {/* Tipo de Conta */}
-                        <div className="grid grid-cols-3 gap-3">
-                            {[
-                                { id: 'BANK', label: 'Conta Bancária', icon: <Building2 className="w-5 h-5 mb-1" /> },
-                                { id: 'CARD', label: 'Cartão de Crédito', icon: <CreditCard className="w-5 h-5 mb-1" /> },
-                                { id: 'WALLET', label: 'Carteira / Dinheiro', icon: <Wallet className="w-5 h-5 mb-1" /> },
-                            ].map(type => (
-                                <div
-                                    key={type.id}
-                                    onClick={() => setValue('type', type.id as BankAccountType)}
-                                    className={cn(
-                                        "cursor-pointer rounded-xl border p-3 flex flex-col items-center justify-center text-center transition-all hover:bg-muted/50 hover:border-primary/50",
-                                        selectedType === type.id
-                                            ? "border-primary bg-primary/5 text-primary shadow-sm ring-1 ring-primary/20"
-                                            : "border-border bg-card text-muted-foreground"
-                                    )}
-                                >
-                                    {type.icon}
-                                    <span className="text-[11px] font-medium leading-tight">{type.label}</span>
-                                </div>
-                            ))}
+                        <div className="grid grid-cols-3 gap-2.5">
+                            {TYPE_OPTIONS.map(type => {
+                                const Icon = type.icon
+                                const isActive = selectedType === type.id
+                                return (
+                                    <div
+                                        key={type.id}
+                                        onClick={() => setValue('type', type.id)}
+                                        className={cn(
+                                            "cursor-pointer rounded-xl border-2 p-3 flex flex-col items-center justify-center text-center transition-all",
+                                            isActive
+                                                ? "shadow-sm"
+                                                : "border-border bg-card text-muted-foreground hover:bg-muted/40 hover:border-muted-foreground/30"
+                                        )}
+                                        style={isActive ? {
+                                            borderColor: `${type.color}60`,
+                                            backgroundColor: `${type.color}0D`,
+                                            color: type.color,
+                                        } : {}}
+                                    >
+                                        <Icon className="w-5 h-5 mb-1.5" />
+                                        <span className="text-[11px] font-semibold leading-tight">{type.label}</span>
+                                    </div>
+                                )
+                            })}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             {/* Left: Main Info */}
                             <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="name">Nome da Conta <span className="text-destructive">*</span></Label>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="name">
+                                        Nome da Conta <span className="text-destructive">*</span>
+                                    </Label>
                                     <Input
                                         id="name"
                                         {...register('name', { required: 'Nome é obrigatório' })}
                                         placeholder="Ex: Nubank Principal"
                                         className={errors.name ? 'border-destructive' : ''}
                                     />
-                                    {errors.name && <span className="text-xs text-destructive">{errors.name.message}</span>}
+                                    {errors.name && (
+                                        <span className="text-xs text-destructive">{errors.name.message}</span>
+                                    )}
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
                                     {!isEdit && (
-                                        <div className="space-y-2">
+                                        <div className="space-y-1.5">
                                             <Label htmlFor="initialBalance">Saldo Inicial</Label>
                                             <div className="relative">
                                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
@@ -208,7 +274,7 @@ export function BankAccountDialog({ open, onOpenChange, account, onSave }: BankA
                                     )}
 
                                     {selectedType === 'CARD' && (
-                                        <div className="space-y-2">
+                                        <div className="space-y-1.5">
                                             <Label htmlFor="creditLimit">Limite Total</Label>
                                             <div className="relative">
                                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
@@ -225,32 +291,19 @@ export function BankAccountDialog({ open, onOpenChange, account, onSave }: BankA
                                     )}
                                 </div>
 
-                                <div className="p-3 rounded-lg border bg-muted/20 space-y-3">
-                                    <Label className="text-xs font-semibold uppercase text-muted-foreground">Personalização</Label>
-                                    <div className="flex items-center justify-between gap-4">
-                                        <ColorPicker value={selectedColor} onChange={(color) => setValue('color', color)} />
-
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            className={cn(
-                                                "h-8 text-xs font-medium transition-colors",
-                                                isFavorite ? "text-yellow-600 bg-yellow-100 hover:bg-yellow-200 hover:text-yellow-700" : "text-muted-foreground hover:text-foreground"
-                                            )}
-                                            onClick={() => setValue('isFavorite', !isFavorite)}
-                                        >
-                                            <Star className={cn("w-3.5 h-3.5 mr-1.5", isFavorite && "fill-current")} />
-                                            {isFavorite ? 'Favorita' : 'Marcar como Favorita'}
-                                        </Button>
-                                    </div>
+                                {/* Cor */}
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
+                                        Cor da Conta
+                                    </Label>
+                                    <ColorPicker value={selectedColor} onChange={(color) => setValue('color', color)} />
                                 </div>
                             </div>
 
                             {/* Right: Bank Selection */}
-                            <div className="space-y-3">
-                                <Label>Selecione o Ícone/Banco</Label>
-                                <div className="border rounded-lg p-1 bg-background">
+                            <div className="space-y-1.5">
+                                <Label>Ícone / Banco</Label>
+                                <div className="border rounded-xl p-2 bg-background">
                                     <LogoPicker
                                         value={selectedIcon}
                                         onChange={(icon, color) => {
@@ -262,9 +315,11 @@ export function BankAccountDialog({ open, onOpenChange, account, onSave }: BankA
                             </div>
                         </div>
 
-                        {/* Optional Details (Collapsible or just standard) */}
-                        <div className="space-y-3 pt-2 border-t">
-                            <Label className="text-xs text-muted-foreground uppercase font-medium">Informações Adicionais (Opcional)</Label>
+                        {/* Optional Details */}
+                        <div className="space-y-3 pt-1 border-t">
+                            <Label className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">
+                                Informações Adicionais (Opcional)
+                            </Label>
 
                             <div className="grid grid-cols-2 gap-3">
                                 <Input
@@ -290,16 +345,16 @@ export function BankAccountDialog({ open, onOpenChange, account, onSave }: BankA
                                 {...register('description')}
                                 placeholder="Observações..."
                                 rows={2}
-                                className="resize-none h-16 text-sm"
+                                className="resize-none h-14 text-sm"
                             />
                         </div>
 
-                        {/* Submit Button (Hidden, triggered by footer) */}
+                        {/* Hidden submit trigger */}
                         <button type="submit" className="hidden" id="submit-account-form" />
                     </form>
                 </ScrollArea>
 
-                <div className="p-4 border-t bg-background shrink-0 flex justify-end gap-2">
+                <div className="px-6 py-4 border-t bg-background shrink-0 flex justify-end gap-2">
                     <Button
                         type="button"
                         variant="outline"
@@ -311,7 +366,8 @@ export function BankAccountDialog({ open, onOpenChange, account, onSave }: BankA
                     <Button
                         onClick={() => document.getElementById('submit-account-form')?.click()}
                         disabled={loading}
-                        className="min-w-[120px]"
+                        className="min-w-[130px]"
+                        style={{ backgroundColor: selectedColor, borderColor: selectedColor }}
                     >
                         {loading ? 'Salvando...' : (isEdit ? 'Salvar Alterações' : 'Criar Conta')}
                     </Button>

@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find /Users/dmanske/Documents/GitHub/sistema_lala/src -name *parcel* -o -name *installment*)"
+      "Bash(find /Users/dmanske/Documents/GitHub/sistema_lala/src -name *parcel* -o -name *installment*)",
+      "Bash(grep -r register_account_payable_payment /Users/dmanske/Documents/GitHub/sistema_lala/supabase --include=*.sql)",
+      "Bash(grep -l \"accounts_payable\" /Users/dmanske/Documents/GitHub/sistema_lala/supabase/migrations/*.sql)"
     ]
   }
 }
