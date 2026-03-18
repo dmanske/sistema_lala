@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
@@ -12,11 +15,12 @@ import { InstallmentStatusBadge } from '@/components/receivables/InstallmentStat
 import { ReceivePaymentDialog } from '@/components/receivables/ReceivePaymentDialog';
 import { CreateInstallmentSaleDialog } from '@/components/receivables/CreateInstallmentSaleDialog';
 import { EditInstallmentDialog } from '@/components/receivables/EditInstallmentDialog';
+import { ReceiptHistorySheet } from '@/components/receivables/ReceiptHistorySheet';
 import { useSaleInstallments } from '@/hooks/useSaleInstallments';
 import { formatBrazilDate } from '@/lib/utils/dateUtils';
 import {
   DollarSign, AlertCircle, Clock, TrendingUp, Pencil, Trash2,
-  Plus, Search, CheckCircle2, MessageCircle, Banknote,
+  Plus, Search, CheckCircle2, MessageCircle, Banknote, History,
 } from 'lucide-react';
 import type { SaleInstallmentWithDetails } from '@/core/domain/entities/SaleInstallment';
 import { createClient } from '@/lib/supabase/client';
@@ -47,9 +51,12 @@ export default function ReceivablesPage() {
   const [createSaleDialogOpen, setCreateSaleDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [historySheetOpen, setHistorySheetOpen] = useState(false);
+  const [selectedForHistory, setSelectedForHistory] = useState<SaleInstallmentWithDetails | null>(null);
   const [activeTab, setActiveTab] = useState('pending');
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [clientFilter, setClientFilter] = useState('ALL');
 
   const { listReceivables, getSummary, registerReceipt, createInstallmentSale } = useSaleInstallments();
 
@@ -81,19 +88,30 @@ export default function ReceivablesPage() {
 
   useEffect(() => { loadData(); loadBankAccounts(); }, []);
 
-  // Filtered lists by search
-  const filterBySearch = (list: SaleInstallmentWithDetails[]) =>
-    search.trim()
-      ? list.filter(i => i.clientName.toLowerCase().includes(search.toLowerCase()))
-      : list;
+  // Unique clients from all lists
+  const allClients = useMemo(() => {
+    const map = new Map<string, string>();
+    [...pendingList, ...overdueList, ...receivedList].forEach(i => {
+      map.set(i.clientId, i.clientName);
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [pendingList, overdueList, receivedList]);
 
-  const filteredPending = useMemo(() => filterBySearch(pendingList), [pendingList, search]);
-  const filteredOverdue = useMemo(() => filterBySearch(overdueList), [overdueList, search]);
-  const filteredReceived = useMemo(() => filterBySearch(receivedList), [receivedList, search]);
+  const filterList = (list: SaleInstallmentWithDetails[]) => {
+    let result = list;
+    if (clientFilter !== 'ALL') result = result.filter(i => i.clientId === clientFilter);
+    if (search.trim()) result = result.filter(i => i.clientName.toLowerCase().includes(search.toLowerCase()));
+    return result;
+  };
+
+  const filteredPending = useMemo(() => filterList(pendingList), [pendingList, search, clientFilter]);
+  const filteredOverdue = useMemo(() => filterList(overdueList), [overdueList, search, clientFilter]);
+  const filteredReceived = useMemo(() => filterList(receivedList), [receivedList, search, clientFilter]);
 
   const handleReceivePayment = (i: SaleInstallmentWithDetails) => { setSelectedInstallment(i); setReceiveDialogOpen(true); };
   const handleEditClick = (i: SaleInstallmentWithDetails) => { setSelectedInstallment(i); setEditDialogOpen(true); };
   const handleDeleteClick = (i: SaleInstallmentWithDetails) => { setSelectedInstallment(i); setDeleteDialogOpen(true); };
+  const handleHistoryClick = (i: SaleInstallmentWithDetails) => { setSelectedForHistory(i); setHistorySheetOpen(true); };
 
   const handleConfirmDelete = async () => {
     if (!selectedInstallment) return;
@@ -165,13 +183,15 @@ export default function ReceivablesPage() {
     window.open(`https://wa.me/55${phone}?text=${msg}`, '_blank');
   };
 
-  // ── Shared list row component ─────────────────────────────────────────────
-  const InstallmentRow = ({ installment, showActions = true, showReceived = false }: {
+  // ── Row component ──────────────────────────────────────────────────────────
+  const InstallmentRow = ({ installment, showReceived = false }: {
     installment: SaleInstallmentWithDetails;
-    showActions?: boolean;
     showReceived?: boolean;
   }) => {
     const hasWhatsapp = !!(installment.clientWhatsapp || installment.clientPhone);
+    const method = paymentMethodLabel[installment.notes ?? ''];
+    const isPartial = showReceived && installment.receivedAmount != null && installment.receivedAmount < installment.amount;
+
     return (
       <div className={`flex items-center gap-4 px-5 py-4 hover:bg-slate-50/60 transition-colors ${installment.isOverdue ? 'border-l-2 border-l-red-400' : ''}`}>
         {/* Avatar */}
@@ -205,17 +225,15 @@ export default function ReceivablesPage() {
         {showReceived && installment.receivedAt && (
           <div className="hidden sm:block text-right shrink-0">
             <p className="text-xs text-slate-400">{formatBrazilDate(installment.receivedAt, 'dd/MM/yyyy')}</p>
-            {installment.notes && (
-              <p className="text-xs text-slate-400">{paymentMethodLabel[installment.notes] ?? installment.notes}</p>
-            )}
+            {method && <p className="text-xs text-slate-400">{method}</p>}
           </div>
         )}
 
         {/* Amount */}
         <div className="text-right shrink-0">
           <p className="text-sm font-bold text-slate-700">{brl(installment.amount)}</p>
-          {showReceived && installment.receivedAmount && installment.receivedAmount !== installment.amount && (
-            <p className="text-xs text-emerald-600">recebido: {brl(installment.receivedAmount)}</p>
+          {isPartial && (
+            <p className="text-xs text-emerald-600">recebido: {brl(installment.receivedAmount!)}</p>
           )}
         </div>
 
@@ -229,39 +247,50 @@ export default function ReceivablesPage() {
         </div>
 
         {/* Actions */}
-        {showActions && installment.status === 'PENDING' && (
-          <div className="flex items-center gap-1 shrink-0">
-            {hasWhatsapp && installment.isOverdue && (
+        <div className="flex items-center gap-1 shrink-0">
+          {!showReceived && installment.status === 'PENDING' && (
+            <>
+              {hasWhatsapp && installment.isOverdue && (
+                <button
+                  onClick={() => openWhatsApp(installment)}
+                  className="h-8 w-8 rounded-lg flex items-center justify-center text-green-500 hover:bg-green-50 transition-colors"
+                  title="Enviar WhatsApp"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                </button>
+              )}
               <button
-                onClick={() => openWhatsApp(installment)}
-                className="h-8 w-8 rounded-lg flex items-center justify-center text-green-500 hover:bg-green-50 transition-colors"
-                title="Enviar WhatsApp"
+                onClick={() => handleEditClick(installment)}
+                className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-colors"
+                title="Editar"
               >
-                <MessageCircle className="h-4 w-4" />
+                <Pencil className="h-3.5 w-3.5" />
               </button>
-            )}
+              <button
+                onClick={() => handleReceivePayment(installment)}
+                className="h-8 px-3 rounded-lg text-xs font-semibold bg-teal-50 text-teal-600 hover:bg-teal-100 border border-teal-200 transition-colors"
+              >
+                Receber
+              </button>
+              <button
+                onClick={() => handleDeleteClick(installment)}
+                className="h-8 w-8 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-50 transition-colors"
+                title="Excluir"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </>
+          )}
+          {showReceived && (
             <button
-              onClick={() => handleEditClick(installment)}
-              className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-colors"
-              title="Editar"
+              onClick={() => handleHistoryClick(installment)}
+              className="h-8 w-8 rounded-lg flex items-center justify-center text-teal-500 hover:bg-teal-50 transition-colors"
+              title="Ver histórico"
             >
-              <Pencil className="h-3.5 w-3.5" />
+              <History className="h-4 w-4" />
             </button>
-            <button
-              onClick={() => handleReceivePayment(installment)}
-              className="h-8 px-3 rounded-lg text-xs font-semibold bg-teal-50 text-teal-600 hover:bg-teal-100 border border-teal-200 transition-colors"
-            >
-              Receber
-            </button>
-            <button
-              onClick={() => handleDeleteClick(installment)}
-              className="h-8 w-8 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-50 transition-colors"
-              title="Excluir"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     );
   };
@@ -271,7 +300,7 @@ export default function ReceivablesPage() {
     emptyText: string;
     showReceived?: boolean;
   }) => (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+    <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
       {loading ? (
         <div className="divide-y divide-slate-50">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -295,12 +324,7 @@ export default function ReceivablesPage() {
       ) : (
         <div className="divide-y divide-slate-50">
           {items.map(i => (
-            <InstallmentRow
-              key={i.id}
-              installment={i}
-              showActions={!showReceived}
-              showReceived={showReceived}
-            />
+            <InstallmentRow key={i.id} installment={i} showReceived={showReceived} />
           ))}
         </div>
       )}
@@ -332,7 +356,7 @@ export default function ReceivablesPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <div className="bg-card rounded-2xl border border-border shadow-sm p-5">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Pendente</span>
             <div className="h-8 w-8 rounded-xl bg-teal-50 flex items-center justify-center">
@@ -343,7 +367,7 @@ export default function ReceivablesPage() {
           <p className="text-xs text-slate-400 mt-1">{summary.countPending} {summary.countPending === 1 ? 'parcela' : 'parcelas'}</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <div className="bg-card rounded-2xl border border-border shadow-sm p-5">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Vencidas</span>
             <div className="h-8 w-8 rounded-xl bg-red-50 flex items-center justify-center">
@@ -354,7 +378,7 @@ export default function ReceivablesPage() {
           <p className="text-xs text-slate-400 mt-1">{summary.countOverdue} {summary.countOverdue === 1 ? 'parcela' : 'parcelas'}</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <div className="bg-card rounded-2xl border border-border shadow-sm p-5">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Vence em 7 dias</span>
             <div className="h-8 w-8 rounded-xl bg-amber-50 flex items-center justify-center">
@@ -365,7 +389,7 @@ export default function ReceivablesPage() {
           <p className="text-xs text-slate-400 mt-1">Próximos 7 dias</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+        <div className="bg-card rounded-2xl border border-border shadow-sm p-5">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Vence em 30 dias</span>
             <div className="h-8 w-8 rounded-xl bg-blue-50 flex items-center justify-center">
@@ -377,9 +401,9 @@ export default function ReceivablesPage() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
-        <div className="relative">
+      {/* Filters */}
+      <div className="bg-card rounded-2xl border border-border shadow-sm p-4 flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
             placeholder="Buscar por cliente..."
@@ -388,11 +412,22 @@ export default function ReceivablesPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <Select value={clientFilter} onValueChange={setClientFilter}>
+          <SelectTrigger className="w-full sm:w-[200px] rounded-xl border-slate-200 bg-slate-50">
+            <SelectValue placeholder="Todos os clientes" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Todos os clientes</SelectItem>
+            {allClients.map(c => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-white border border-slate-200 shadow-sm rounded-xl p-1 h-auto w-fit gap-1">
+        <TabsList className="bg-card border border-border shadow-sm rounded-xl p-1 h-auto w-fit gap-1">
           <TabsTrigger
             value="pending"
             className="flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium data-[state=active]:bg-teal-600 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all"
@@ -470,6 +505,12 @@ export default function ReceivablesPage() {
         installment={selectedInstallment}
         bankAccounts={bankAccounts}
         onSubmit={handleSubmitReceipt}
+      />
+
+      <ReceiptHistorySheet
+        open={historySheetOpen}
+        onOpenChange={setHistorySheetOpen}
+        installment={selectedForHistory}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

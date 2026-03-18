@@ -170,7 +170,7 @@ export function MonthTabs({
 
     return (
         <div className="space-y-3">
-            <div className="flex items-center gap-3 bg-muted/30 rounded-lg p-2">
+            <div className="flex items-center gap-3 bg-card rounded-2xl border border-border shadow-sm p-3">
                 {/* Filtro de Período */}
                 <Select
                     value={activeDayFilter || 'MONTH'}
@@ -231,19 +231,19 @@ export function MonthTabs({
                 {/* Abas de Meses */}
                 <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide flex-1">
                     {months.map((month) => (
-                        <Button
+                        <button
                             key={month.date.toISOString()}
-                            variant={month.isActive ? "default" : "ghost"}
-                            size="sm"
                             onClick={() => handleMonthClick(month.start, month.end)}
                             className={cn(
-                                "h-8 px-3 capitalize shrink-0 transition-all text-xs",
-                                month.isActive && "shadow-sm font-semibold"
+                                "h-8 px-3 rounded-lg capitalize shrink-0 transition-all text-xs font-medium",
+                                month.isActive
+                                    ? "bg-indigo-600 text-white shadow-sm"
+                                    : "text-slate-500 hover:bg-slate-100"
                             )}
                             title={month.fullLabel}
                         >
                             {month.label}
-                        </Button>
+                        </button>
                     ))}
                 </div>
 

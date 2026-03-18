@@ -132,7 +132,7 @@ export default function PurchasesPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                <div className="bg-card rounded-2xl border border-border shadow-sm p-5">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total de Compras</span>
                         <div className="h-8 w-8 rounded-xl bg-purple-50 flex items-center justify-center">
@@ -143,7 +143,7 @@ export default function PurchasesPage() {
                     <p className="text-xs text-slate-400 mt-1">Entradas registradas</p>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                <div className="bg-card rounded-2xl border border-border shadow-sm p-5">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Valor Total</span>
                         <div className="h-8 w-8 rounded-xl bg-emerald-50 flex items-center justify-center">
@@ -154,7 +154,7 @@ export default function PurchasesPage() {
                     <p className="text-xs text-slate-400 mt-1">Investido em estoque</p>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                <div className="bg-card rounded-2xl border border-border shadow-sm p-5">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Última Compra</span>
                         <div className="h-8 w-8 rounded-xl bg-blue-50 flex items-center justify-center">
@@ -169,7 +169,7 @@ export default function PurchasesPage() {
                     </p>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                <div className="bg-card rounded-2xl border border-border shadow-sm p-5">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pendente</span>
                         <div className="h-8 w-8 rounded-xl bg-amber-50 flex items-center justify-center">
@@ -182,7 +182,7 @@ export default function PurchasesPage() {
             </div>
 
             {/* Filters */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex flex-col sm:flex-row gap-3">
+            <div className="bg-card rounded-2xl border border-border shadow-sm p-4 flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <Input
@@ -212,7 +212,7 @@ export default function PurchasesPage() {
                     {filteredPurchases.length} {filteredPurchases.length === 1 ? 'entrada' : 'entradas'}
                 </h2>
 
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
                     {isLoading ? (
                         <div className="divide-y divide-slate-50">
                             {Array.from({ length: 5 }).map((_, i) => (

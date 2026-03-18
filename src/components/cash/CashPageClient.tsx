@@ -151,50 +151,53 @@ export function CashPageClient({ movements, summary, period }: CashPageClientPro
             {/* Cards de Resumo */}
             <CashSummaryCards summary={filteredSummary} />
 
-            {/* Abas de Conteúdo */}
-            <div className="flex items-center gap-2 border-b">
-                <Button
-                    variant={activeTab === 'statement' ? 'default' : 'ghost'}
+            {/* Tab switcher */}
+            <div className="flex items-center gap-1 bg-card border border-border shadow-sm rounded-xl p-1 w-fit">
+                <button
                     onClick={() => setActiveTab('statement')}
-                    className="rounded-b-none"
+                    className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
+                        activeTab === 'statement'
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
+                    }`}
                 >
                     Extrato
-                </Button>
-                <Button
-                    variant={activeTab === 'analytics' ? 'default' : 'ghost'}
+                </button>
+                <button
                     onClick={() => setActiveTab('analytics')}
-                    className="rounded-b-none"
+                    className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
+                        activeTab === 'analytics'
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
+                    }`}
                 >
                     Análise Detalhada
-                </Button>
+                </button>
             </div>
 
-            {/* Conteúdo das Abas */}
+            {/* Tab content */}
             {activeTab === 'statement' ? (
                 <CashList movements={filteredMovements} />
             ) : (
-                <div className="space-y-6 p-6 border rounded-lg bg-card">
-                    {/* Comparação com Período Anterior */}
+                <div className="space-y-6 bg-card rounded-2xl border border-border shadow-sm p-6">
                     <div>
-                        <h3 className="text-sm font-semibold mb-4">Comparação com Período Anterior</h3>
+                        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Comparação com Período Anterior</h3>
                         <CashComparison movements={filteredMovements} period={period} />
                     </div>
 
-                    {/* Resumos por Método e Conta */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div>
-                            <h3 className="text-sm font-semibold mb-4">Por Método de Pagamento</h3>
+                            <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Por Método de Pagamento</h3>
                             <PaymentMethodSummary movements={filteredMovements} />
                         </div>
                         <div>
-                            <h3 className="text-sm font-semibold mb-4">Por Conta Bancária</h3>
+                            <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Por Conta Bancária</h3>
                             <AccountSummary movements={filteredMovements} accountNames={accountNames} />
                         </div>
                     </div>
 
-                    {/* Analytics Completo */}
                     <div>
-                        <h3 className="text-sm font-semibold mb-4">Análise Detalhada</h3>
+                        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Análise Detalhada</h3>
                         <CashAnalytics movements={filteredMovements} period={period} />
                     </div>
                 </div>

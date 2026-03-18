@@ -211,7 +211,7 @@ export default function AccountsPayablePage() {
         {/* Summary Cards */}
         {summary && (
           <div className="grid gap-4 md:grid-cols-3">
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center gap-4">
+            <div className="bg-card rounded-2xl border border-border shadow-sm p-5 flex items-center gap-4">
               <div className="h-12 w-12 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
                 <Clock className="h-6 w-6 text-amber-500" />
               </div>
@@ -222,7 +222,7 @@ export default function AccountsPayablePage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-5 flex items-center gap-4">
+            <div className="bg-card rounded-2xl border border-red-100 shadow-sm p-5 flex items-center gap-4">
               <div className="h-12 w-12 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
                 <AlertCircle className="h-6 w-6 text-red-500" />
               </div>
@@ -233,7 +233,7 @@ export default function AccountsPayablePage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-emerald-100 shadow-sm p-5 flex items-center gap-4">
+            <div className="bg-card rounded-2xl border border-emerald-100 shadow-sm p-5 flex items-center gap-4">
               <div className="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
                 <TrendingDown className="h-6 w-6 text-emerald-500" />
               </div>
@@ -247,7 +247,7 @@ export default function AccountsPayablePage() {
         )}
 
         {/* Lista */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
 
           {/* Barra de filtros */}
           <div className="px-6 py-4 border-b border-slate-100 space-y-3">
