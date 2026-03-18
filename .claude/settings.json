@@ -8,9 +8,7 @@
       "Bash(ls -la /Users/dmanske/Documents/GitHub/sistema_lala/src/app/\\\\\\(app\\\\\\)/)",
       "Bash(ls -la /Users/dmanske/Documents/GitHub/sistema_lala/src/app/\\\\\\(app\\\\\\)/purchases/)",
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
-      "Bash(find /Users/dmanske/Documents/GitHub/sistema_lala -type f \\\\\\(-name *.sql -o -name *migration* \\\\\\))",
-      "Bash(wc -l /Users/dmanske/Documents/GitHub/sistema_lala/src/app/\\\\\\(app\\\\\\)/agenda/page.tsx)",
-      "Bash(head -300 /Users/dmanske/Documents/GitHub/sistema_lala/src/app/\\\\\\(app\\\\\\)/agenda/page.tsx)"
+      "Bash(find /Users/dmanske/Documents/GitHub/sistema_lala -type f \\\\\\(-name *.sql -o -name *migration* \\\\\\))"
     ]
   }
 }

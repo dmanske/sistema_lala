@@ -693,28 +693,6 @@ export default function AgendaPage() {
         );
     };
 
-    // Helpers para detecção de sobreposição real por intervalo de tempo
-    const timeToMinutes = (time: string) => {
-        const [h, m] = time.split(':').map(Number);
-        return h * 60 + m;
-    };
-    const getOverlapInfo = (apt: Appointment, allApts: Appointment[]) => {
-        const aStart = timeToMinutes(apt.startTime);
-        const aEnd = aStart + (apt.durationMinutes || 60);
-        const overlapping = allApts
-            .filter(a => {
-                const bStart = timeToMinutes(a.startTime);
-                const bEnd = bStart + (a.durationMinutes || 60);
-                return aStart < bEnd && bStart < aEnd;
-            })
-            .sort((a, b) => {
-                const diff = timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
-                return diff !== 0 ? diff : a.id.localeCompare(b.id);
-            });
-        const slotIndex = overlapping.findIndex(a => a.id === apt.id);
-        return { totalInSlot: overlapping.length, slotIndex: slotIndex !== -1 ? slotIndex : 0 };
-    };
-
     // Render Appointment Card
     const renderAppointmentCard = (apt: Appointment, index: number, totalInSlot: number, slotIndex: number) => {
         const style = getCardStyle(apt.status, index);
@@ -1372,14 +1350,15 @@ export default function AgendaPage() {
                                                                     </div>
                                                                 )}
                                                                 {dayAppointments.map((apt, aptIdx) => {
-                                                                    // Detecção de sobreposição real por intervalo de tempo
-                                                                    const { totalInSlot, slotIndex } = getOverlapInfo(apt, dayAppointments);
+                                                                    // Calcular largura baseada em conflitos na hora (slot)
+                                                                    const conflicts = dayAppointments.filter(a => a.startTime === apt.startTime);
+                                                                    const indexInSlot = conflicts.findIndex(a => a.id === apt.id);
 
                                                                     return renderAppointmentCard(
                                                                         apt,
                                                                         aptIdx,
-                                                                        totalInSlot,
-                                                                        slotIndex
+                                                                        conflicts.length,
+                                                                        indexInSlot !== -1 ? indexInSlot : 0
                                                                     );
                                                                 })}
                                                             </div>
