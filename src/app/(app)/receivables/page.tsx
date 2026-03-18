@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -20,10 +18,16 @@ import { useSaleInstallments } from '@/hooks/useSaleInstallments';
 import { formatBrazilDate } from '@/lib/utils/dateUtils';
 import {
   DollarSign, AlertCircle, Clock, TrendingUp, Pencil, Trash2,
-  Plus, Search, CheckCircle2, MessageCircle, Banknote, History,
+  Plus, CheckCircle2, MessageCircle, Banknote, History,
+  ChevronLeft, ChevronRight, Search, X,
 } from 'lucide-react';
 import type { SaleInstallmentWithDetails } from '@/core/domain/entities/SaleInstallment';
 import { createClient } from '@/lib/supabase/client';
+import { cn } from '@/lib/utils';
+import {
+  format, startOfMonth, endOfMonth, isSameMonth, addYears, subYears,
+} from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const brl = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
@@ -35,6 +39,8 @@ const paymentMethodLabel: Record<string, string> = {
   CASH: 'Dinheiro', PIX: 'PIX', CREDIT_CARD: 'Cartão Créd.',
   DEBIT_CARD: 'Cartão Déb.', BANK_TRANSFER: 'Transferência', CHECK: 'Cheque',
 };
+
+type TabId = 'pending' | 'overdue' | 'received';
 
 export default function ReceivablesPage() {
   const [pendingList, setPendingList] = useState<SaleInstallmentWithDetails[]>([]);
@@ -53,10 +59,14 @@ export default function ReceivablesPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [historySheetOpen, setHistorySheetOpen] = useState(false);
   const [selectedForHistory, setSelectedForHistory] = useState<SaleInstallmentWithDetails | null>(null);
-  const [activeTab, setActiveTab] = useState('pending');
+  const [activeTab, setActiveTab] = useState<TabId>('pending');
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
   const [clientFilter, setClientFilter] = useState('ALL');
+  const [searchText, setSearchText] = useState('');
+
+  // Month navigation
+  const [periodStart, setPeriodStart] = useState(startOfMonth(new Date()));
+  const [periodEnd, setPeriodEnd] = useState(endOfMonth(new Date()));
 
   const { listReceivables, getSummary, registerReceipt, createInstallmentSale } = useSaleInstallments();
 
@@ -88,25 +98,57 @@ export default function ReceivablesPage() {
 
   useEffect(() => { loadData(); loadBankAccounts(); }, []);
 
-  // Unique clients from all lists
+  // Month nav helpers
+  const months = useMemo(() => {
+    const year = periodStart.getFullYear();
+    return Array.from({ length: 12 }, (_, i) => {
+      const date = new Date(year, i, 1);
+      return {
+        date,
+        start: startOfMonth(date),
+        end: endOfMonth(date),
+        label: format(date, 'MMM', { locale: ptBR }),
+        fullLabel: format(date, 'MMMM yyyy', { locale: ptBR }),
+        isActive: isSameMonth(date, periodStart),
+      };
+    });
+  }, [periodStart]);
+
+  const handleMonthClick = (start: Date, end: Date) => {
+    setPeriodStart(start);
+    setPeriodEnd(end);
+  };
+
+  // Filter by period (due_date for pending/overdue, received_at for received)
+  const filterByPeriod = (list: SaleInstallmentWithDetails[], useReceivedAt = false) => {
+    return list.filter(i => {
+      const date = useReceivedAt && i.receivedAt ? new Date(i.receivedAt) : new Date(i.dueDate);
+      return date >= periodStart && date <= periodEnd;
+    });
+  };
+
+  // Unique clients
   const allClients = useMemo(() => {
     const map = new Map<string, string>();
-    [...pendingList, ...overdueList, ...receivedList].forEach(i => {
-      map.set(i.clientId, i.clientName);
-    });
+    [...pendingList, ...overdueList, ...receivedList].forEach(i => map.set(i.clientId, i.clientName));
     return Array.from(map.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
   }, [pendingList, overdueList, receivedList]);
 
-  const filterList = (list: SaleInstallmentWithDetails[]) => {
+  const applyFilters = (list: SaleInstallmentWithDetails[]) => {
     let result = list;
     if (clientFilter !== 'ALL') result = result.filter(i => i.clientId === clientFilter);
-    if (search.trim()) result = result.filter(i => i.clientName.toLowerCase().includes(search.toLowerCase()));
+    if (searchText.trim()) {
+      const s = searchText.toLowerCase();
+      result = result.filter(i => i.clientName.toLowerCase().includes(s) || i.saleNotes?.toLowerCase().includes(s));
+    }
     return result;
   };
 
-  const filteredPending = useMemo(() => filterList(pendingList), [pendingList, search, clientFilter]);
-  const filteredOverdue = useMemo(() => filterList(overdueList), [overdueList, search, clientFilter]);
-  const filteredReceived = useMemo(() => filterList(receivedList), [receivedList, search, clientFilter]);
+  const filteredPending = useMemo(() => applyFilters(filterByPeriod(pendingList)), [pendingList, periodStart, periodEnd, clientFilter, searchText]);
+  const filteredOverdue = useMemo(() => applyFilters(filterByPeriod(overdueList)), [overdueList, periodStart, periodEnd, clientFilter, searchText]);
+  const filteredReceived = useMemo(() => applyFilters(filterByPeriod(receivedList, true)), [receivedList, periodStart, periodEnd, clientFilter, searchText]);
+
+  const currentList = activeTab === 'pending' ? filteredPending : activeTab === 'overdue' ? filteredOverdue : filteredReceived;
 
   const handleReceivePayment = (i: SaleInstallmentWithDetails) => { setSelectedInstallment(i); setReceiveDialogOpen(true); };
   const handleEditClick = (i: SaleInstallmentWithDetails) => { setSelectedInstallment(i); setEditDialogOpen(true); };
@@ -169,7 +211,7 @@ export default function ReceivablesPage() {
       .from('sales')
       .insert({ tenant_id: profile.tenant_id, customer_id: data.clientId, subtotal: data.totalAmount, discount: 0, total: data.totalAmount, status: 'paid', notes: data.description, created_by: user.id })
       .select('id').single();
-    if (saleError || !sale) throw new Error('Failed to create sale: ' + (saleError?.message || 'Unknown error'));
+    if (saleError || !sale) throw new Error('Failed to create sale');
     await createInstallmentSale({ saleId: sale.id, installments: data.installments });
     await loadData();
   };
@@ -183,7 +225,12 @@ export default function ReceivablesPage() {
     window.open(`https://wa.me/55${phone}?text=${msg}`, '_blank');
   };
 
-  // ── Row component ──────────────────────────────────────────────────────────
+  const TABS = [
+    { id: 'pending' as TabId, label: 'Pendentes', count: filteredPending.length, activeClass: 'border-teal-500 text-teal-600 bg-teal-50/50' },
+    { id: 'overdue' as TabId, label: 'Vencidas', count: filteredOverdue.length, activeClass: 'border-red-500 text-red-600 bg-red-50/50' },
+    { id: 'received' as TabId, label: 'Recebidas', count: filteredReceived.length, activeClass: 'border-emerald-500 text-emerald-600 bg-emerald-50/50' },
+  ];
+
   const InstallmentRow = ({ installment, showReceived = false }: {
     installment: SaleInstallmentWithDetails;
     showReceived?: boolean;
@@ -193,13 +240,14 @@ export default function ReceivablesPage() {
     const isPartial = showReceived && installment.receivedAmount != null && installment.receivedAmount < installment.amount;
 
     return (
-      <div className={`flex items-center gap-4 px-5 py-4 hover:bg-slate-50/60 transition-colors ${installment.isOverdue ? 'border-l-2 border-l-red-400' : ''}`}>
-        {/* Avatar */}
+      <div className={cn(
+        'flex items-center gap-4 px-6 py-4 hover:bg-slate-50/60 transition-colors border-l-2',
+        installment.isOverdue ? 'border-red-400' : 'border-transparent'
+      )}>
         <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-sm font-bold text-teal-600">
           {getInitials(installment.clientName)}
         </div>
 
-        {/* Info */}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-slate-700 truncate">{installment.clientName}</p>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -221,7 +269,6 @@ export default function ReceivablesPage() {
           </div>
         </div>
 
-        {/* Received info */}
         {showReceived && installment.receivedAt && (
           <div className="hidden sm:block text-right shrink-0">
             <p className="text-xs text-slate-400">{formatBrazilDate(installment.receivedAt, 'dd/MM/yyyy')}</p>
@@ -229,7 +276,6 @@ export default function ReceivablesPage() {
           </div>
         )}
 
-        {/* Amount */}
         <div className="text-right shrink-0">
           <p className="text-sm font-bold text-slate-700">{brl(installment.amount)}</p>
           {isPartial && (
@@ -237,7 +283,6 @@ export default function ReceivablesPage() {
           )}
         </div>
 
-        {/* Status */}
         <div className="hidden sm:block shrink-0">
           <InstallmentStatusBadge
             status={installment.status}
@@ -246,7 +291,6 @@ export default function ReceivablesPage() {
           />
         </div>
 
-        {/* Actions */}
         <div className="flex items-center gap-1 shrink-0">
           {!showReceived && installment.status === 'PENDING' && (
             <>
@@ -294,42 +338,6 @@ export default function ReceivablesPage() {
       </div>
     );
   };
-
-  const ListSection = ({ items, emptyText, showReceived = false }: {
-    items: SaleInstallmentWithDetails[];
-    emptyText: string;
-    showReceived?: boolean;
-  }) => (
-    <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
-      {loading ? (
-        <div className="divide-y divide-slate-50">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-4 px-5 py-4">
-              <div className="h-10 w-10 rounded-xl bg-slate-100 animate-pulse shrink-0" />
-              <div className="flex-1 space-y-1.5">
-                <div className="h-3.5 w-36 bg-slate-100 rounded animate-pulse" />
-                <div className="h-3 w-24 bg-slate-100 rounded animate-pulse" />
-              </div>
-              <div className="h-3.5 w-20 bg-slate-100 rounded animate-pulse" />
-            </div>
-          ))}
-        </div>
-      ) : items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="h-14 w-14 rounded-3xl bg-slate-100 flex items-center justify-center mb-3">
-            <CheckCircle2 className="h-7 w-7 text-slate-300" />
-          </div>
-          <p className="text-sm font-semibold text-slate-600">{emptyText}</p>
-        </div>
-      ) : (
-        <div className="divide-y divide-slate-50">
-          {items.map(i => (
-            <InstallmentRow key={i.id} installment={i} showReceived={showReceived} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
 
   return (
     <div className="space-y-6 pb-10">
@@ -401,89 +409,147 @@ export default function ReceivablesPage() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-card rounded-2xl border border-border shadow-sm p-4 flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input
-            placeholder="Buscar por cliente..."
-            className="pl-9 rounded-xl border-slate-200 bg-slate-50 focus:bg-white"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+      {/* Month nav bar */}
+      <div className="bg-card rounded-2xl border border-border shadow-sm p-3 flex items-center gap-3">
+        {/* Year nav */}
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => { const d = subYears(periodStart, 1); handleMonthClick(startOfMonth(d), endOfMonth(d)); }}
+            className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <span className="text-sm font-semibold text-slate-700 min-w-[44px] text-center">
+            {periodStart.getFullYear()}
+          </span>
+          <button
+            onClick={() => { const d = addYears(periodStart, 1); handleMonthClick(startOfMonth(d), endOfMonth(d)); }}
+            className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-colors"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
         </div>
+
+        <div className="h-6 w-px bg-border shrink-0" />
+
+        {/* Month tabs */}
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide flex-1">
+          {months.map(m => (
+            <button
+              key={m.date.toISOString()}
+              onClick={() => handleMonthClick(m.start, m.end)}
+              title={m.fullLabel}
+              className={cn(
+                'h-8 px-3 rounded-lg capitalize shrink-0 text-xs font-medium transition-all',
+                m.isActive ? 'bg-teal-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'
+              )}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="h-6 w-px bg-border shrink-0" />
+
+        {/* Client filter */}
         <Select value={clientFilter} onValueChange={setClientFilter}>
-          <SelectTrigger className="w-full sm:w-[200px] rounded-xl border-slate-200 bg-slate-50">
-            <SelectValue placeholder="Todos os clientes" />
+          <SelectTrigger className="h-8 w-[150px] text-xs shrink-0 rounded-lg border-slate-200">
+            <SelectValue placeholder="Cliente" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="rounded-xl">
             <SelectItem value="ALL">Todos os clientes</SelectItem>
             {allClients.map(c => (
               <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
+
+        <div className="h-6 w-px bg-border shrink-0" />
+
+        {/* Search */}
+        <div className="relative w-[200px] shrink-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Buscar..."
+            value={searchText}
+            onChange={e => setSearchText(e.target.value)}
+            className="h-8 w-full pl-8 pr-8 rounded-lg border border-slate-200 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-teal-200"
+          />
+          {searchText && (
+            <button
+              onClick={() => setSearchText('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-card border border-border shadow-sm rounded-xl p-1 h-auto w-fit gap-1">
-          <TabsTrigger
-            value="pending"
-            className="flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium data-[state=active]:bg-teal-600 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all"
-          >
-            <Clock className="h-4 w-4" />
-            Pendentes
-            {summary.countPending > 0 && (
-              <span className="ml-1 bg-teal-100 text-teal-700 data-[state=active]:bg-white/20 data-[state=active]:text-white rounded-full px-1.5 py-0.5 text-xs font-bold">
-                {summary.countPending}
-              </span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger
-            value="overdue"
-            className="flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium data-[state=active]:bg-red-500 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all"
-          >
-            <AlertCircle className="h-4 w-4" />
-            Vencidas
-            {summary.countOverdue > 0 && (
-              <span className="ml-1 bg-red-100 text-red-700 rounded-full px-1.5 py-0.5 text-xs font-bold">
-                {summary.countOverdue}
-              </span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger
-            value="received"
-            className="flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all"
-          >
-            <CheckCircle2 className="h-4 w-4" />
-            Recebidas
-          </TabsTrigger>
-        </TabsList>
+      {/* Tabs + List */}
+      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
 
-        <div className="mt-4">
-          <TabsContent value="pending" className="mt-0 space-y-2">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              {filteredPending.length} {filteredPending.length === 1 ? 'parcela' : 'parcelas'}
-            </p>
-            <ListSection items={filteredPending} emptyText="Nenhuma parcela pendente" />
-          </TabsContent>
-
-          <TabsContent value="overdue" className="mt-0 space-y-2">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              {filteredOverdue.length} {filteredOverdue.length === 1 ? 'parcela vencida' : 'parcelas vencidas'}
-            </p>
-            <ListSection items={filteredOverdue} emptyText="Nenhuma parcela vencida" />
-          </TabsContent>
-
-          <TabsContent value="received" className="mt-0 space-y-2">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              {filteredReceived.length} {filteredReceived.length === 1 ? 'recebimento' : 'recebimentos'}
-            </p>
-            <ListSection items={filteredReceived} emptyText="Nenhum recebimento registrado" showReceived />
-          </TabsContent>
+        {/* Tab header */}
+        <div className="px-6 pt-4 pb-0 border-b border-slate-100">
+          <div className="flex items-center gap-1">
+            {TABS.map(tab => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    'flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-medium border-b-2 transition-all',
+                    isActive ? tab.activeClass : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                  )}
+                >
+                  {tab.label}
+                  {tab.count > 0 && (
+                    <span className={cn(
+                      'rounded-full px-1.5 py-0.5 text-xs font-bold min-w-[18px] text-center',
+                      isActive ? 'bg-white/60 text-inherit' : 'bg-slate-100 text-slate-500'
+                    )}>
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </Tabs>
+
+        {/* List content */}
+        {loading ? (
+          <div className="divide-y divide-slate-50">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 px-6 py-4">
+                <div className="h-10 w-10 rounded-xl bg-slate-100 animate-pulse shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-3.5 w-36 bg-slate-100 rounded animate-pulse" />
+                  <div className="h-3 w-24 bg-slate-100 rounded animate-pulse" />
+                </div>
+                <div className="h-3.5 w-20 bg-slate-100 rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
+        ) : currentList.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="h-14 w-14 rounded-3xl bg-slate-100 flex items-center justify-center mb-3">
+              <CheckCircle2 className="h-7 w-7 text-slate-300" />
+            </div>
+            <p className="text-sm font-semibold text-slate-600">
+              {activeTab === 'pending' ? 'Nenhuma parcela pendente' : activeTab === 'overdue' ? 'Nenhuma parcela vencida' : 'Nenhum recebimento no período'}
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-50">
+            {currentList.map(i => (
+              <InstallmentRow key={i.id} installment={i} showReceived={activeTab === 'received'} />
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Dialogs */}
       <CreateInstallmentSaleDialog
@@ -520,15 +586,11 @@ export default function ReceivablesPage() {
             <AlertDialogDescription>
               Tem certeza que deseja excluir a parcela {selectedInstallment?.installmentNumber} de{' '}
               <span className="font-medium text-slate-700">{selectedInstallment?.clientName}</span>?
-              Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmDelete}
-              className="rounded-xl bg-red-500 hover:bg-red-600"
-            >
+            <AlertDialogAction onClick={handleConfirmDelete} className="rounded-xl bg-red-500 hover:bg-red-600">
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
