@@ -3,7 +3,7 @@
 
 import { useState } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { BANK_PRESETS, BankLogos } from './BankLogos'
+import { BANK_PRESETS, BankLogos, BankPreset } from './BankLogos'
 import { cn } from '@/lib/utils'
 
 interface LogoPickerProps {
@@ -11,22 +11,18 @@ interface LogoPickerProps {
     onChange: (logoId: string, suggestedColor?: string) => void
 }
 
-const GENERIC_IDS = ['generic-bank', 'generic-card', 'generic-wallet', 'money', 'piggy-bank']
-
 export function LogoPicker({ value, onChange }: LogoPickerProps) {
     const [failedImages, setFailedImages] = useState<Set<string>>(new Set())
 
-    const handleImageError = (id: string) => {
-        setFailedImages(prev => new Set([...prev, id]))
-    }
+    const banks    = BANK_PRESETS.filter(p => p.category === 'bank')
+    const cards    = BANK_PRESETS.filter(p => p.category === 'card')
+    const generics = BANK_PRESETS.filter(p => p.category === 'generic')
 
-    const banks = BANK_PRESETS.filter(p => !GENERIC_IDS.includes(p.id))
-    const generics = BANK_PRESETS.filter(p => GENERIC_IDS.includes(p.id))
-
-    const renderLogoItem = (preset: typeof BANK_PRESETS[0]) => {
+    const renderItem = (preset: BankPreset) => {
         const Logo = BankLogos[preset.id] || BankLogos['generic-bank']
         const isSelected = value === preset.id
-        const hasImage = !!preset.imageUrl && !failedImages.has(preset.id)
+        const imageUrl = 'imageUrl' in preset ? preset.imageUrl : undefined
+        const hasImage = !!imageUrl && !failedImages.has(preset.id)
 
         return (
             <button
@@ -43,15 +39,15 @@ export function LogoPicker({ value, onChange }: LogoPickerProps) {
                 title={preset.name}
             >
                 <div
-                    className="w-10 h-10 flex items-center justify-center rounded-xl transition-all"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl overflow-hidden transition-all"
                     style={{ backgroundColor: `${preset.color}18` }}
                 >
                     {hasImage ? (
                         <img
-                            src={preset.imageUrl}
+                            src={imageUrl}
                             alt={preset.name}
-                            className="w-6 h-6 object-contain"
-                            onError={() => handleImageError(preset.id)}
+                            className="w-7 h-7 object-contain"
+                            onError={() => setFailedImages(prev => new Set([...prev, preset.id]))}
                         />
                     ) : (
                         <Logo className="w-5 h-5" style={{ color: preset.color }} />
@@ -64,26 +60,24 @@ export function LogoPicker({ value, onChange }: LogoPickerProps) {
         )
     }
 
+    const Section = ({ title, items }: { title: string; items: readonly BankPreset[] }) => (
+        <div>
+            <p className="text-[10px] font-semibold uppercase text-muted-foreground/60 tracking-widest mb-2 px-1">
+                {title}
+            </p>
+            <div className="grid grid-cols-5 gap-1">
+                {items.map(renderItem)}
+            </div>
+        </div>
+    )
+
     return (
         <div className="w-full">
-            <ScrollArea className="h-[230px]">
+            <ScrollArea className="h-[240px]">
                 <div className="space-y-3 pr-3">
-                    <div>
-                        <p className="text-[10px] font-semibold uppercase text-muted-foreground/60 tracking-widest mb-2 px-1">
-                            Bancos & Fintechs
-                        </p>
-                        <div className="grid grid-cols-5 gap-1">
-                            {banks.map(renderLogoItem)}
-                        </div>
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-semibold uppercase text-muted-foreground/60 tracking-widest mb-2 px-1">
-                            Genéricos
-                        </p>
-                        <div className="grid grid-cols-5 gap-1">
-                            {generics.map(renderLogoItem)}
-                        </div>
-                    </div>
+                    <Section title="Bancos & Fintechs" items={banks} />
+                    <Section title="Bandeiras de Cartão" items={cards} />
+                    <Section title="Genéricos" items={generics} />
                 </div>
             </ScrollArea>
         </div>

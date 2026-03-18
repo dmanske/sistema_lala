@@ -9,6 +9,7 @@ import { GetAccountsPayableSummary } from '@/core/usecases/accounts-payable/GetA
 import {
   AccountPayableWithDetails,
   CreateAccountPayableInput,
+  AccountPayableCategory,
   AccountPayableSummary,
 } from '@/core/domain/entities/AccountPayable';
 import { CreateAccountPayablePaymentInput } from '@/core/domain/entities/AccountPayablePayment';
@@ -126,6 +127,49 @@ export function useAccountsPayable() {
     [fetchAccounts, fetchSummary]
   );
 
+  const createInstallments = useCallback(
+    async (installments: Array<{
+      description: string;
+      amount: number;
+      dueDate: string;
+      category: AccountPayableCategory;
+      supplierId?: string;
+      notes?: string;
+      costCenterId?: string;
+      projectId?: string;
+      installmentNumber: number;
+      totalInstallments: number;
+    }>) => {
+      try {
+        setLoading(true);
+        setError(null);
+        for (const inst of installments) {
+          await createAccountPayableUseCase.execute({
+            description: inst.description,
+            amount: inst.amount,
+            dueDate: new Date(inst.dueDate),
+            category: inst.category,
+            supplierId: inst.supplierId,
+            notes: inst.notes,
+            costCenterId: inst.costCenterId,
+            projectId: inst.projectId,
+            installmentNumber: inst.installmentNumber,
+            totalInstallments: inst.totalInstallments,
+          });
+        }
+        await fetchAccounts();
+        await fetchSummary();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to create installments';
+        setError(message);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchAccounts, fetchSummary]
+  );
+
   const getOverdue = useCallback(async () => {
     try {
       return await repository.getOverdue();
@@ -152,6 +196,7 @@ export function useAccountsPayable() {
     fetchAccounts,
     fetchSummary,
     createAccount,
+    createInstallments,
     updateAccount,
     deleteAccount,
     registerPayment,

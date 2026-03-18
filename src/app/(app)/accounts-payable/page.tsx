@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import {
   Plus, AlertCircle, TrendingDown, CheckCircle2,
   Filter, Pencil, Trash2, CreditCard, Loader2,
-  Clock, Building2, CalendarX, Banknote,
+  Clock, Building2, CalendarX, Banknote, History,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,8 +25,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { AccountPayableDialog } from '@/components/accounts-payable/AccountPayableDialog';
+import { AccountPayableDialog, InstallmentData } from '@/components/accounts-payable/AccountPayableDialog';
 import { PaymentDialog } from '@/components/accounts-payable/PaymentDialog';
+import { PaymentHistorySheet } from '@/components/accounts-payable/PaymentHistorySheet';
 import { useAccountsPayable } from '@/hooks/useAccountsPayable';
 import { AccountPayableWithDetails } from '@/core/domain/entities/AccountPayable';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -34,9 +35,12 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 const categoryLabels: Record<string, string> = {
   COMPRA: 'Compra',
   ALUGUEL: 'Aluguel',
-  SERVICO: 'Serviço',
-  SALARIO: 'Salário',
-  IMPOSTO: 'Imposto',
+  ENERGIA: 'Energia',
+  AGUA: 'Água',
+  INTERNET: 'Internet',
+  TELEFONE: 'Telefone',
+  IMPOSTOS: 'Impostos',
+  SALARIOS: 'Salários',
   OUTROS: 'Outros',
 };
 
@@ -84,6 +88,7 @@ export default function AccountsPayablePage() {
     fetchAccounts,
     fetchSummary,
     createAccount,
+    createInstallments,
     updateAccount,
     deleteAccount,
     registerPayment,
@@ -93,12 +98,25 @@ export default function AccountsPayablePage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [historySheetOpen, setHistorySheetOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<AccountPayableWithDetails | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [supplierFilter, setSupplierFilter] = useState<string>('');
+  const [startDateFilter, setStartDateFilter] = useState<string>('');
+  const [endDateFilter, setEndDateFilter] = useState<string>('');
+  const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     fetchAccounts();
     fetchSummary();
+    // Busca fornecedores para o filtro
+    import('@/lib/supabase/client').then(({ createClient }) => {
+      createClient()
+        .from('suppliers')
+        .select('id, name')
+        .order('name')
+        .then(({ data }) => { if (data) setSuppliers(data); });
+    });
   }, [fetchAccounts, fetchSummary]);
 
   const handleCreateAccount = async (data: any) => {
@@ -110,6 +128,10 @@ export default function AccountsPayablePage() {
       supplierId: data.supplierId || undefined,
       notes: data.notes,
     });
+  };
+
+  const handleCreateInstallments = async (installments: InstallmentData[]) => {
+    await createInstallments(installments);
   };
 
   const handleUpdateAccount = async (data: any) => {
@@ -138,10 +160,30 @@ export default function AccountsPayablePage() {
   };
 
   const filteredAccounts = accounts.filter((account) => {
-    if (statusFilter === 'ALL') return true;
-    if (statusFilter === 'OVERDUE') return account.isOverdue;
-    return account.paymentStatus === statusFilter;
+    if (statusFilter !== 'ALL') {
+      if (statusFilter === 'OVERDUE' && !account.isOverdue) return false;
+      if (statusFilter !== 'OVERDUE' && account.paymentStatus !== statusFilter) return false;
+    }
+    if (supplierFilter && account.supplierId !== supplierFilter) return false;
+    if (startDateFilter) {
+      const start = new Date(startDateFilter);
+      if (new Date(account.dueDate) < start) return false;
+    }
+    if (endDateFilter) {
+      const end = new Date(endDateFilter);
+      if (new Date(account.dueDate) > end) return false;
+    }
+    return true;
   });
+
+  const hasActiveFilters = statusFilter !== 'ALL' || supplierFilter || startDateFilter || endDateFilter;
+
+  const clearFilters = () => {
+    setStatusFilter('ALL');
+    setSupplierFilter('');
+    setStartDateFilter('');
+    setEndDateFilter('');
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
@@ -209,27 +251,63 @@ export default function AccountsPayablePage() {
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
 
           {/* Barra de filtros */}
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-slate-700">Contas</span>
-              <Badge variant="secondary" className="rounded-full text-xs bg-slate-100 text-slate-500 border-0">
-                {filteredAccounts.length}
-              </Badge>
+          <div className="px-6 py-4 border-b border-slate-100 space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-slate-400" />
+                <span className="text-sm font-semibold text-slate-700">Filtros</span>
+                <Badge variant="secondary" className="rounded-full text-xs bg-slate-100 text-slate-500 border-0">
+                  {filteredAccounts.length} resultado{filteredAccounts.length !== 1 ? 's' : ''}
+                </Badge>
+              </div>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="h-7 text-xs text-slate-400 hover:text-slate-600 px-2">
+                  Limpar filtros
+                </Button>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-slate-400" />
+            <div className="flex flex-wrap gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-44 h-9 rounded-xl border-slate-200 text-sm">
-                  <SelectValue placeholder="Filtrar por status" />
+                <SelectTrigger className="w-36 h-8 rounded-lg border-slate-200 text-xs">
+                  <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
-                  <SelectItem value="ALL">Todos</SelectItem>
+                  <SelectItem value="ALL">Todos os status</SelectItem>
                   <SelectItem value="PENDING">Pendente</SelectItem>
                   <SelectItem value="PARTIAL">Parcial</SelectItem>
                   <SelectItem value="PAID">Pago</SelectItem>
                   <SelectItem value="OVERDUE">Vencidas</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Select value={supplierFilter || 'ALL'} onValueChange={(v) => setSupplierFilter(v === 'ALL' ? '' : v)}>
+                <SelectTrigger className="w-44 h-8 rounded-lg border-slate-200 text-xs">
+                  <SelectValue placeholder="Fornecedor" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="ALL">Todos os fornecedores</SelectItem>
+                  {suppliers.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-slate-400">Venc. de</span>
+                <input
+                  type="date"
+                  value={startDateFilter}
+                  onChange={(e) => setStartDateFilter(e.target.value)}
+                  className="h-8 rounded-lg border border-slate-200 px-2 text-xs text-slate-600 focus:outline-none focus:ring-1 focus:ring-rose-300"
+                />
+                <span className="text-xs text-slate-400">até</span>
+                <input
+                  type="date"
+                  value={endDateFilter}
+                  onChange={(e) => setEndDateFilter(e.target.value)}
+                  className="h-8 rounded-lg border border-slate-200 px-2 text-xs text-slate-600 focus:outline-none focus:ring-1 focus:ring-rose-300"
+                />
+              </div>
             </div>
           </div>
 
@@ -325,7 +403,18 @@ export default function AccountsPayablePage() {
 
                     {/* Ações */}
                     <div className="flex items-center gap-1 shrink-0">
-                      {canAct ? (
+                      {account.paidAmount > 0 && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => { setSelectedAccount(account); setHistorySheetOpen(true); }}
+                          className="h-8 w-8 p-0 rounded-lg hover:bg-slate-100"
+                          title="Ver pagamentos"
+                        >
+                          <History className="h-3.5 w-3.5 text-slate-400" />
+                        </Button>
+                      )}
+                      {canAct && (
                         <>
                           <Button
                             size="sm"
@@ -351,8 +440,6 @@ export default function AccountsPayablePage() {
                             <Trash2 className="h-3.5 w-3.5 text-slate-400" />
                           </Button>
                         </>
-                      ) : (
-                        <div className="w-24" />
                       )}
                     </div>
                   </div>
@@ -367,6 +454,7 @@ export default function AccountsPayablePage() {
           open={createDialogOpen}
           onOpenChange={setCreateDialogOpen}
           onSubmit={handleCreateAccount}
+          onSubmitInstallments={handleCreateInstallments}
         />
 
         <AccountPayableDialog
@@ -389,6 +477,12 @@ export default function AccountsPayablePage() {
           onOpenChange={setPaymentDialogOpen}
           account={selectedAccount}
           onSubmit={handleRegisterPayment}
+        />
+
+        <PaymentHistorySheet
+          open={historySheetOpen}
+          onOpenChange={setHistorySheetOpen}
+          account={selectedAccount}
         />
 
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
