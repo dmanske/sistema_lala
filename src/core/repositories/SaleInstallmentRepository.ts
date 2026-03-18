@@ -22,6 +22,7 @@ export interface ISaleInstallmentRepository {
     overdue?: boolean;
   }): Promise<SaleInstallmentWithDetails[]>;
   getOverdue(): Promise<SaleInstallmentWithDetails[]>;
+  getReceived(): Promise<SaleInstallmentWithDetails[]>;
   create(input: CreateSaleInstallmentInput): Promise<string>;
   createBatch(inputs: CreateSaleInstallmentInput[]): Promise<string[]>;
   registerReceipt(input: RegisterReceiptInput): Promise<string>;

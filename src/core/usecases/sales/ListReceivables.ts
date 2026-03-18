@@ -25,8 +25,10 @@ export class ListReceivables {
       });
     }
 
-    // Para RECEIVED, buscar todas pendentes e filtrar (ou implementar método específico)
-    // Por enquanto, retornar vazio para RECEIVED
+    if (input.status === 'RECEIVED') {
+      return this.repository.getReceived();
+    }
+
     return [];
   }
 }

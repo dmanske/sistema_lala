@@ -52,6 +52,7 @@ export class SupabaseSaleInstallmentRepository implements ISaleInstallmentReposi
       updatedAt: new Date(row.updated_at),
       saleTotal: parseFloat(row.sale_total),
       saleDate: new Date(row.sale_date),
+      saleNotes: row.sale_notes || undefined,
       clientId: row.client_id,
       clientName: row.client_name,
       clientPhone: row.client_phone,
@@ -186,6 +187,20 @@ export class SupabaseSaleInstallmentRepository implements ISaleInstallmentReposi
 
   async getOverdue(): Promise<SaleInstallmentWithDetails[]> {
     return this.getPending({ overdue: true });
+  }
+
+  async getReceived(): Promise<SaleInstallmentWithDetails[]> {
+    const tenantId = await this.getTenantId();
+
+    const { data, error } = await this.supabase
+      .from('vw_contas_receber')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .eq('status', 'RECEIVED')
+      .order('received_at', { ascending: false });
+
+    if (error) throw new Error(`Failed to get received installments: ${error.message}`);
+    return data.map(row => this.mapWithDetailsFromDb(row));
   }
 
   async create(input: CreateSaleInstallmentInput): Promise<string> {

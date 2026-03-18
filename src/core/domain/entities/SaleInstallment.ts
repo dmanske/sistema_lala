@@ -19,6 +19,7 @@ export interface SaleInstallment {
 export interface SaleInstallmentWithDetails extends SaleInstallment {
   saleTotal: number;
   saleDate: Date;
+  saleNotes?: string;
   clientId: string;
   clientName: string;
   clientPhone?: string;
