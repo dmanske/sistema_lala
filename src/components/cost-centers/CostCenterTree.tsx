@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronRight, ChevronDown, Pencil, Trash2, FolderOpen, Folder } from 'lucide-react';
+import { ChevronRight, ChevronDown, Pencil, Trash2, FolderOpen, Folder, Plus } from 'lucide-react';
 import { useState } from 'react';
 import type { CostCenter, CostCenterWithChildren } from '@/core/domain/entities/CostCenter';
 
@@ -10,9 +10,10 @@ interface CostCenterTreeProps {
   costCenters: CostCenterWithChildren[];
   onEdit: (costCenter: CostCenter) => void;
   onDelete: (id: string) => void;
+  onAddChild?: (parentId: string) => void;
 }
 
-export function CostCenterTree({ costCenters, onEdit, onDelete }: CostCenterTreeProps) {
+export function CostCenterTree({ costCenters, onEdit, onDelete, onAddChild }: CostCenterTreeProps) {
   return (
     <div className="divide-y divide-slate-50">
       {costCenters.map((costCenter) => (
@@ -21,6 +22,7 @@ export function CostCenterTree({ costCenters, onEdit, onDelete }: CostCenterTree
           costCenter={costCenter}
           onEdit={onEdit}
           onDelete={onDelete}
+          onAddChild={onAddChild}
         />
       ))}
     </div>
@@ -31,6 +33,7 @@ interface CostCenterNodeProps {
   costCenter: CostCenterWithChildren;
   onEdit: (costCenter: CostCenter) => void;
   onDelete: (id: string) => void;
+  onAddChild?: (parentId: string) => void;
 }
 
 const levelColors = [
@@ -39,7 +42,7 @@ const levelColors = [
   'text-violet-600 bg-violet-50',
 ];
 
-function CostCenterNode({ costCenter, onEdit, onDelete }: CostCenterNodeProps) {
+function CostCenterNode({ costCenter, onEdit, onDelete, onAddChild }: CostCenterNodeProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const hasChildren = costCenter.children?.length > 0;
   const level = costCenter.level ?? 0;
@@ -92,8 +95,19 @@ function CostCenterNode({ costCenter, onEdit, onDelete }: CostCenterNodeProps) {
           )}
         </div>
 
-        {/* Actions (hover) */}
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Actions */}
+        <div className="flex items-center gap-1">
+          {onAddChild && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
+              title="Adicionar subcategoria"
+              onClick={() => onAddChild(costCenter.id)}
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -121,6 +135,7 @@ function CostCenterNode({ costCenter, onEdit, onDelete }: CostCenterNodeProps) {
               costCenter={child}
               onEdit={onEdit}
               onDelete={onDelete}
+              onAddChild={onAddChild}
             />
           ))}
         </div>

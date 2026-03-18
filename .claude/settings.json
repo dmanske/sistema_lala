@@ -6,7 +6,9 @@
       "Bash(grep -l \"accounts_payable\" /Users/dmanske/Documents/GitHub/sistema_lala/supabase/migrations/*.sql)",
       "Bash(npx tsc:*)",
       "Bash(ls -la /Users/dmanske/Documents/GitHub/sistema_lala/src/app/\\\\\\(app\\\\\\)/)",
-      "Bash(ls -la /Users/dmanske/Documents/GitHub/sistema_lala/src/app/\\\\\\(app\\\\\\)/purchases/)"
+      "Bash(ls -la /Users/dmanske/Documents/GitHub/sistema_lala/src/app/\\\\\\(app\\\\\\)/purchases/)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(find /Users/dmanske/Documents/GitHub/sistema_lala -type f \\\\\\(-name *.sql -o -name *migration* \\\\\\))"
     ]
   }
 }

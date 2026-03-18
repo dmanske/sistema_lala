@@ -1,36 +1,33 @@
 'use client';
 
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Download } from 'lucide-react';
 import { generateDRE } from '@/app/(app)/reports/financial/actions';
 
-export function DREReport() {
-  const [startDate, setStartDate] = useState(() => {
-    const date = new Date();
-    date.setDate(1);
-    return date.toISOString().split('T')[0];
-  });
-  
-  const [endDate, setEndDate] = useState(() => {
-    return new Date().toISOString().split('T')[0];
-  });
+interface DREReportProps {
+  startDate: string;
+  endDate: string;
+}
 
+export function DREReport({ startDate, endDate }: DREReportProps) {
   const { data: dre, isLoading } = useQuery({
     queryKey: ['dre', startDate, endDate],
     queryFn: () => generateDRE(startDate, endDate),
   });
 
   if (isLoading) {
-    return <div>Carregando DRE...</div>;
+    return (
+      <div className="bg-card rounded-2xl border border-border shadow-sm p-8 text-center">
+        <p className="text-sm text-slate-400">Carregando DRE...</p>
+      </div>
+    );
   }
 
   if (!dre) {
-    return <div>Erro ao carregar DRE</div>;
+    return (
+      <div className="bg-card rounded-2xl border border-border shadow-sm p-8 text-center">
+        <p className="text-sm text-red-500">Erro ao carregar DRE</p>
+      </div>
+    );
   }
 
   const formatCurrency = (value: number) => {
@@ -46,45 +43,12 @@ export function DREReport() {
 
   return (
     <div className="space-y-4">
-      {/* Filtros */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Período</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="startDate">Data Inicial</Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="endDate">Data Final</Label>
-              <Input
-                id="endDate"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* DRE */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Demonstração do Resultado do Exercício (DRE)</CardTitle>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar
-          </Button>
-        </CardHeader>
-        <CardContent>
+      <div className="bg-card rounded-2xl border border-border shadow-sm">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <p className="font-semibold text-slate-800">Demonstração do Resultado do Exercício (DRE)</p>
+        </div>
+        <div className="p-5">
           <div className="space-y-6">
             {/* RECEITAS */}
             <div>
@@ -186,8 +150,8 @@ export function DREReport() {
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

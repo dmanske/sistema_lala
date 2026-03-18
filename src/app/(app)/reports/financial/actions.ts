@@ -21,7 +21,7 @@ export async function generateDRE(startDate: string, endDate: string) {
     const { data: sales } = await supabase
       .from('sales')
       .select(`
-        total_amount,
+        total,
         sale_items (
           item_type,
           total_price,
@@ -32,7 +32,7 @@ export async function generateDRE(startDate: string, endDate: string) {
       .eq('tenant_id', profile.tenant_id)
       .eq('status', 'paid')
       .gte('created_at', startDate)
-      .lte('created_at', endDate);
+      .lte('created_at', `${endDate}T23:59:59`);
 
     // Calcular receitas
     let revenueServices = 0;
@@ -57,14 +57,14 @@ export async function generateDRE(startDate: string, endDate: string) {
     const grossProfit = totalRevenue - totalCosts;
     const grossMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
 
-    // Buscar despesas operacionais
+    // Buscar despesas operacionais (filtrar por paid_at — data real do pagamento)
     const { data: expenses } = await supabase
       .from('accounts_payable')
       .select('amount, category')
       .eq('tenant_id', profile.tenant_id)
       .eq('payment_status', 'PAID')
-      .gte('due_date', startDate)
-      .lte('due_date', endDate);
+      .gte('paid_at', startDate)
+      .lte('paid_at', endDate);
 
     const expensesByCategory: Record<string, number> = {};
     let totalExpenses = 0;
@@ -136,13 +136,56 @@ export async function getProfitabilityByService(startDate: string, endDate: stri
 
     if (!profile?.tenant_id) throw new Error('Tenant not found');
 
-    const { data } = await supabase.rpc('get_profitability_by_service', {
-      p_tenant_id: profile.tenant_id,
-      p_start_date: startDate,
-      p_end_date: endDate,
+    // Buscar vendas pagas no período
+    const { data: paidSales } = await supabase
+      .from('sales')
+      .select('id')
+      .eq('tenant_id', profile.tenant_id)
+      .eq('status', 'paid')
+      .gte('created_at', startDate)
+      .lte('created_at', `${endDate}T23:59:59`);
+
+    if (!paidSales || paidSales.length === 0) return [];
+
+    const saleIds = paidSales.map((s: any) => s.id);
+
+    // Buscar itens de serviço com nome do serviço
+    const { data: items } = await supabase
+      .from('sale_items')
+      .select(`
+        item_name,
+        service_id,
+        qty,
+        total_price,
+        cost_snapshot
+      `)
+      .in('sale_id', saleIds)
+      .eq('item_type', 'service');
+
+    const serviceMap: Record<string, any> = {};
+
+    items?.forEach((item: any) => {
+      const key = item.service_id || item.item_name;
+      if (!serviceMap[key]) {
+        serviceMap[key] = {
+          service_id: item.service_id,
+          service_name: item.item_name,
+          quantity: 0,
+          revenue: 0,
+          cost: 0,
+        };
+      }
+      serviceMap[key].quantity += Number(item.qty || 0);
+      serviceMap[key].revenue += Number(item.total_price || 0);
+      serviceMap[key].cost += Number(item.cost_snapshot || 0) * Number(item.qty || 0);
     });
 
-    return data || [];
+    return Object.values(serviceMap).map((s: any) => ({
+      ...s,
+      profit: s.revenue - s.cost,
+      margin: s.revenue > 0 ? ((s.revenue - s.cost) / s.revenue) * 100 : 0,
+      avg_ticket: s.quantity > 0 ? s.revenue / s.quantity : 0,
+    })).sort((a: any, b: any) => b.revenue - a.revenue);
   } catch (error) {
     console.error('Erro ao buscar rentabilidade por serviço:', error);
     return [];
@@ -164,42 +207,44 @@ export async function getProfitabilityByProfessional(startDate: string, endDate:
 
     if (!profile?.tenant_id) throw new Error('Tenant not found');
 
-    // Buscar vendas por profissional
+    // Buscar vendas pagas com profissional via agendamento
     const { data: sales } = await supabase
       .from('sales')
       .select(`
-        total_amount,
-        professional:professionals(id, name)
+        total,
+        appointment:appointments(
+          professional:professionals(id, name)
+        )
       `)
       .eq('tenant_id', profile.tenant_id)
       .eq('status', 'paid')
       .gte('created_at', startDate)
-      .lte('created_at', endDate)
-      .not('professional_id', 'is', null);
+      .lte('created_at', `${endDate}T23:59:59`)
+      .not('appointment_id', 'is', null);
 
     const profitabilityMap: Record<string, any> = {};
 
     sales?.forEach((sale: any) => {
-      if (!sale.professional) return;
+      const prof = sale.appointment?.professional;
+      if (!prof) return;
 
-      const profId = sale.professional.id;
-      if (!profitabilityMap[profId]) {
-        profitabilityMap[profId] = {
-          professionalId: profId,
-          professionalName: sale.professional.name,
+      if (!profitabilityMap[prof.id]) {
+        profitabilityMap[prof.id] = {
+          professionalId: prof.id,
+          professionalName: prof.name,
           revenue: 0,
           servicesCount: 0,
         };
       }
 
-      profitabilityMap[profId].revenue += Number(sale.total_amount || 0);
-      profitabilityMap[profId].servicesCount += 1;
+      profitabilityMap[prof.id].revenue += Number(sale.total || 0);
+      profitabilityMap[prof.id].servicesCount += 1;
     });
 
     return Object.values(profitabilityMap).map((prof: any) => ({
       ...prof,
       avgTicket: prof.servicesCount > 0 ? prof.revenue / prof.servicesCount : 0,
-    }));
+    })).sort((a: any, b: any) => b.revenue - a.revenue);
   } catch (error) {
     console.error('Erro ao buscar rentabilidade por profissional:', error);
     return [];
@@ -226,8 +271,8 @@ export async function getExpensesByCategory(startDate: string, endDate: string) 
       .select('amount, category')
       .eq('tenant_id', profile.tenant_id)
       .eq('payment_status', 'PAID')
-      .gte('due_date', startDate)
-      .lte('due_date', endDate);
+      .gte('paid_at', startDate)
+      .lte('paid_at', endDate);
 
     const categoryMap: Record<string, number> = {};
     let total = 0;

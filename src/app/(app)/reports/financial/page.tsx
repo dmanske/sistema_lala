@@ -94,7 +94,7 @@ export default function FinancialReportsPage() {
         </TabsList>
 
         <TabsContent value="dre" className="space-y-4">
-          <DREReport />
+          <DREReport startDate={startDate} endDate={endDate} />
         </TabsContent>
 
         <TabsContent value="profitability" className="space-y-4">
@@ -108,22 +108,43 @@ export default function FinancialReportsPage() {
 
       {/* Dicas */}
       <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-4">
           <div className="h-7 w-7 rounded-lg bg-blue-100 flex items-center justify-center">
             <Lightbulb className="h-3.5 w-3.5 text-blue-600" />
           </div>
-          <p className="text-sm font-semibold text-blue-800">Como usar os Relatórios Financeiros</p>
+          <p className="text-sm font-semibold text-blue-800">Entendendo os Relatórios</p>
         </div>
-        <div className="space-y-2">
-          <p className="text-sm text-blue-700">
-            <span className="font-semibold">DRE:</span> Visão contábil completa do seu negócio — receitas, custos, despesas e lucros. Use para entender a saúde financeira geral.
-          </p>
-          <p className="text-sm text-blue-700">
-            <span className="font-semibold">Lucratividade:</span> Descubra quais serviços e profissionais são mais rentáveis. Use para decisões de precificação e alocação de recursos.
-          </p>
-          <p className="text-sm text-blue-700">
-            <span className="font-semibold">Despesas por Categoria:</span> Visualize onde seu dinheiro está sendo gasto e identifique oportunidades de redução de custos.
-          </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white/70 rounded-xl p-4 border border-blue-100">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="h-4 w-4 text-violet-500" />
+              <p className="text-sm font-semibold text-slate-700">DRE</p>
+            </div>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Mostra receitas de vendas pagas, custos dos produtos/serviços e despesas operacionais pagas no período. O resultado final é o lucro líquido do negócio.
+            </p>
+            <p className="text-xs text-blue-600 mt-2 font-medium">Fonte: Vendas pagas + Contas a pagar quitadas</p>
+          </div>
+          <div className="bg-white/70 rounded-xl p-4 border border-blue-100">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="h-4 w-4 text-emerald-500" />
+              <p className="text-sm font-semibold text-slate-700">Lucratividade</p>
+            </div>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Por Serviço: quais serviços geram mais receita, quantidade atendida e ticket médio. Por Profissional: receita e atendimentos por colaborador no período.
+            </p>
+            <p className="text-xs text-blue-600 mt-2 font-medium">Fonte: Itens de vendas pagas com agendamento</p>
+          </div>
+          <div className="bg-white/70 rounded-xl p-4 border border-blue-100">
+            <div className="flex items-center gap-2 mb-2">
+              <PieChart className="h-4 w-4 text-amber-500" />
+              <p className="text-sm font-semibold text-slate-700">Despesas por Categoria</p>
+            </div>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Distribuição visual de todas as contas a pagar quitadas no período, agrupadas por categoria. Identifique onde o dinheiro está saindo e corte custos desnecessários.
+            </p>
+            <p className="text-xs text-blue-600 mt-2 font-medium">Fonte: Contas a pagar com status Pago</p>
+          </div>
         </div>
       </div>
     </div>
