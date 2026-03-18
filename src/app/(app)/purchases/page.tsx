@@ -1,27 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
-    Plus, Search, ShoppingBag, Calendar, Package,
-    ArrowRight, Filter, TrendingDown, Clock, CheckCircle2,
-    AlertCircle, ChevronRight,
+    Plus, Search, ShoppingBag, Package,
+    TrendingDown, Clock, CheckCircle2,
+    AlertCircle, ChevronRight, ChevronLeft, X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { NewPurchaseDialog } from "@/components/purchases/NewPurchaseDialog";
-import { Input } from "@/components/ui/input";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-
 import { Purchase, calculatePaymentSummary } from "@/core/domain/Purchase";
 import { getPurchaseRepository, getSupplierRepository } from "@/infrastructure/repositories/factory";
 import { formatDate, parseLocalDate } from "@/lib/utils/dateFormatters";
+import { cn } from "@/lib/utils";
+import {
+    format, startOfMonth, endOfMonth, isSameMonth, addYears, subYears,
+} from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const brl = (v: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
@@ -30,37 +26,33 @@ const getInitials = (name: string) =>
     name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
 
 const statusConfig = {
-    PAID: {
-        label: 'Pago',
-        icon: CheckCircle2,
-        className: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-        iconClass: 'text-emerald-400',
-        dot: 'bg-emerald-400',
-    },
-    PARTIAL: {
-        label: 'Parcial',
-        icon: AlertCircle,
-        className: 'bg-amber-50 text-amber-600 border-amber-200',
-        iconClass: 'text-amber-400',
-        dot: 'bg-amber-400',
-    },
-    PENDING: {
-        label: 'Pendente',
-        icon: Clock,
-        className: 'bg-red-50 text-red-500 border-red-200',
-        iconClass: 'text-red-400',
-        dot: 'bg-red-400',
-    },
+    PAID:    { label: 'Pago',     icon: CheckCircle2, className: 'bg-emerald-50 text-emerald-600 border-emerald-200', iconClass: 'text-emerald-400' },
+    PARTIAL: { label: 'Parcial',  icon: AlertCircle,  className: 'bg-amber-50 text-amber-600 border-amber-200',     iconClass: 'text-amber-400'  },
+    PENDING: { label: 'Pendente', icon: Clock,        className: 'bg-red-50 text-red-500 border-red-200',           iconClass: 'text-red-400'    },
 } as const;
+
+type TabId = 'all' | 'pending' | 'paid';
+
+const TABS: { id: TabId; label: string; activeClass: string }[] = [
+    { id: 'all',     label: 'Todas',     activeClass: 'border-emerald-500 text-emerald-700 bg-emerald-50/50' },
+    { id: 'pending', label: 'Pendentes', activeClass: 'border-amber-500 text-amber-700 bg-amber-50/50' },
+    { id: 'paid',    label: 'Pagas',     activeClass: 'border-emerald-600 text-emerald-700 bg-emerald-50/50' },
+];
 
 export default function PurchasesPage() {
     const router = useRouter();
     const [purchases, setPurchases] = useState<Purchase[]>([]);
     const [suppliers, setSuppliers] = useState<Map<string, string>>(new Map());
     const [isLoading, setIsLoading] = useState(true);
-    const [search, setSearch] = useState("");
-    const [statusFilter, setStatusFilter] = useState<string>("ALL");
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+    // Filters
+    const [activeTab, setActiveTab] = useState<TabId>('all');
+    const [searchText, setSearchText] = useState('');
+
+    // Month navigation
+    const [periodStart, setPeriodStart] = useState(startOfMonth(new Date()));
+    const [periodEnd, setPeriodEnd] = useState(endOfMonth(new Date()));
 
     const purchaseRepo = getPurchaseRepository();
     const supplierRepo = getSupplierRepository();
@@ -69,7 +61,7 @@ export default function PurchasesPage() {
         try {
             const [pList, sList] = await Promise.all([
                 purchaseRepo.getAll(),
-                supplierRepo.getAll()
+                supplierRepo.getAll(),
             ]);
             const sMap = new Map<string, string>();
             sList.forEach(s => sMap.set(s.id, s.name));
@@ -89,17 +81,66 @@ export default function PurchasesPage() {
 
     useEffect(() => { loadData(); }, []);
 
-    const filteredPurchases = purchases.filter(p => {
-        const supplierName = suppliers.get(p.supplierId)?.toLowerCase() || "";
-        const searchMatch = p.id.toLowerCase().includes(search.toLowerCase()) || supplierName.includes(search.toLowerCase());
-        const statusMatch = statusFilter === "ALL" || p.paymentStatus === statusFilter;
-        return searchMatch && statusMatch;
-    });
+    // Month nav helpers
+    const months = useMemo(() => {
+        const year = periodStart.getFullYear();
+        return Array.from({ length: 12 }, (_, i) => {
+            const date = new Date(year, i, 1);
+            return {
+                date,
+                start: startOfMonth(date),
+                end: endOfMonth(date),
+                label: format(date, 'MMM', { locale: ptBR }),
+                fullLabel: format(date, 'MMMM yyyy', { locale: ptBR }),
+                isActive: isSameMonth(date, periodStart),
+            };
+        });
+    }, [periodStart]);
 
-    const totalValue = purchases.reduce((sum, p) => sum + p.total, 0);
-    const pending = purchases.filter(p => p.paymentStatus === 'PENDING' || p.paymentStatus === 'PARTIAL');
-    const pendingValue = pending.reduce((sum, p) => sum + calculatePaymentSummary(p).remaining, 0);
-    const lastPurchase = purchases[0];
+    const handleMonthClick = (start: Date, end: Date) => {
+        setPeriodStart(start);
+        setPeriodEnd(end);
+    };
+
+    // Filter by period
+    const periodFiltered = useMemo(() => {
+        return purchases.filter(p => {
+            const date = parseLocalDate(p.date);
+            if (!date) return false;
+            return date >= periodStart && date <= periodEnd;
+        });
+    }, [purchases, periodStart, periodEnd]);
+
+    // Tab counts
+    const tabCounts = useMemo(() => ({
+        all:     periodFiltered.length,
+        pending: periodFiltered.filter(p => p.paymentStatus === 'PENDING' || p.paymentStatus === 'PARTIAL').length,
+        paid:    periodFiltered.filter(p => p.paymentStatus === 'PAID').length,
+    }), [periodFiltered]);
+
+    // Period stats
+    const periodStats = useMemo(() => {
+        const total = periodFiltered.reduce((s, p) => s + p.total, 0);
+        const pendingList = periodFiltered.filter(p => p.paymentStatus !== 'PAID');
+        const pendingValue = pendingList.reduce((s, p) => s + calculatePaymentSummary(p).remaining, 0);
+        const paidValue = periodFiltered.filter(p => p.paymentStatus === 'PAID').reduce((s, p) => s + p.total, 0);
+        return { total, count: periodFiltered.length, pendingCount: pendingList.length, pendingValue, paidValue };
+    }, [periodFiltered]);
+
+    // Apply tab + search
+    const filteredPurchases = useMemo(() => {
+        let result = periodFiltered;
+        if (activeTab === 'pending') result = result.filter(p => p.paymentStatus === 'PENDING' || p.paymentStatus === 'PARTIAL');
+        if (activeTab === 'paid')    result = result.filter(p => p.paymentStatus === 'PAID');
+        if (searchText.trim()) {
+            const s = searchText.toLowerCase();
+            result = result.filter(p => {
+                const name = suppliers.get(p.supplierId)?.toLowerCase() || '';
+                return name.includes(s) || p.id.toLowerCase().includes(s);
+            });
+        }
+        return result;
+    }, [periodFiltered, activeTab, searchText, suppliers]);
 
     return (
         <div className="space-y-6 pb-10">
@@ -130,181 +171,224 @@ export default function PurchasesPage() {
                 onSuccess={() => { loadData(); router.refresh(); }}
             />
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-card rounded-2xl border border-border shadow-sm p-5 border-t-2 border-t-purple-400">
+            {/* Stats do período */}
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="bg-card rounded-2xl border border-border shadow-sm p-5">
                     <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total de Compras</span>
-                        <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-purple-100 to-purple-50 flex items-center justify-center">
-                            <ShoppingBag className="h-4 w-4 text-purple-500" />
+                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Entradas no Período</span>
+                        <div className="h-8 w-8 rounded-xl bg-emerald-50 flex items-center justify-center">
+                            <ShoppingBag className="h-4 w-4 text-emerald-500" />
                         </div>
                     </div>
-                    <p className="text-2xl font-bold text-slate-800">{purchases.length}</p>
-                    <p className="text-xs text-slate-400 mt-1">Entradas registradas</p>
+                    <p className="text-2xl font-bold text-slate-800">{periodStats.count}</p>
+                    <p className="text-xs text-slate-400 mt-1">{brl(periodStats.total)} em compras</p>
                 </div>
 
-                <div className="bg-card rounded-2xl border border-border shadow-sm p-5 border-t-2 border-t-emerald-400">
+                <div className="bg-card rounded-2xl border border-border shadow-sm p-5">
                     <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Valor Total</span>
-                        <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-50 flex items-center justify-center">
+                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Valor Pago</span>
+                        <div className="h-8 w-8 rounded-xl bg-emerald-50 flex items-center justify-center">
                             <TrendingDown className="h-4 w-4 text-emerald-500" />
                         </div>
                     </div>
-                    <p className="text-2xl font-bold text-slate-800">{brl(totalValue)}</p>
-                    <p className="text-xs text-slate-400 mt-1">Investido em estoque</p>
+                    <p className="text-2xl font-bold text-emerald-600">{brl(periodStats.paidValue)}</p>
+                    <p className="text-xs text-slate-400 mt-1">Compras quitadas</p>
                 </div>
 
-                <div className="bg-card rounded-2xl border border-border shadow-sm p-5 border-t-2 border-t-blue-400">
+                <div className="bg-card rounded-2xl border border-amber-100 shadow-sm p-5 col-span-2 lg:col-span-1">
                     <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Última Compra</span>
-                        <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center">
-                            <Calendar className="h-4 w-4 text-blue-500" />
-                        </div>
-                    </div>
-                    <p className="text-base font-bold text-slate-800 truncate">
-                        {lastPurchase ? (suppliers.get(lastPurchase.supplierId) || 'N/A') : '—'}
-                    </p>
-                    <p className="text-xs text-slate-400 mt-1">
-                        {lastPurchase ? formatDate(lastPurchase.date) : 'Sem compras'}
-                    </p>
-                </div>
-
-                <div className="bg-card rounded-2xl border border-border shadow-sm p-5 border-t-2 border-t-amber-400">
-                    <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pendente</span>
-                        <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-amber-100 to-amber-50 flex items-center justify-center">
+                        <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">Pendente</span>
+                        <div className="h-8 w-8 rounded-xl bg-amber-50 flex items-center justify-center">
                             <Clock className="h-4 w-4 text-amber-500" />
                         </div>
                     </div>
-                    <p className="text-2xl font-bold text-amber-600">{pending.length}</p>
-                    <p className="text-xs text-slate-400 mt-1">{brl(pendingValue)} em aberto</p>
+                    <p className="text-2xl font-bold text-amber-600">{brl(periodStats.pendingValue)}</p>
+                    <p className="text-xs text-slate-400 mt-1">{periodStats.pendingCount} compra(s) em aberto</p>
                 </div>
             </div>
 
-            {/* Filters */}
-            <div className="bg-card rounded-2xl border border-border shadow-sm p-4 flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <Input
-                        placeholder="Buscar por fornecedor..."
-                        className="pl-9 rounded-xl border-slate-200 bg-slate-50 focus:bg-white"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
+            {/* Month nav bar */}
+            <div className="bg-card rounded-2xl border border-border shadow-sm p-3 flex items-center gap-3">
+                {/* Year nav */}
+                <div className="flex items-center gap-1 shrink-0">
+                    <button
+                        onClick={() => { const d = subYears(periodStart, 1); handleMonthClick(startOfMonth(d), endOfMonth(d)); }}
+                        className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-colors"
+                    >
+                        <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <span className="text-sm font-semibold text-slate-700 min-w-[44px] text-center">
+                        {periodStart.getFullYear()}
+                    </span>
+                    <button
+                        onClick={() => { const d = addYears(periodStart, 1); handleMonthClick(startOfMonth(d), endOfMonth(d)); }}
+                        className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-colors"
+                    >
+                        <ChevronLeft className="h-4 w-4 rotate-180" />
+                    </button>
                 </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-full sm:w-[180px] rounded-xl border-slate-200 bg-slate-50">
-                        <Filter className="h-4 w-4 mr-2 text-slate-400" />
-                        <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="ALL">Todos os Status</SelectItem>
-                        <SelectItem value="PENDING">Pendente</SelectItem>
-                        <SelectItem value="PARTIAL">Parcial</SelectItem>
-                        <SelectItem value="PAID">Pago</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
 
-            {/* List */}
-            <div className="space-y-3">
-                <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
-                    {filteredPurchases.length} {filteredPurchases.length === 1 ? 'entrada' : 'entradas'}
-                </h2>
+                <div className="h-6 w-px bg-border shrink-0" />
 
-                <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
-                    {isLoading ? (
-                        <div className="divide-y divide-slate-50">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                                <div key={i} className="flex items-center gap-4 px-5 py-4">
-                                    <div className="h-9 w-9 rounded-xl bg-slate-100 animate-pulse shrink-0" />
-                                    <div className="flex-1 space-y-1.5">
-                                        <div className="h-3.5 w-32 bg-slate-100 rounded animate-pulse" />
-                                        <div className="h-3 w-20 bg-slate-100 rounded animate-pulse" />
-                                    </div>
-                                    <div className="h-3.5 w-20 bg-slate-100 rounded animate-pulse" />
-                                </div>
-                            ))}
-                        </div>
-                    ) : filteredPurchases.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 text-center">
-                            <div className="h-16 w-16 rounded-3xl bg-slate-100 flex items-center justify-center mb-4">
-                                <ShoppingBag className="h-8 w-8 text-slate-300" />
-                            </div>
-                            <h3 className="text-lg font-semibold text-slate-700 mb-1">Nenhuma entrada encontrada</h3>
-                            <p className="text-sm text-slate-400 mb-6 max-w-xs">
-                                {statusFilter !== "ALL" || search
-                                    ? "Tente alterar os filtros de busca"
-                                    : "Registre sua primeira entrada de estoque"}
-                            </p>
-                            {!search && statusFilter === "ALL" && (
-                                <Button
-                                    onClick={() => setIsDialogOpen(true)}
-                                    className="rounded-xl h-10 px-6 bg-gradient-to-r from-emerald-500 to-green-600 shadow-lg shadow-emerald-200"
-                                >
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Nova Entrada
-                                </Button>
+                {/* Month tabs */}
+                <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide flex-1">
+                    {months.map(m => (
+                        <button
+                            key={m.date.toISOString()}
+                            onClick={() => handleMonthClick(m.start, m.end)}
+                            title={m.fullLabel}
+                            className={cn(
+                                'h-8 px-3 rounded-lg capitalize shrink-0 text-xs font-medium transition-all',
+                                m.isActive ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'
                             )}
-                        </div>
-                    ) : (
-                        <div className="divide-y divide-slate-50">
-                            {filteredPurchases.map((purchase) => {
-                                const supplierName = suppliers.get(purchase.supplierId) || "Fornecedor desconhecido";
-                                const paymentSummary = calculatePaymentSummary(purchase);
-                                const status = statusConfig[purchase.paymentStatus as keyof typeof statusConfig] ?? statusConfig.PENDING;
-                                const StatusIcon = status.icon;
-                                const itemCount = purchase.items ? purchase.items.reduce((s, i) => s + i.quantity, 0) : 0;
+                        >
+                            {m.label}
+                        </button>
+                    ))}
+                </div>
 
-                                return (
-                                    <div
-                                        key={purchase.id}
-                                        className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50/60 cursor-pointer transition-colors group"
-                                        onClick={() => router.push(`/purchases/${purchase.id}`)}
-                                    >
-                                        {/* Avatar */}
-                                        <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 text-sm font-bold text-emerald-600">
-                                            {getInitials(supplierName)}
-                                        </div>
+                <div className="h-6 w-px bg-border shrink-0" />
 
-                                        {/* Info */}
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-semibold text-slate-700 truncate">{supplierName}</p>
-                                            <div className="flex items-center gap-2 mt-0.5">
-                                                <Calendar className="h-3 w-3 text-slate-300 shrink-0" />
-                                                <p className="text-xs text-slate-400">{formatDate(purchase.date)}</p>
-                                                <span className="text-slate-200">·</span>
-                                                <Package className="h-3 w-3 text-slate-300 shrink-0" />
-                                                <p className="text-xs text-slate-400">{itemCount} {itemCount === 1 ? 'item' : 'itens'}</p>
-                                            </div>
-                                        </div>
-
-                                        {/* Remaining */}
-                                        {paymentSummary.remaining > 0 && (
-                                            <div className="hidden sm:block text-right shrink-0">
-                                                <p className="text-xs text-slate-400">Saldo</p>
-                                                <p className="text-sm font-semibold text-red-500">{brl(paymentSummary.remaining)}</p>
-                                            </div>
-                                        )}
-
-                                        {/* Total */}
-                                        <p className="text-sm font-bold text-slate-700 shrink-0 w-24 text-right">
-                                            {brl(purchase.total)}
-                                        </p>
-
-                                        {/* Status */}
-                                        <span className={`hidden sm:inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border shrink-0 ${status.className}`}>
-                                            <StatusIcon className={`h-3 w-3 ${status.iconClass}`} />
-                                            {status.label}
-                                        </span>
-
-                                        <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-slate-500 shrink-0 transition-colors" />
-                                    </div>
-                                );
-                            })}
-                        </div>
+                {/* Search */}
+                <div className="relative w-[200px] shrink-0">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder="Buscar fornecedor..."
+                        value={searchText}
+                        onChange={e => setSearchText(e.target.value)}
+                        className="h-8 w-full pl-8 pr-8 rounded-lg border border-slate-200 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    />
+                    {searchText && (
+                        <button
+                            onClick={() => setSearchText('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500"
+                        >
+                            <X className="h-3.5 w-3.5" />
+                        </button>
                     )}
                 </div>
+            </div>
+
+            {/* Tabs + List */}
+            <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+
+                {/* Tab header */}
+                <div className="px-6 pt-4 pb-0 border-b border-slate-100">
+                    <div className="flex items-center gap-1">
+                        {TABS.map(tab => {
+                            const count = tabCounts[tab.id];
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={cn(
+                                        'flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-medium border-b-2 transition-all',
+                                        isActive
+                                            ? tab.activeClass
+                                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                                    )}
+                                >
+                                    {tab.label}
+                                    {count > 0 && (
+                                        <span className={cn(
+                                            'rounded-full px-1.5 py-0.5 text-xs font-bold min-w-[18px] text-center',
+                                            isActive ? 'bg-white/60 text-inherit' : 'bg-slate-100 text-slate-500'
+                                        )}>
+                                            {count}
+                                        </span>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Content */}
+                {isLoading ? (
+                    <div className="divide-y divide-slate-50">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            <div key={i} className="flex items-center gap-4 px-5 py-4">
+                                <div className="h-10 w-10 rounded-xl bg-slate-100 animate-pulse shrink-0" />
+                                <div className="flex-1 space-y-1.5">
+                                    <div className="h-3.5 w-32 bg-slate-100 rounded animate-pulse" />
+                                    <div className="h-3 w-20 bg-slate-100 rounded animate-pulse" />
+                                </div>
+                                <div className="h-3.5 w-20 bg-slate-100 rounded animate-pulse" />
+                            </div>
+                        ))}
+                    </div>
+                ) : filteredPurchases.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-center">
+                        <div className="h-16 w-16 rounded-3xl bg-slate-100 flex items-center justify-center mb-4">
+                            <ShoppingBag className="h-8 w-8 text-slate-300" />
+                        </div>
+                        <h3 className="text-base font-semibold text-slate-600 mb-1">Nenhuma entrada encontrada</h3>
+                        <p className="text-sm text-slate-400 mb-5 max-w-xs">
+                            {searchText ? 'Tente buscar com outros termos' : 'Nenhuma compra registrada neste período'}
+                        </p>
+                        {!searchText && (
+                            <Button
+                                onClick={() => setIsDialogOpen(true)}
+                                className="rounded-xl h-10 px-6 bg-gradient-to-r from-emerald-500 to-green-600 shadow-lg shadow-emerald-200"
+                            >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Nova Entrada
+                            </Button>
+                        )}
+                    </div>
+                ) : (
+                    <div className="divide-y divide-slate-50">
+                        {filteredPurchases.map((purchase) => {
+                            const supplierName = suppliers.get(purchase.supplierId) || "Fornecedor desconhecido";
+                            const paymentSummary = calculatePaymentSummary(purchase);
+                            const status = statusConfig[purchase.paymentStatus as keyof typeof statusConfig] ?? statusConfig.PENDING;
+                            const StatusIcon = status.icon;
+                            const itemCount = purchase.items ? purchase.items.reduce((s, i) => s + i.quantity, 0) : 0;
+
+                            return (
+                                <div
+                                    key={purchase.id}
+                                    className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50/60 cursor-pointer transition-colors group"
+                                    onClick={() => router.push(`/purchases/${purchase.id}`)}
+                                >
+                                    <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 text-sm font-bold text-emerald-600">
+                                        {getInitials(supplierName)}
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold text-slate-700 truncate">{supplierName}</p>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            <p className="text-xs text-slate-400">{formatDate(purchase.date)}</p>
+                                            <span className="text-slate-200">·</span>
+                                            <Package className="h-3 w-3 text-slate-300 shrink-0" />
+                                            <p className="text-xs text-slate-400">{itemCount} {itemCount === 1 ? 'item' : 'itens'}</p>
+                                        </div>
+                                    </div>
+
+                                    {paymentSummary.remaining > 0 && (
+                                        <div className="hidden sm:block text-right shrink-0">
+                                            <p className="text-xs text-slate-400">Saldo</p>
+                                            <p className="text-sm font-semibold text-red-500">{brl(paymentSummary.remaining)}</p>
+                                        </div>
+                                    )}
+
+                                    <p className="text-sm font-bold text-slate-700 shrink-0 w-24 text-right">
+                                        {brl(purchase.total)}
+                                    </p>
+
+                                    <span className={`hidden sm:inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border shrink-0 ${status.className}`}>
+                                        <StatusIcon className={`h-3 w-3 ${status.iconClass}`} />
+                                        {status.label}
+                                    </span>
+
+                                    <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-slate-500 shrink-0 transition-colors" />
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -1,14 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DREReport } from '@/components/reports/DREReport';
 import { ProfitabilityAnalysis } from '@/components/reports/ProfitabilityAnalysis';
 import { ExpensesByCategory } from '@/components/reports/ExpensesByCategory';
-import { FileText, TrendingUp, PieChart } from 'lucide-react';
+import { FileText, TrendingUp, PieChart, BarChart3, Calendar, Lightbulb } from 'lucide-react';
 
 export default function FinancialReportsPage() {
   const [startDate, setStartDate] = useState(() => {
@@ -16,66 +15,79 @@ export default function FinancialReportsPage() {
     date.setDate(1);
     return date.toISOString().split('T')[0];
   });
-  
+
   const [endDate, setEndDate] = useState(() => {
     return new Date().toISOString().split('T')[0];
   });
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
+    <div className="space-y-6 pb-10">
+
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-200">
+          <BarChart3 className="h-6 w-6 text-white" />
+        </div>
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Relatórios Financeiros</h2>
-          <p className="text-muted-foreground">
-            Análises gerenciais completas para tomada de decisão
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-800">Relatórios Financeiros</h1>
+          <p className="text-sm text-slate-500">Análises gerenciais completas para tomada de decisão</p>
         </div>
       </div>
 
-      {/* Filtros Globais */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Período de Análise</CardTitle>
-          <CardDescription>
-            Selecione o período para gerar os relatórios financeiros
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="startDate">Data Inicial</Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="endDate">Data Final</Label>
-              <Input
-                id="endDate"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
+      {/* Filtro de Período */}
+      <div className="bg-card rounded-2xl border border-border shadow-sm p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="h-7 w-7 rounded-lg bg-violet-50 flex items-center justify-center">
+            <Calendar className="h-3.5 w-3.5 text-violet-500" />
           </div>
-        </CardContent>
-      </Card>
+          <p className="text-sm font-semibold text-slate-700">Período de Análise</p>
+          <span className="text-xs text-slate-400 ml-1">— selecione o intervalo para gerar os relatórios</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="startDate" className="text-xs font-medium text-slate-500">Data Inicial</Label>
+            <Input
+              id="startDate"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="rounded-xl border-slate-200 bg-slate-50 focus:bg-white"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="endDate" className="text-xs font-medium text-slate-500">Data Final</Label>
+            <Input
+              id="endDate"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="rounded-xl border-slate-200 bg-slate-50 focus:bg-white"
+            />
+          </div>
+        </div>
+      </div>
 
       {/* Tabs de Relatórios */}
       <Tabs defaultValue="dre" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="dre" className="flex items-center gap-2">
+        <TabsList className="w-full rounded-2xl border border-border bg-slate-50 p-1.5 h-auto gap-1">
+          <TabsTrigger
+            value="dre"
+            className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-violet-700"
+          >
             <FileText className="h-4 w-4" />
             DRE
           </TabsTrigger>
-          <TabsTrigger value="profitability" className="flex items-center gap-2">
+          <TabsTrigger
+            value="profitability"
+            className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-emerald-700"
+          >
             <TrendingUp className="h-4 w-4" />
             Lucratividade
           </TabsTrigger>
-          <TabsTrigger value="expenses" className="flex items-center gap-2">
+          <TabsTrigger
+            value="expenses"
+            className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-amber-700"
+          >
             <PieChart className="h-4 w-4" />
             Despesas
           </TabsTrigger>
@@ -94,26 +106,26 @@ export default function FinancialReportsPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Texto Explicativo */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardHeader>
-          <CardTitle className="text-blue-900">💡 Como usar os Relatórios Financeiros</CardTitle>
-        </CardHeader>
-        <CardContent className="text-blue-800 space-y-2">
-          <p>
-            <strong>DRE (Demonstração do Resultado do Exercício):</strong> Visão contábil completa do seu negócio,
-            mostrando receitas, custos, despesas e lucros. Use para entender a saúde financeira geral.
+      {/* Dicas */}
+      <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="h-7 w-7 rounded-lg bg-blue-100 flex items-center justify-center">
+            <Lightbulb className="h-3.5 w-3.5 text-blue-600" />
+          </div>
+          <p className="text-sm font-semibold text-blue-800">Como usar os Relatórios Financeiros</p>
+        </div>
+        <div className="space-y-2">
+          <p className="text-sm text-blue-700">
+            <span className="font-semibold">DRE:</span> Visão contábil completa do seu negócio — receitas, custos, despesas e lucros. Use para entender a saúde financeira geral.
           </p>
-          <p>
-            <strong>Análise de Lucratividade:</strong> Descubra quais serviços e profissionais são mais rentáveis.
-            Use para tomar decisões sobre precificação e alocação de recursos.
+          <p className="text-sm text-blue-700">
+            <span className="font-semibold">Lucratividade:</span> Descubra quais serviços e profissionais são mais rentáveis. Use para decisões de precificação e alocação de recursos.
           </p>
-          <p>
-            <strong>Despesas por Categoria:</strong> Visualize onde seu dinheiro está sendo gasto.
-            Use para identificar oportunidades de redução de custos.
+          <p className="text-sm text-blue-700">
+            <span className="font-semibold">Despesas por Categoria:</span> Visualize onde seu dinheiro está sendo gasto e identifique oportunidades de redução de custos.
           </p>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
