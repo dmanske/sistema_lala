@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -51,6 +51,7 @@ interface CashMovementDialogProps {
     onOpenChange: (open: boolean) => void
     onSuccess: () => void
     cashRegisterId: string
+    defaultType?: "SANGRIA" | "SUPRIMENTO"
 }
 
 export function CashMovementDialog({
@@ -58,6 +59,7 @@ export function CashMovementDialog({
     onOpenChange,
     onSuccess,
     cashRegisterId,
+    defaultType = "SANGRIA",
 }: CashMovementDialogProps) {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const { user } = useAuth()
@@ -65,13 +67,22 @@ export function CashMovementDialog({
     const form = useForm<z.infer<typeof FormSchema>>({
         resolver: zodResolver(FormSchema) as any,
         defaultValues: {
-            type: "SANGRIA",
+            type: defaultType,
             amount: 0,
             reason: "",
         },
     })
 
     const selectedType = form.watch("type")
+
+    // Atualiza o tipo quando o dialog abre
+    React.useEffect(() => {
+        if (isOpen) {
+            form.setValue("type", defaultType)
+            form.setValue("amount", 0)
+            form.setValue("reason", "")
+        }
+    }, [isOpen, defaultType])
 
     async function onSubmit(data: z.infer<typeof FormSchema>) {
         if (!user) {

@@ -3,23 +3,18 @@
 import { useState } from "react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Eye } from "lucide-react"
+import { Eye, CheckCircle2, AlertTriangle, Clock, User, Building2, History } from "lucide-react"
 import { CashRegisterWithUser } from "@/core/domain/entities/CashRegister"
 import { CashClosingDetails } from "./CashClosingDetails"
 
 interface CashRegisterHistoryProps {
     cashRegisters: CashRegisterWithUser[]
 }
+
+const brl = (value: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value)
 
 export function CashRegisterHistory({ cashRegisters }: CashRegisterHistoryProps) {
     const [selectedCashRegister, setSelectedCashRegister] = useState<CashRegisterWithUser | null>(null)
@@ -32,10 +27,13 @@ export function CashRegisterHistory({ cashRegisters }: CashRegisterHistoryProps)
 
     if (cashRegisters.length === 0) {
         return (
-            <div className="text-center py-12">
-                <p className="text-gray-500">Nenhum fechamento encontrado</p>
-                <p className="text-sm text-gray-400 mt-2">
-                    Os fechamentos de caixa aparecerão aqui
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+                <div className="h-20 w-20 rounded-3xl bg-slate-100 flex items-center justify-center mb-5">
+                    <History className="h-10 w-10 text-slate-300" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-700 mb-1">Nenhum fechamento ainda</h3>
+                <p className="text-sm text-slate-400 max-w-xs">
+                    Os fechamentos de caixa realizados aparecerão aqui
                 </p>
             </div>
         )
@@ -43,107 +41,127 @@ export function CashRegisterHistory({ cashRegisters }: CashRegisterHistoryProps)
 
     return (
         <>
-            <div className="rounded-md border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Data</TableHead>
-                            <TableHead>Responsável</TableHead>
-                            <TableHead>Conta</TableHead>
-                            <TableHead className="text-right">Inicial</TableHead>
-                            <TableHead className="text-right">Final</TableHead>
-                            <TableHead className="text-right">Diferença</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Ações</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {cashRegisters.map((cashRegister) => {
-                            const difference = cashRegister.difference || 0
-                            const isDifferent = Math.abs(difference) >= 0.01
+            <div className="space-y-3">
+                {cashRegisters.map((cashRegister) => {
+                    const difference = cashRegister.difference || 0
+                    const isDifferent = Math.abs(difference) >= 0.01
+                    const isShortage = difference < -0.01
+                    const isSurplus = difference > 0.01
 
-                            return (
-                                <TableRow key={cashRegister.id}>
-                                    <TableCell>
-                                        <div>
-                                            <p className="font-medium">
-                                                {format(cashRegister.openedAt, "dd/MM/yyyy", { locale: ptBR })}
-                                            </p>
-                                            <p className="text-xs text-gray-500">
-                                                {format(cashRegister.openedAt, "HH:mm", { locale: ptBR })} - {" "}
-                                                {cashRegister.closedAt
-                                                    ? format(cashRegister.closedAt, "HH:mm", { locale: ptBR })
-                                                    : "Aberto"}
-                                            </p>
+                    const statusColor = isDifferent
+                        ? isShortage
+                            ? "border-red-100 bg-red-50/30"
+                            : "border-yellow-100 bg-yellow-50/30"
+                        : "border-emerald-100 bg-emerald-50/10"
+
+                    return (
+                        <div
+                            key={cashRegister.id}
+                            className={`bg-white rounded-2xl border shadow-sm hover:shadow-md transition-shadow ${statusColor}`}
+                        >
+                            <div className="p-4 flex items-center gap-4">
+
+                                {/* Ícone de status */}
+                                <div className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 ${
+                                    isDifferent
+                                        ? isShortage ? "bg-red-100" : "bg-yellow-100"
+                                        : "bg-emerald-100"
+                                }`}>
+                                    {isDifferent ? (
+                                        <AlertTriangle className={`h-5 w-5 ${isShortage ? "text-red-500" : "text-yellow-500"}`} />
+                                    ) : (
+                                        <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                                    )}
+                                </div>
+
+                                {/* Data */}
+                                <div className="shrink-0 w-28">
+                                    <p className="text-sm font-semibold text-slate-700">
+                                        {format(cashRegister.openedAt, "dd/MM/yyyy", { locale: ptBR })}
+                                    </p>
+                                    <div className="flex items-center gap-1 text-xs text-slate-400 mt-0.5">
+                                        <Clock className="h-3 w-3" />
+                                        {format(cashRegister.openedAt, "HH:mm", { locale: ptBR })}
+                                        {cashRegister.closedAt && (
+                                            <> — {format(cashRegister.closedAt, "HH:mm", { locale: ptBR })}</>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Responsável e conta */}
+                                <div className="flex-1 min-w-0 hidden sm:block">
+                                    <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-0.5">
+                                        <User className="h-3 w-3" />
+                                        <span className="truncate">{cashRegister.openedByName || "—"}</span>
+                                    </div>
+                                    {cashRegister.bankAccountName && (
+                                        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                                            <Building2 className="h-3 w-3" />
+                                            <span className="truncate">{cashRegister.bankAccountName}</span>
                                         </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div>
-                                            <p className="font-medium">{cashRegister.openedByName || "N/A"}</p>
-                                            {cashRegister.closedByName && (
-                                                <p className="text-xs text-gray-500">
-                                                    Fechado por: {cashRegister.closedByName}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <p className="text-sm font-medium text-blue-700">
-                                            {cashRegister.bankAccountName || "N/A"}
+                                    )}
+                                </div>
+
+                                {/* Valores */}
+                                <div className="flex items-center gap-6 shrink-0">
+                                    <div className="text-right hidden md:block">
+                                        <p className="text-xs text-slate-400">Inicial</p>
+                                        <p className="text-sm font-medium text-slate-600">
+                                            {brl(cashRegister.initialBalance)}
                                         </p>
-                                    </TableCell>
-                                    <TableCell className="text-right font-medium">
-                                        R$ {cashRegister.initialBalance.toFixed(2)}
-                                    </TableCell>
-                                    <TableCell className="text-right font-medium">
-                                        {cashRegister.actualBalance !== null && cashRegister.actualBalance !== undefined
-                                            ? `R$ ${cashRegister.actualBalance.toFixed(2)}`
-                                            : "-"}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        {cashRegister.difference !== null ? (
-                                            <span className={`font-semibold ${!isDifferent
-                                                    ? "text-green-600"
-                                                    : difference > 0
-                                                        ? "text-yellow-600"
-                                                        : "text-red-600"
-                                                }`}>
-                                                {difference > 0 ? "+" : ""}
-                                                R$ {difference.toFixed(2)}
-                                            </span>
-                                        ) : (
-                                            "-"
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        {cashRegister.status === "OPEN" ? (
-                                            <Badge variant="default" className="bg-green-500">
-                                                ABERTO
-                                            </Badge>
-                                        ) : (
-                                            <Badge
-                                                variant={isDifferent ? "destructive" : "secondary"}
-                                            >
-                                                {isDifferent ? "COM DIFERENÇA" : "FECHADO"}
-                                            </Badge>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        {cashRegister.status === "CLOSED" && (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleViewDetails(cashRegister)}
-                                            >
-                                                <Eye className="h-4 w-4" />
-                                            </Button>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            )
-                        })}
-                    </TableBody>
-                </Table>
+                                    </div>
+                                    <div className="text-right hidden md:block">
+                                        <p className="text-xs text-slate-400">Final</p>
+                                        <p className="text-sm font-medium text-slate-600">
+                                            {cashRegister.actualBalance != null
+                                                ? brl(cashRegister.actualBalance)
+                                                : "—"}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs text-slate-400">Diferença</p>
+                                        <p className={`text-sm font-bold ${
+                                            !isDifferent ? "text-emerald-600"
+                                            : isShortage ? "text-red-600"
+                                            : "text-yellow-600"
+                                        }`}>
+                                            {difference > 0 ? "+" : ""}{brl(difference)}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Badge status */}
+                                <div className="shrink-0 hidden sm:block">
+                                    {isDifferent ? (
+                                        <Badge variant="outline" className={`text-xs ${
+                                            isShortage
+                                                ? "border-red-200 text-red-600 bg-red-50"
+                                                : "border-yellow-200 text-yellow-600 bg-yellow-50"
+                                        }`}>
+                                            {isShortage ? "Falta" : "Sobra"}
+                                        </Badge>
+                                    ) : (
+                                        <Badge variant="outline" className="text-xs border-emerald-200 text-emerald-600 bg-emerald-50">
+                                            OK
+                                        </Badge>
+                                    )}
+                                </div>
+
+                                {/* Ação */}
+                                {cashRegister.status === "CLOSED" && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleViewDetails(cashRegister)}
+                                        className="shrink-0 h-8 w-8 rounded-lg p-0 hover:bg-slate-100"
+                                    >
+                                        <Eye className="h-4 w-4 text-slate-400" />
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    )
+                })}
             </div>
 
             {selectedCashRegister && (
