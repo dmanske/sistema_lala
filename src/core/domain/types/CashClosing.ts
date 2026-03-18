@@ -17,6 +17,8 @@ export interface CashClosingInput {
     cashRegisterId: string
     closedBy: string
     notes?: string
+    closedAt?: string // ISO string - se não informado, usa now()
+    openedAt?: string // ISO string - se informado, atualiza a data de abertura
     // Contagem física por método de pagamento
     breakdown: {
         cash?: number

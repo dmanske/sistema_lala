@@ -31,6 +31,18 @@ export class FecharCaixa {
             throw new Error('Failed to close cash register: No data returned from RPC')
         }
 
+        // Atualizar datas se informadas pelo usuário
+        if (input.closedAt || input.openedAt) {
+            const updates: Record<string, string> = {}
+            if (input.closedAt) updates.closed_at = input.closedAt
+            if (input.openedAt) updates.opened_at = input.openedAt
+
+            await this.supabase
+                .from('cash_registers')
+                .update(updates)
+                .eq('id', input.cashRegisterId)
+        }
+
         // Transform RPC result to CashClosingResult
         return this.transformRpcResult(data, input.breakdown)
     }

@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { toast } from "sonner"
-import { Loader2, Calculator, AlertCircle, CreditCard, Banknote } from "lucide-react"
+import { Loader2, Calculator, AlertCircle, CreditCard, Banknote, Calendar } from "lucide-react"
 
 import {
     Dialog,
@@ -33,6 +33,8 @@ import { CashRegisterSummary } from "@/core/domain/entities/CashRegister"
 const FormSchema = z.object({
     cashCounted: z.number().min(0, "Valor não pode ser negativo"),
     notes: z.string().optional(),
+    openedAt: z.string().min(1, "Informe a data de abertura"),
+    closedAt: z.string().min(1, "Informe a data de fechamento"),
 })
 
 interface PaymentMethodTotal {
@@ -61,11 +63,20 @@ export function CashClosingDialog({
     const [difference, setDifference] = useState(0)
     const { user } = useAuth()
 
+    const toDatetimeLocal = (date: Date | string) => {
+        const d = new Date(date)
+        const offset = d.getTimezoneOffset()
+        const local = new Date(d.getTime() - offset * 60000)
+        return local.toISOString().slice(0, 16)
+    }
+
     const form = useForm<z.infer<typeof FormSchema>>({
         resolver: zodResolver(FormSchema),
         defaultValues: {
             cashCounted: 0,
             notes: "",
+            openedAt: cashRegisterSummary ? toDatetimeLocal(cashRegisterSummary.cashRegister.openedAt) : toDatetimeLocal(new Date()),
+            closedAt: toDatetimeLocal(new Date()),
         },
     })
 
@@ -75,6 +86,8 @@ export function CashClosingDialog({
     useEffect(() => {
         if (isOpen && cashRegisterSummary) {
             loadPaymentTotals()
+            form.setValue('openedAt', toDatetimeLocal(cashRegisterSummary.cashRegister.openedAt))
+            form.setValue('closedAt', toDatetimeLocal(new Date()))
         }
     }, [isOpen, cashRegisterSummary])
 
@@ -169,6 +182,8 @@ export function CashClosingDialog({
                     cash: data.cashCounted,
                 },
                 notes: data.notes,
+                openedAt: new Date(data.openedAt).toISOString(),
+                closedAt: new Date(data.closedAt).toISOString(),
             })
 
             console.log('✅ Caixa fechado com sucesso:', result)
@@ -286,6 +301,42 @@ export function CashClosingDialog({
 
                         <Form {...form}>
                             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                                {/* Datas de Abertura e Fechamento */}
+                                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Calendar className="h-4 w-4 text-slate-500" />
+                                        <p className="text-sm font-semibold text-slate-700">Período do Turno</p>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <FormField
+                                            control={form.control}
+                                            name="openedAt"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs text-slate-500">Data de Abertura</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="datetime-local" className="h-9 text-sm" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="closedAt"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs text-slate-500">Data de Fechamento</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="datetime-local" className="h-9 text-sm" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </div>
+
                                 {/* Campo de Contagem de Dinheiro */}
                                 <div className="space-y-3">
                                     <FormField

@@ -123,16 +123,27 @@ export class SupabaseCashRegisterRepository implements CashRegisterRepository {
         if (error) throw new Error(`Failed to get cash register history: ${error.message}`)
         if (!data) return []
 
-        // Fetch user names for all records
+        // Fetch user names and bank account names for all records
         const results = await Promise.all(
             data.map(async (row) => {
                 const openedByProfile = row.opened_by ? await this.getUserName(row.opened_by) : undefined
                 const closedByProfile = row.closed_by ? await this.getUserName(row.closed_by) : undefined
 
+                let bankAccountName: string | undefined
+                if (row.bank_account_id) {
+                    const { data: bankAccount } = await this.supabase
+                        .from('bank_accounts')
+                        .select('name')
+                        .eq('id', row.bank_account_id)
+                        .maybeSingle()
+                    bankAccountName = bankAccount?.name
+                }
+
                 return {
                     ...this.mapFromDb(row),
                     openedByName: openedByProfile,
-                    closedByName: closedByProfile
+                    closedByName: closedByProfile,
+                    bankAccountName
                 }
             })
         )
