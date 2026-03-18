@@ -172,25 +172,6 @@ async function executeTransferInternal(supabase: any, tenantId: string, transfer
   if (inError) {
     throw new Error(`Erro ao registrar entrada da transferência: ${inError.message}`);
   }
-
-  // Atualizar saldos
-  const { error: debitError } = await supabase.rpc('update_bank_account_balance', {
-    p_account_id: transfer.fromAccountId,
-    p_amount: -transfer.amount,
-  });
-
-  if (debitError) {
-    throw new Error(`Erro ao debitar conta de origem: ${debitError.message}`);
-  }
-
-  const { error: creditError } = await supabase.rpc('update_bank_account_balance', {
-    p_account_id: transfer.toAccountId,
-    p_amount: transfer.amount,
-  });
-
-  if (creditError) {
-    throw new Error(`Erro ao creditar conta de destino: ${creditError.message}`);
-  }
 }
 
 export async function getTransferHistory() {

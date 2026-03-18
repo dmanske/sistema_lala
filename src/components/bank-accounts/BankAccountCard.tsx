@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { BankAccountWithBalance } from '@/core/domain/BankAccount'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -8,7 +9,7 @@ import { useRouter } from 'next/navigation'
 
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import { BankLogos, isEmoji } from './BankLogos'
+import { BankLogos, BANK_PRESETS, isEmoji } from './BankLogos'
 
 
 interface BankAccountCardProps {
@@ -20,6 +21,10 @@ interface BankAccountCardProps {
 export function BankAccountCard({ account, onEdit, onToggleActive }: BankAccountCardProps) {
     const router = useRouter()
     const isNegative = account.currentBalance < 0
+    const [imgFailed, setImgFailed] = useState(false)
+
+    const preset = BANK_PRESETS.find(p => p.id === account.icon)
+    const hasImage = !!preset?.imageUrl && !imgFailed
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', {
@@ -67,6 +72,13 @@ export function BankAccountCard({ account, onEdit, onToggleActive }: BankAccount
                         >
                             {isEmoji(account.icon) ? (
                                 <span>{account.icon}</span>
+                            ) : hasImage ? (
+                                <img
+                                    src={preset!.imageUrl}
+                                    alt={preset!.name}
+                                    className="w-7 h-7 object-contain"
+                                    onError={() => setImgFailed(true)}
+                                />
                             ) : (
                                 (() => {
                                     const Logo = BankLogos[account.icon] || BankLogos['generic-bank']

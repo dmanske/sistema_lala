@@ -6,6 +6,15 @@ import {
     Banknote,
 } from 'lucide-react'
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+export interface BankPreset {
+    id: string
+    name: string
+    color: string
+    category: 'bank' | 'card' | 'generic'
+    imageUrl?: string
+}
+
 // ── Favicon helper ────────────────────────────────────────────────────────────
 // Uses Google's favicon service — covers any bank/company with a website
 const gFav = (domain: string) =>
@@ -185,7 +194,7 @@ export const BankLogos: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> 
 }
 
 // ── Presets ───────────────────────────────────────────────────────────────────
-export const BANK_PRESETS = [
+export const BANK_PRESETS: BankPreset[] = [
     // Bancos
     { id: 'nubank',    name: 'Nubank',           color: '#8A05BE', category: 'bank', imageUrl: gFav('nubank.com.br') },
     { id: 'inter',     name: 'Inter',             color: '#FF7A00', category: 'bank', imageUrl: gFav('inter.co') },
@@ -223,14 +232,6 @@ export const BANK_PRESETS = [
     { id: 'money',          name: 'Dinheiro',            color: '#22C55E', category: 'generic' },
     { id: 'piggy-bank',     name: 'Poupança',            color: '#EC4899', category: 'generic' },
 ]
-
-export interface BankPreset {
-    id: string
-    name: string
-    color: string
-    category: 'bank' | 'card' | 'generic'
-    imageUrl?: string
-}
 
 export function getBankLogo(id: string) {
     return BankLogos[id] || BankLogos['generic-bank']

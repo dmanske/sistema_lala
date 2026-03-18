@@ -14,8 +14,7 @@ export default function CashRegisterPage() {
     const { currentCashRegister, history, isLoading, refresh } = useCashRegister()
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-            <div className="container mx-auto p-6 space-y-8 max-w-5xl">
+        <div className="space-y-8 max-w-5xl mx-auto">
 
                 {/* Header */}
                 <div className="flex items-center justify-between">
@@ -103,7 +102,6 @@ export default function CashRegisterPage() {
                     onOpenChange={setOpenDialog}
                     onSuccess={refresh}
                 />
-            </div>
         </div>
     )
 }

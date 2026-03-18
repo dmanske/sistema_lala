@@ -2,18 +2,18 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, ArrowRightLeft, Wallet, TrendingUp, TrendingDown, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, ArrowRightLeft, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BankAccountCard } from './BankAccountCard';
 import { TransferDialog } from './TransferDialog';
 import { TransferHistory } from './TransferHistory';
 import { getBankAccountsDashboard } from '@/app/(app)/bank-accounts/dashboard/actions';
-import { cn } from '@/lib/utils';
+
+const brl = (v: number) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
 export function BankAccountsDashboard() {
   const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
-  const [isHelpExpanded, setIsHelpExpanded] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['bank-accounts-dashboard'],
@@ -22,8 +22,8 @@ export function BankAccountsDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center py-32">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
       </div>
     );
   }
@@ -32,109 +32,106 @@ export function BankAccountsDashboard() {
   const isPositive = totalBalance >= 0;
 
   return (
-    <div className="space-y-6">
-      {/* Saldo Total - Redesenhado */}
-      <Card className="relative overflow-hidden border-0 shadow-lg">
-        {/* Gradiente de fundo */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700" />
-        
-        {/* Efeito de brilho */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent" />
-        
-        {/* Círculos decorativos */}
-        <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute -left-20 -bottom-20 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
-        
-        <CardContent className="relative z-10 p-6">
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm">
-                <Wallet className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-white/80">Saldo Total Consolidado</p>
-                <p className="text-xs text-white/60 mt-0.5">
-                  {accounts.length} {accounts.length === 1 ? 'conta' : 'contas'} ativas
-                </p>
-              </div>
-            </div>
-            
-            <Button
-              size="sm"
-              onClick={() => setIsTransferDialogOpen(true)}
-              disabled={accounts.length < 2}
-              className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-sm"
-              variant="outline"
-            >
-              <ArrowRightLeft className="h-4 w-4 mr-2" />
-              Transferir
-            </Button>
-          </div>
-          
-          <div className="flex items-baseline gap-3">
-            <h2 className="text-5xl font-bold text-white tracking-tight">
-              {new Intl.NumberFormat('pt-BR', {
-                style: 'currency',
-                currency: 'BRL',
-              }).format(totalBalance)}
-            </h2>
-            {isPositive ? (
-              <TrendingUp className="h-6 w-6 text-green-300" />
-            ) : (
-              <TrendingDown className="h-6 w-6 text-red-300" />
-            )}
-          </div>
-          
-          <div className="mt-4 flex items-center gap-2 text-sm text-white/70">
-            <div className={cn(
-              "px-2 py-1 rounded-md text-xs font-medium",
-              isPositive ? "bg-green-500/20 text-green-200" : "bg-red-500/20 text-red-200"
-            )}>
-              {isPositive ? 'Saldo Positivo' : 'Saldo Negativo'}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="space-y-8">
 
-      {/* Lista de Contas */}
-      <div>
-        <h3 className="text-lg font-semibold mb-4">Suas Contas</h3>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {accounts.map((account: any) => (
-            <BankAccountCard 
-              key={account.id} 
-              account={account}
-              onEdit={() => {}}
-              onToggleActive={() => {}}
-            />
-          ))}
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-200">
+            <Wallet className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-800">Contas Bancárias</h1>
+            <p className="text-sm text-slate-500">
+              {accounts.length} {accounts.length === 1 ? 'conta' : 'contas'} · saldo consolidado
+            </p>
+          </div>
+        </div>
+        {accounts.length >= 2 && (
+          <Button
+            onClick={() => setIsTransferDialogOpen(true)}
+            variant="outline"
+            className="rounded-xl h-10 px-5 border-slate-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+          >
+            <ArrowRightLeft className="h-4 w-4 mr-2" />
+            Transferir
+          </Button>
+        )}
+      </div>
+
+      {/* Hero — saldo total */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 p-8 shadow-2xl shadow-blue-200">
+        {/* Decoração */}
+        <div className="absolute -top-12 -right-12 h-56 w-56 rounded-full bg-white/10" />
+        <div className="absolute -bottom-8 -left-8 h-40 w-40 rounded-full bg-white/5" />
+        <div className="absolute top-1/2 right-1/4 h-32 w-32 rounded-full bg-indigo-500/30 blur-2xl" />
+
+        <div className="relative">
+          <p className="text-blue-200 text-sm font-medium mb-1">Saldo Total Consolidado</p>
+          <div className="flex items-baseline gap-3 mb-4">
+            <h2 className="text-5xl font-bold text-white tracking-tight">{brl(totalBalance)}</h2>
+            {isPositive
+              ? <TrendingUp className="h-7 w-7 text-emerald-300" />
+              : <TrendingDown className="h-7 w-7 text-red-300" />
+            }
+          </div>
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+            isPositive
+              ? 'bg-emerald-400/20 text-emerald-200 border border-emerald-400/30'
+              : 'bg-red-400/20 text-red-200 border border-red-400/30'
+          }`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${isPositive ? 'bg-emerald-300' : 'bg-red-300'}`} />
+            {isPositive ? 'Saldo positivo' : 'Saldo negativo'}
+          </span>
         </div>
       </div>
 
-      {accounts.length === 0 && (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="p-4 rounded-full bg-muted mb-4">
-              <Wallet className="h-12 w-12 text-muted-foreground" />
+      {/* Contas */}
+      {accounts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="h-20 w-20 rounded-3xl bg-slate-100 flex items-center justify-center mb-5">
+            <Wallet className="h-10 w-10 text-slate-300" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-700 mb-1">Nenhuma conta cadastrada</h3>
+          <p className="text-sm text-slate-400 mb-6 max-w-xs">
+            Adicione sua primeira conta bancária para gerenciar saldos e transferências
+          </p>
+          <Button asChild className="rounded-xl h-11 px-8 bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg shadow-blue-200">
+            <a href="/contas">
+              <Plus className="h-4 w-4 mr-2" />
+              Cadastrar Primeira Conta
+            </a>
+          </Button>
+        </div>
+      ) : (
+        <>
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Suas Contas</h2>
+              <Button asChild variant="ghost" size="sm" className="text-xs text-blue-500 hover:text-blue-700 h-7">
+                <a href="/contas">
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Nova conta
+                </a>
+              </Button>
             </div>
-            <h3 className="text-lg font-semibold mb-2">Nenhuma conta cadastrada</h3>
-            <p className="text-sm text-muted-foreground mb-6 text-center max-w-md">
-              Comece adicionando sua primeira conta bancária para gerenciar seus saldos e fazer transferências
-            </p>
-            <Button asChild size="lg">
-              <a href="/contas">
-                <Plus className="h-4 w-4 mr-2" />
-                Cadastrar Primeira Conta
-              </a>
-            </Button>
-          </CardContent>
-        </Card>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {accounts.map((account: any) => (
+                <BankAccountCard
+                  key={account.id}
+                  account={account}
+                  onEdit={() => {}}
+                  onToggleActive={() => {}}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Histórico de Transferências */}
+          <TransferHistory />
+        </>
       )}
 
-      {/* Histórico de Transferências */}
-      {accounts.length > 0 && <TransferHistory />}
-
-      {/* Dialog de Transferência */}
       <TransferDialog
         open={isTransferDialogOpen}
         onOpenChange={setIsTransferDialogOpen}
