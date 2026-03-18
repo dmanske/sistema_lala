@@ -693,6 +693,40 @@ export default function AgendaPage() {
         );
     };
 
+    // Calcula layout de colunas para agendamentos sobrepostos (estilo Google Calendar)
+    const computeOverlapLayout = (allApts: Appointment[]) => {
+        const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+        const sorted = [...allApts].sort((a, b) => {
+            const d = toMin(a.startTime) - toMin(b.startTime);
+            return d !== 0 ? d : a.id.localeCompare(b.id);
+        });
+        const aptColumn = new Map<string, number>();
+        const columnEndTimes: number[] = [];
+        for (const apt of sorted) {
+            const start = toMin(apt.startTime);
+            const end = start + (apt.durationMinutes || 60);
+            let col = 0;
+            while (col < columnEndTimes.length && columnEndTimes[col] > start) col++;
+            aptColumn.set(apt.id, col);
+            columnEndTimes[col] = end;
+        }
+        const aptTotal = new Map<string, number>();
+        for (const apt of allApts) {
+            const start = toMin(apt.startTime);
+            const end = start + (apt.durationMinutes || 60);
+            let maxCol = aptColumn.get(apt.id) ?? 0;
+            for (const other of allApts) {
+                const oStart = toMin(other.startTime);
+                const oEnd = oStart + (other.durationMinutes || 60);
+                if (start < oEnd && oStart < end) {
+                    maxCol = Math.max(maxCol, aptColumn.get(other.id) ?? 0);
+                }
+            }
+            aptTotal.set(apt.id, maxCol + 1);
+        }
+        return { aptColumn, aptTotal };
+    };
+
     // Render Appointment Card
     const renderAppointmentCard = (apt: Appointment, index: number, totalInSlot: number, slotIndex: number) => {
         const style = getCardStyle(apt.status, index);
@@ -1338,6 +1372,8 @@ export default function AgendaPage() {
                                                         const dayAppointments = getAppointmentsForDay(day);
                                                         const isToday = isSameDay(day, new Date());
 
+                                                        const { aptColumn, aptTotal } = computeOverlapLayout(dayAppointments);
+
                                                         return (
                                                             <div key={dayIdx} className="relative h-full pointer-events-none">
                                                                 {/* Current Time Indicator */}
@@ -1350,15 +1386,11 @@ export default function AgendaPage() {
                                                                     </div>
                                                                 )}
                                                                 {dayAppointments.map((apt, aptIdx) => {
-                                                                    // Calcular largura baseada em conflitos na hora (slot)
-                                                                    const conflicts = dayAppointments.filter(a => a.startTime === apt.startTime);
-                                                                    const indexInSlot = conflicts.findIndex(a => a.id === apt.id);
-
                                                                     return renderAppointmentCard(
                                                                         apt,
                                                                         aptIdx,
-                                                                        conflicts.length,
-                                                                        indexInSlot !== -1 ? indexInSlot : 0
+                                                                        aptTotal.get(apt.id) ?? 1,
+                                                                        aptColumn.get(apt.id) ?? 0
                                                                     );
                                                                 })}
                                                             </div>
