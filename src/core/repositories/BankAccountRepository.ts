@@ -45,6 +45,7 @@ export interface BankAccountRepository {
     update(id: string, input: UpdateBankAccountInput): Promise<BankAccount>
     deactivate(id: string): Promise<void>
     activate(id: string): Promise<void>
+    softDelete(id: string): Promise<void>
     getById(id: string): Promise<BankAccount | null>
     list(isActive?: boolean): Promise<BankAccount[]>
     listWithBalances(isActive?: boolean): Promise<BankAccountWithBalance[]>

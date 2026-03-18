@@ -3,16 +3,31 @@
 import { BankAccountWithBalance } from '@/core/domain/BankAccount'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Building2, CreditCard, Wallet, Edit, Power } from 'lucide-react'
+import { Building2, CreditCard, Wallet, Edit, Power, Trash2 } from 'lucide-react'
 import { BankLogos, isEmoji } from './BankLogos'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { useState } from 'react'
 
 interface BankAccountsListProps {
     accounts: BankAccountWithBalance[]
     onEdit: (account: BankAccountWithBalance) => void
     onToggleActive: (id: string, isActive: boolean) => void
+    onDelete: (id: string) => void
 }
 
-export function BankAccountsList({ accounts, onEdit, onToggleActive }: BankAccountsListProps) {
+export function BankAccountsList({ accounts, onEdit, onToggleActive, onDelete }: BankAccountsListProps) {
+    const [deletingId, setDeletingId] = useState<string | null>(null)
+    const deletingAccount = accounts.find(a => a.id === deletingId)
+
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', {
             style: 'currency',
@@ -39,6 +54,7 @@ export function BankAccountsList({ accounts, onEdit, onToggleActive }: BankAccou
     }
 
     return (
+        <>
         <div className="rounded-lg border bg-card/50 backdrop-blur-sm">
             <div className="overflow-x-auto">
                 <table className="w-full">
@@ -90,20 +106,15 @@ export function BankAccountsList({ accounts, onEdit, onToggleActive }: BankAccou
                                     </Badge>
                                 </td>
                                 <td className="px-4 py-3">
-                                    <div className="flex justify-end gap-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => onEdit(account)}
-                                        >
+                                    <div className="flex justify-end gap-1">
+                                        <Button variant="ghost" size="sm" onClick={() => onEdit(account)} title="Editar">
                                             <Edit className="h-4 w-4" />
                                         </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => onToggleActive(account.id, account.isActive)}
-                                        >
+                                        <Button variant="ghost" size="sm" onClick={() => onToggleActive(account.id, account.isActive)} title={account.isActive ? 'Desativar' : 'Ativar'}>
                                             <Power className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="sm" className="hover:text-red-500 hover:bg-red-50" onClick={() => setDeletingId(account.id)} title="Excluir">
+                                            <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </div>
                                 </td>
@@ -113,5 +124,26 @@ export function BankAccountsList({ accounts, onEdit, onToggleActive }: BankAccou
                 </table>
             </div>
         </div>
+
+        <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
+            <AlertDialogContent className="rounded-2xl">
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir conta "{deletingAccount?.name}"?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        A conta será removida das listagens. Todas as transações existentes serão preservadas e continuarão visíveis no fluxo de caixa.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                        className="bg-red-500 hover:bg-red-600"
+                        onClick={() => { onDelete(deletingId!); setDeletingId(null); }}
+                    >
+                        Excluir
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+        </>
     )
 }

@@ -3,25 +3,34 @@
 import { useState } from 'react'
 import { BankAccountWithBalance } from '@/core/domain/BankAccount'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Edit, Star, Copy, TrendingUp, TrendingDown } from 'lucide-react'
+import { Edit, Star, Copy, TrendingUp, TrendingDown, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { BankLogos, BANK_PRESETS, isEmoji } from './BankLogos'
-
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 interface BankAccountCardProps {
     account: BankAccountWithBalance
     onEdit: (account: BankAccountWithBalance) => void
     onToggleActive: (id: string, isActive: boolean) => void
+    onDelete: (id: string) => void
 }
 
-export function BankAccountCard({ account, onEdit, onToggleActive }: BankAccountCardProps) {
+export function BankAccountCard({ account, onEdit, onToggleActive, onDelete }: BankAccountCardProps) {
     const router = useRouter()
     const isNegative = account.currentBalance < 0
     const [imgFailed, setImgFailed] = useState(false)
+    const [confirmDelete, setConfirmDelete] = useState(false)
 
     const preset = BANK_PRESETS.find(p => p.id === account.icon)
     const hasImage = !!preset?.imageUrl && !imgFailed
@@ -48,6 +57,7 @@ export function BankAccountCard({ account, onEdit, onToggleActive }: BankAccount
     }
 
     return (
+        <>
         <div
             className="group relative overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-2 hover:border-primary/20 cursor-pointer"
             onClick={() => router.push(`/contas/${account.id}`)}
@@ -106,14 +116,19 @@ export function BankAccountCard({ account, onEdit, onToggleActive }: BankAccount
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-primary/10 hover:text-primary focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onEdit(account);
-                            }}
+                            onClick={(e) => { e.stopPropagation(); onEdit(account); }}
                             title="Editar"
-                            aria-label="Editar conta"
                         >
                             <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-red-50 hover:text-red-500 focus-visible:opacity-100"
+                            onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
+                            title="Excluir conta"
+                        >
+                            <Trash2 className="h-4 w-4" />
                         </Button>
                     </div>
                 </div>
@@ -188,5 +203,26 @@ export function BankAccountCard({ account, onEdit, onToggleActive }: BankAccount
                 account.isActive ? "bg-muted group-hover:bg-primary/20" : "bg-muted-foreground/20"
             )} />
         </div>
+
+        <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+            <AlertDialogContent className="rounded-2xl">
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir conta "{account.name}"?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        A conta será removida das listagens. Todas as transações existentes serão preservadas e continuarão visíveis no fluxo de caixa.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                        className="bg-red-500 hover:bg-red-600"
+                        onClick={() => { setConfirmDelete(false); onDelete(account.id); }}
+                    >
+                        Excluir
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+        </>
     )
 }

@@ -122,6 +122,7 @@ export function BankAccountsDashboard() {
                   account={account}
                   onEdit={() => {}}
                   onToggleActive={() => {}}
+                  onDelete={() => {}}
                 />
               ))}
             </div>

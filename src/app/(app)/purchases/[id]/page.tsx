@@ -126,7 +126,22 @@ export default function PurchaseDetailPage() {
 
     const canEdit = purchase && (!purchase.payments || purchase.payments.length === 0);
 
-    if (isLoading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
+    if (isLoading) return (
+        <div className="space-y-6 pb-10 animate-pulse">
+            <div className="flex items-center gap-4">
+                <div className="h-9 w-9 rounded-full bg-slate-100" />
+                <div className="space-y-2">
+                    <div className="h-6 w-48 bg-slate-100 rounded-lg" />
+                    <div className="h-4 w-32 bg-slate-100 rounded" />
+                </div>
+            </div>
+            <div className="h-24 rounded-2xl bg-slate-100" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-2 h-64 rounded-2xl bg-slate-100" />
+                <div className="h-48 rounded-2xl bg-slate-100" />
+            </div>
+        </div>
+    );
     if (!purchase) return null;
 
     const paymentSummary = calculatePaymentSummary(purchase);
@@ -134,9 +149,9 @@ export default function PurchaseDetailPage() {
 
     const getStatusBadge = (status: string) => {
         const variants = {
-            PENDING: { label: 'Pendente', className: 'bg-yellow-100 text-yellow-700 hover:bg-yellow-100' },
-            PARTIAL: { label: 'Parcial', className: 'bg-blue-100 text-blue-700 hover:bg-blue-100' },
-            PAID: { label: 'Pago', className: 'bg-green-100 text-green-700 hover:bg-green-100' },
+            PENDING: { label: 'Pendente', className: 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-50' },
+            PARTIAL: { label: 'Parcial', className: 'bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-50' },
+            PAID: { label: 'Pago', className: 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-50' },
         };
         const variant = variants[status as keyof typeof variants] || variants.PENDING;
         return <Badge variant="secondary" className={variant.className}>{variant.label}</Badge>;
@@ -161,15 +176,22 @@ export default function PurchaseDetailPage() {
                     <ArrowLeft className="h-5 w-5" />
                 </Button>
                 <div className="flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <h1 className="text-2xl font-bold tracking-tight font-heading">
-                            Entrada de Estoque
-                        </h1>
-                        {getStatusBadge(purchase.paymentStatus)}
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-200">
+                            <Package className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h1 className="text-2xl font-bold tracking-tight font-heading">
+                                    Entrada de Estoque
+                                </h1>
+                                {getStatusBadge(purchase.paymentStatus)}
+                            </div>
+                            <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                                <Calendar className="h-3.5 w-3.5" /> {formatDate(purchase.date)}
+                            </p>
+                        </div>
                     </div>
-                    <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-                        <Calendar className="h-4 w-4" /> {formatDate(purchase.date)}
-                    </p>
                 </div>
                 <div className="flex gap-2">
                     {paymentSummary.remaining > 0 && (
@@ -207,24 +229,22 @@ export default function PurchaseDetailPage() {
 
             {/* Payment Summary Card */}
             {purchase.paymentStatus !== 'PAID' && (
-                <Card className="border-yellow-200 bg-yellow-50/50 backdrop-blur-xl">
-                    <CardContent className="pt-6">
-                        <div className="grid grid-cols-3 gap-4">
-                            <div>
-                                <p className="text-sm text-muted-foreground">Total da Compra</p>
-                                <p className="text-xl font-bold text-slate-900">{formatCurrency(paymentSummary.total)}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-muted-foreground">Já Pago</p>
-                                <p className="text-xl font-bold text-green-600">{formatCurrency(paymentSummary.paid)}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-muted-foreground">Restante</p>
-                                <p className="text-xl font-bold text-orange-600">{formatCurrency(paymentSummary.remaining)}</p>
-                            </div>
+                <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-5">
+                    <div className="grid grid-cols-3 gap-4 divide-x divide-amber-200">
+                        <div className="pr-4">
+                            <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide">Total</p>
+                            <p className="text-2xl font-bold text-slate-900 mt-1">{formatCurrency(paymentSummary.total)}</p>
                         </div>
-                    </CardContent>
-                </Card>
+                        <div className="px-4">
+                            <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">Pago</p>
+                            <p className="text-2xl font-bold text-emerald-600 mt-1">{formatCurrency(paymentSummary.paid)}</p>
+                        </div>
+                        <div className="pl-4">
+                            <p className="text-xs font-semibold text-red-500 uppercase tracking-wide">Restante</p>
+                            <p className="text-2xl font-bold text-red-600 mt-1">{formatCurrency(paymentSummary.remaining)}</p>
+                        </div>
+                    </div>
+                </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

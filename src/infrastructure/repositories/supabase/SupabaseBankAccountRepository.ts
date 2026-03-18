@@ -124,6 +124,15 @@ export class SupabaseBankAccountRepository implements BankAccountRepository {
         if (error) throw new Error(`Failed to activate bank account: ${error.message}`)
     }
 
+    async softDelete(id: string): Promise<void> {
+        const { error } = await this.supabase
+            .from('bank_accounts')
+            .update({ deleted_at: new Date().toISOString(), is_active: false })
+            .eq('id', id)
+
+        if (error) throw new Error(`Failed to delete bank account: ${error.message}`)
+    }
+
     async getById(id: string): Promise<BankAccount | null> {
         const { data, error } = await this.supabase
             .from('bank_accounts')
@@ -143,6 +152,7 @@ export class SupabaseBankAccountRepository implements BankAccountRepository {
         let query = this.supabase
             .from('bank_accounts')
             .select('*')
+            .is('deleted_at', null)
             .order('is_favorite', { ascending: false })
             .order('display_order', { ascending: true })
             .order('name', { ascending: true })

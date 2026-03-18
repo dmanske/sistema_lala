@@ -16,7 +16,7 @@ const brl = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
 
 export default function ContasPage() {
-  const { accounts, loading, createAccount, updateAccount, toggleAccountStatus, refresh } = useBankAccounts()
+  const { accounts, loading, createAccount, updateAccount, toggleAccountStatus, deleteAccount, refresh } = useBankAccounts()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [transferDialogOpen, setTransferDialogOpen] = useState(false)
   const [selectedAccount, setSelectedAccount] = useState<BankAccount | null>(null)
@@ -192,6 +192,7 @@ export default function ContasPage() {
                     account={account}
                     onEdit={handleEdit}
                     onToggleActive={toggleAccountStatus}
+                    onDelete={deleteAccount}
                   />
                 ))}
               </div>
@@ -200,6 +201,7 @@ export default function ContasPage() {
                 accounts={filteredAccounts}
                 onEdit={handleEdit}
                 onToggleActive={toggleAccountStatus}
+                onDelete={deleteAccount}
               />
             )}
           </div>

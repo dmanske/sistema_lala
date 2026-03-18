@@ -132,33 +132,33 @@ export default function PurchasesPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-card rounded-2xl border border-border shadow-sm p-5">
+                <div className="bg-card rounded-2xl border border-border shadow-sm p-5 border-t-2 border-t-purple-400">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total de Compras</span>
-                        <div className="h-8 w-8 rounded-xl bg-purple-50 flex items-center justify-center">
-                            <ShoppingBag className="h-4 w-4 text-purple-400" />
+                        <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-purple-100 to-purple-50 flex items-center justify-center">
+                            <ShoppingBag className="h-4 w-4 text-purple-500" />
                         </div>
                     </div>
                     <p className="text-2xl font-bold text-slate-800">{purchases.length}</p>
                     <p className="text-xs text-slate-400 mt-1">Entradas registradas</p>
                 </div>
 
-                <div className="bg-card rounded-2xl border border-border shadow-sm p-5">
+                <div className="bg-card rounded-2xl border border-border shadow-sm p-5 border-t-2 border-t-emerald-400">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Valor Total</span>
-                        <div className="h-8 w-8 rounded-xl bg-emerald-50 flex items-center justify-center">
-                            <TrendingDown className="h-4 w-4 text-emerald-400" />
+                        <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-50 flex items-center justify-center">
+                            <TrendingDown className="h-4 w-4 text-emerald-500" />
                         </div>
                     </div>
                     <p className="text-2xl font-bold text-slate-800">{brl(totalValue)}</p>
                     <p className="text-xs text-slate-400 mt-1">Investido em estoque</p>
                 </div>
 
-                <div className="bg-card rounded-2xl border border-border shadow-sm p-5">
+                <div className="bg-card rounded-2xl border border-border shadow-sm p-5 border-t-2 border-t-blue-400">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Última Compra</span>
-                        <div className="h-8 w-8 rounded-xl bg-blue-50 flex items-center justify-center">
-                            <Calendar className="h-4 w-4 text-blue-400" />
+                        <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center">
+                            <Calendar className="h-4 w-4 text-blue-500" />
                         </div>
                     </div>
                     <p className="text-base font-bold text-slate-800 truncate">
@@ -169,11 +169,11 @@ export default function PurchasesPage() {
                     </p>
                 </div>
 
-                <div className="bg-card rounded-2xl border border-border shadow-sm p-5">
+                <div className="bg-card rounded-2xl border border-border shadow-sm p-5 border-t-2 border-t-amber-400">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pendente</span>
-                        <div className="h-8 w-8 rounded-xl bg-amber-50 flex items-center justify-center">
-                            <Clock className="h-4 w-4 text-amber-400" />
+                        <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-amber-100 to-amber-50 flex items-center justify-center">
+                            <Clock className="h-4 w-4 text-amber-500" />
                         </div>
                     </div>
                     <p className="text-2xl font-bold text-amber-600">{pending.length}</p>

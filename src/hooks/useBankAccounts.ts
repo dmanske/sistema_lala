@@ -71,6 +71,19 @@ export function useBankAccounts() {
         }
     }
 
+    const deleteAccount = async (id: string) => {
+        try {
+            const repo = getBankAccountRepository()
+            await repo.softDelete(id)
+            toast.success('Conta excluída. Transações preservadas.')
+            await loadAccounts()
+            return true
+        } catch (error) {
+            toast.error('Erro ao excluir conta')
+            return false
+        }
+    }
+
     const refresh = loadAccounts
 
     return {
@@ -79,6 +92,7 @@ export function useBankAccounts() {
         createAccount,
         updateAccount,
         toggleAccountStatus,
+        deleteAccount,
         refresh
     }
 }
